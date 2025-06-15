@@ -19,8 +19,6 @@ public class JwtService {
 
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
-    @Value("${application.security.jwt.expiration}")
-    private long jwtExpiration;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -31,23 +29,24 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
-    }
-
-    public String generateToken(
-            Map<String, Object> extraClaims,
-            UserDetails userDetails
+    @SafeVarargs
+    public final String generateToken(
+            UserDetails userDetails,
+            long expirationTimeMillis,
+            Map<String, Object>... extraClaims
     ) {
+        Map<String, Object> allClaims = new HashMap<>();
+        for (Map<String, Object> claimMap : extraClaims) {
+            allClaims.putAll(claimMap);
+        }
         return Jwts.builder()
-                .claims(extraClaims)
+                .claims(allClaims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .expiration(new Date(System.currentTimeMillis() + expirationTimeMillis))
+                .signWith(getSignInKey())
                 .compact();
     }
-
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
@@ -69,7 +68,6 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
     }
-
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);

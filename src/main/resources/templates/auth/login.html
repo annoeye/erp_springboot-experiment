@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .container { width: 300px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="password"] { width: 95%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .error-message { color: red; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 10px; margin-bottom: 15px; border-radius: 3px;}
+        .success-message { color: green; background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 10px; margin-bottom: 15px; border-radius: 3px;}
+        .validation-error { color: red; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Đăng nhập</h2>
+
+    <!-- Hiển thị thông báo thành công (nếu có từ RedirectAttributes) -->
+    <div th:if="${loginSuccess}" class="success-message" th:text="${loginSuccess}"></div>
+    <div th:if="${successMessage}" class="success-message" th:text="${successMessage}"></div>
+
+
+    <!-- Hiển thị thông báo lỗi chung (nếu có từ Model hoặc RedirectAttributes) -->
+    <div th:if="${loginError}" class="error-message" th:text="${loginError}"></div>
+    <div th:if="${errorMessage}" class="error-message" th:text="${errorMessage}"></div>
+
+
+    <!--
+        Thymeleaf sẽ tự động liên kết đối tượng 'userLogin' từ model
+        và hiển thị lỗi validation cho từng trường nếu có.
+        th:action="@{/auth/login}" sẽ tạo URL đúng.
+        th:object="${userLogin}" để binding form với đối tượng UserLogin.
+    -->
+    <form th:action="@{/auth/login}" th:object="${userLogin}" method="post">
+        <div class="form-group">
+            <label for="usernameOrEmail">Tên đăng nhập hoặc Email:</label>
+            <input type="text" id="usernameOrEmail" name="usernameOrEmail" th:field="*{usernameOrEmail}" required />
+            <!-- Hiển thị lỗi validation cho trường usernameOrEmail (Thymeleaf) -->
+            <span th:if="${#fields.hasErrors('usernameOrEmail')}" th:errors="*{usernameOrEmail}" class="validation-error"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Mật khẩu:</label>
+            <input type="password" id="password" name="password" th:field="*{password}" required />
+            <!-- Hiển thị lỗi validation cho trường password (Thymeleaf) -->
+            <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="validation-error"></span>
+        </div>
+
+        <!-- Bạn có thể thêm trường deviceInfo nếu cần thiết cho logic của bạn -->
+        <!--
+        <div class="form-group">
+            <label for="deviceInfo">Thông tin thiết bị (ẩn hoặc tự động điền):</label>
+            <input type="hidden" id="deviceInfo" name="deviceInfo" th:field="*{deviceInfo}" value="someDefaultDeviceInfo" />
+             <span th:if="${#fields.hasErrors('deviceInfo')}" th:errors="*{deviceInfo}" class="validation-error"></span>
+        </div>
+        -->
+
+
+        <button type="submit">Đăng nhập</button>
+    </form>
+    <p>
+        Chưa có tài khoản? <a th:href="@{/auth/register}">Đăng ký</a>
+    </p>
+</div>
+</body>
+</html>

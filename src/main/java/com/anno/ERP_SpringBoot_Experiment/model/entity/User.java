@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,20 +55,33 @@ public class User implements UserDetails {
 
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
-    Date createdAt;
+    LocalDateTime createdAt;
 
     @Column(name = "update_at")
     @Temporal(TemporalType.TIMESTAMP)
-    Date updatedAt;
+    LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
     Active active;
+
+    @Column(name = "email_verification_token")
+    String emailVerificationToken;
+
+    @Size(max = 6)
+    @Column(name = "code_reset_password")
+    String codeResetPassword;
+
+    @Column(name = "token_expiry_date")
+    LocalDateTime tokenExpiryDate;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(  name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     Set<Role> roles = new HashSet<>();
+
+    @OneToMany(mappedBy = "userInfo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RefreshToken> refreshTokens;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
