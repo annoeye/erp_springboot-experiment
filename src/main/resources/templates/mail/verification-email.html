@@ -12,13 +12,13 @@
 </head>
 <body>
 <div class="container">
-    <h1 th:text="'Chào ' + ${userName} + ','">Chào bạn,</h1>
+    <h1 th:text="'Chào ' + ${username} + ','">Chào bạn,</h1>
     <p>Cảm ơn bạn đã đăng ký. Vui lòng nhấp vào nút bên dưới để xác thực tài khoản của bạn:</p>
     <p>
-        <a th:href="${verificationLink}" class="button">Xác thực tài khoản</a>
+        <a th:href="${verificationUrl}" class="button">Xác thực tài khoản</a>
     </p>
     <p>Nếu nút trên không hoạt động, bạn cũng có thể sao chép và dán liên kết sau vào trình duyệt của mình:</p>
-    <p th:text="${verificationLink}"></p>
+    <p th:text="${verificationUrl}"></p>
     <p>Nếu bạn không yêu cầu đăng ký này, vui lòng bỏ qua email này.</p>
     <div class="footer">
         <p>Trân trọng,<br/>Đội ngũ [Tên Ứng Dụng Của Bạn]</p>

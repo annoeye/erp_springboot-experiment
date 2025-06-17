@@ -25,7 +25,7 @@ public class EmailService {
     private String processHtmlTemplate(String templateName, Map<String, Object> variable){
         Context context =new Context();
         if (variable != null) variable.forEach(context ::setVariable);
-        return templateEngine.process("/mail" + templateName, context);
+        return templateEngine.process("/mail/" + templateName, context);
     }
 
     public void sendVerificationEmail(String to, String username, String verificationUrl) throws MessagingException {
@@ -41,7 +41,6 @@ public class EmailService {
                 "username", username,
                 "verificationUrl", verificationUrl
         );
-
         String htmlContent = processHtmlTemplate("verification-email.html", variables);
         helper.setText(htmlContent, true);
 

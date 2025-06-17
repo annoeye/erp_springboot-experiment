@@ -47,7 +47,7 @@ public class UserService implements iUser {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int OTP_LENGTH = 6;
-    private static final int OTP_UPPER_BOUND = (int) Math.pow(10, OTP_LENGTH); // 1,000,000
+    private static final int OTP_UPPER_BOUND = (int) Math.pow(10, OTP_LENGTH);
     private static final String OTP_FORMAT_PATTERN = "%0" + OTP_LENGTH + "d";
 
     @Override
@@ -64,28 +64,31 @@ public class UserService implements iUser {
             throw new CustomException("Tên đăng nhập đã tồn tại.", HttpStatus.CONFLICT);
         });
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(body.getUserName());
+        UserDetails tempUserDetailsForToken = org.springframework.security.core.userdetails.User.builder()
+                .username(body.getUserName())
+                .password("")
+                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
+                .build();
 
-            User user = User.builder()
-            .userName(body.getUserName())
-            .email(body.getEmail())
-            .password(passwordEncoder.encode(body.getPassword()))
-            .emailVerificationToken(createShortToken(userDetails, 5000L * 60)) // 5 phút
-            .tokenExpiryDate(LocalDateTime.now().plusMinutes(5))
-            .active(User.Active.INACTIVE)
-            .build();
-            userRepository.save(user);
-            logger.info("Tạo tài khoản user chưa active: {}", user.getUsername());
+        User user = User.builder()
+                .userName(body.getUserName())
+                .email(body.getEmail())
+                .password(passwordEncoder.encode(body.getPassword()))
+                .emailVerificationToken(createShortToken(tempUserDetailsForToken, 5000L * 60))
+                .tokenExpiryDate(LocalDateTime.now().plusMinutes(5))
+                .active(User.Active.INACTIVE)
+                .build();
+        userRepository.save(user);
+        logger.info("Tạo tài khoản user chưa active: {}", user.getUsername());
 
-            // xác thực mail
-            String type = "verifyAccount";
-            String verificationUrl = "http://localhost:" + serverPort + "/api/auth/verify?token=" + user.getEmailVerificationToken()+ "&username=" + user.getUsername() + "&type=" + type;
+        String type = "verifyAccount";
+        String verificationUrl = "http://localhost:" + serverPort + "/auth/verify?token=" + user.getEmailVerificationToken()+ "&username=" + user.getUsername() + "&type=" + type;
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), verificationUrl);
         } catch (MessagingException e) {
             throw new MessagingException("Lỗi gửi email xác thực: " + e.getMessage());
         }
-            return "Yêu cầu xác nhận tài khoản.";
+        return "Yêu cầu xác nhận tài khoản.";
     }
 
     @Override
@@ -106,22 +109,48 @@ public class UserService implements iUser {
                         .password("")
                         .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
                         .build();
-                String newEmailToken = createShortToken(tempUserDetailsForToken, 300000L); // Sử dụng createShortToken
+                String newEmailToken = createShortToken(tempUserDetailsForToken, 300000L);
+                logger.debug("DEBUG: Token được tạo mới: {}", newEmailToken);
+
                 user.setEmailVerificationToken(newEmailToken);
                 user.setTokenExpiryDate(LocalDateTime.now().plusMinutes(5));
-                userRepository.save(user);
+                user = userRepository.save(user);
                 logger.info("Tạo và gửi lại token xác thực cho user chưa active: {}", user.getUsername());
+                logger.debug("DEBUG: Token sau khi lưu vào DB (từ đối tượng user): {}", user.getEmailVerificationToken());
+            } else {
+                logger.info("User {} đã có token xác thực còn hiệu lực.", user.getUsername());
+                logger.debug("DEBUG: Token hiện tại của user (còn hiệu lực): {}", user.getEmailVerificationToken());
             }
 
             String type = "verifyAccount";
-            String verificationUrl = "http://localhost:" + serverPort + "/api/auth/verify?token=" + user.getEmailVerificationToken() + "&username=" + user.getUsername() + "&type=" + type;
+            String verificationUrl = "http://localhost:" + serverPort + "/auth/verify?token=" + user.getEmailVerificationToken() + "&username=" + user.getUsername() + "&type=" + type;
+            logger.debug("DEBUG: URL xác thực đầy đủ được tạo: {}", verificationUrl);
+            logger.debug("DEBUG: Token trích xuất từ URL: {}", user.getEmailVerificationToken());
+
             try {
                 emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), verificationUrl);
             } catch (MessagingException e) {
                 logger.error("Lỗi gửi lại email xác thực cho user chưa active {}: {}", user.getEmail(), e.getMessage(), e);
-                throw new CustomException("Lỗi trong quá trình xử lý tài khoản chưa xác thực. Vui lòng thử lại sau.", HttpStatus.INTERNAL_SERVER_ERROR);
+                return AuthResponse.builder()
+                        .message("Lỗi trong quá trình gửi email xác thực. Vui lòng thử lại sau.")
+                        .accessToken(null)
+                        .refreshToken(null)
+                        .username(user.getUsername())
+                        .email(user.getEmail())
+                        .userId(user.getId())
+                        .roles(null)
+                        .build();
             }
-            throw new CustomException("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến " + maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.", HttpStatus.UNAUTHORIZED);
+
+            return AuthResponse.builder()
+                    .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến " + maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
+                    .accessToken(null)
+                    .refreshToken(null)
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .userId(user.getId())
+                    .roles(null)
+                    .build();
         }
 
         if (!passwordEncoder.matches(body.getPassword(), user.getPassword())) {
@@ -194,38 +223,48 @@ public class UserService implements iUser {
     @Transactional
     public String verifyAccount(String userName, String token, String type) {
 
-        User user = userRepository.getUserByUsername(userName)
-                .orElseThrow(() -> new CustomException("Người dùng '" + userName + "' không tìm thấy để xác thực.", HttpStatus.NOT_FOUND));
+        User user = userRepository.findByEmail(userName)
+                .orElse(null);
+
+        if (user == null) {
+            return "Người dùng '" + userName + "' không tìm thấy để xác thực.";
+        }
 
         switch (type) {
             case "verifyAccount":
-                if (token.equals(user.getEmailVerificationToken()) && user.getTokenExpiryDate().isAfter(LocalDateTime.now())) {
+                if (Objects.equals(token, user.getEmailVerificationToken()) && user.getTokenExpiryDate() != null && user.getTokenExpiryDate().isAfter(LocalDateTime.now())) {
                     user.setActive(User.Active.ACTIVE);
-                    user.setCreatedAt(LocalDateTime.now());
-                    userRepository.save(user);
-                    logger.info("Xác thực tài khoản user chưa active thành công : {}", user.getUsername());
+                    if (user.getCreatedAt() == null) {
+                        user.setCreatedAt(LocalDateTime.now());
+                    }
+                    user = userRepository.save(user);
+                    logger.info("Xác thực tài khoản user chưa active thành công: {}", user.getUsername());
                     return "Xác thực tài khoản thành công!";
-                }else {
-                    throw new CustomException("Token không hợp lệ hoặc đã hết hạn.", HttpStatus.BAD_REQUEST);
+                } else {
+                    return "Token không hợp lệ hoặc đã hết hạn.";
                 }
 
             default:
-                throw new CustomException("Loại xác thực không hợp lệ: " + type, HttpStatus.BAD_REQUEST);
+                return "Loại xác thực không hợp lệ: " + type;
         }
     }
 
     @Override
+    @Transactional
     public String changePassword(ChangePassword changePasswordDto) throws CustomException {
 
         changePasswordDto.validatePasswordsMatch();
         User user = userRepository.findById(changePasswordDto.getId())
                 .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND));
-        if (changePasswordDto.getCodeResetPassword().equals(user.getCodeResetPassword())) {
+
+        if (Objects.equals(changePasswordDto.getCodeResetPassword(), user.getCodeResetPassword())) {
             user.setPassword(passwordEncoder.encode(changePasswordDto.getPassword()));
             user.setCodeResetPassword(null);
             userRepository.save(user);
             logger.info("Đã đặt lại mật khẩu cho user: {}", user.getUsername());
-        } else throw new CustomException("Mã xác thực không hợp lệ", HttpStatus.BAD_REQUEST);
+        } else {
+            throw new CustomException("Mã xác thực không hợp lệ", HttpStatus.BAD_REQUEST);
+        }
         return "Đặt lại mật khẩu thành công!";
     }
 

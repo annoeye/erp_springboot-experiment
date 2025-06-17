@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng Ký Tài Khoản</title>
+    <!-- Bạn có thể thêm CSS framework như Bootstrap ở đây -->
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 90vh; background-color: #f4f4f4; margin: 0; }
+        .container { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; }
+        .form-group input { width: calc(100% - 20px); padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .form-group input:focus { border-color: #007bff; outline: none; }
+        .error-message { color: red; font-size: 0.9em; margin-top: 5px; }
+        .success-message { color: green; background-color: #e6fffa; border: 1px solid #b2f0e1; padding: 10px; border-radius: 4px; text-align: center; margin-bottom: 15px;}
+        .submit-btn { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 1em; }
+        .submit-btn:hover { background-color: #0056b3; }
+        .login-link { text-align: center; margin-top: 15px; }
+        .login-link a { color: #007bff; text-decoration: none; }
+        .login-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Đăng Ký Tài Khoản</h2>
+
+    <!-- Thông báo thành công chung -->
+    <div th:if="${registrationSuccess}" class="success-message" th:text="${registrationSuccess}"></div>
+
+    <!-- Thông báo lỗi chung -->
+    <div th:if="${registrationError}" class="error-message" style="text-align: center; margin-bottom: 15px;" th:text="${registrationError}"></div>
+
+    <form th:action="@{/auth/register}" th:object="${userRegister}" method="post">
+        <div class="form-group">
+            <label for="userName">Tên đăng nhập:</label>
+            <input type="text" id="userName" th:field="*{userName}" placeholder="Nhập tên đăng nhập"/>
+            <div th:if="${#fields.hasErrors('userName')}" th:errors="*{userName}" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" th:field="*{email}" placeholder="Nhập email"/>
+            <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Mật khẩu:</label>
+            <input type="password" id="password" th:field="*{password}" placeholder="Nhập mật khẩu"/>
+            <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="confirmPassword">Xác nhận mật khẩu:</label>
+            <input type="password" id="confirmPassword" th:field="*{confirmPassword}" placeholder="Nhập lại mật khẩu"/>
+            <div th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" class="error-message"></div>
+        </div>
+
+        <button type="submit" class="submit-btn">Đăng Ký</button>
+    </form>
+    <div class="login-link">
+        Đã có tài khoản? <a th:href="@{/auth/login}">Đăng nhập tại đây</a>
+    </div>
+</div>
+</body>
+</html>

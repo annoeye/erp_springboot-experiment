@@ -10,6 +10,8 @@ import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,6 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class authController {
 
     private final iUser userService;
+    private static final Logger logger = LoggerFactory.getLogger(authController.class);
 
     @GetMapping("/login")
     public String showLoginPage(Model model) {
@@ -39,6 +42,7 @@ public class authController {
         }
         return "auth/register";
     }
+
     @PostMapping("/login")
     public String processLoginMvc(
             @Valid @ModelAttribute("userLogin") UserLogin userLoginDetails,
@@ -68,6 +72,7 @@ public class authController {
         }
     }
 
+
     @PostMapping("/register")
     public String processRegistration(
             @Valid @ModelAttribute("userRegister") UserRegister userRegisterDetails,
@@ -76,25 +81,24 @@ public class authController {
             RedirectAttributes redirectAttributes
     ) {
         if (!userRegisterDetails.isPasswordConfirmed()) {
-            bindingResult.rejectValue("confirmPassword", "error.userRegister", "Mật khẩu xác nhận không khớp.");
+            bindingResult.rejectValue("confirmPassword", "PasswordMismatch", "Mật khẩu xác nhận không khớp.");
         }
         if (bindingResult.hasErrors()) {
-            // model.addAttribute("userRegister", userRegisterDetails); // Không cần thiết
             return "auth/register";
         }
 
         try {
             String resultMessage = userService.createUser(userRegisterDetails);
             redirectAttributes.addFlashAttribute("registrationSuccess", resultMessage);
-            return "redirect:/auth/login"; // Chuyển hướng đến trang đăng nhập sau khi đăng ký thành công
+            return "redirect:/auth/login";
         } catch (CustomException e) {
+            logger.warn("CustomException during registration for email {}: {} - Status: {}", userRegisterDetails.getEmail(), e.getMessage(), e.getStatus());
             // model.addAttribute("userRegister", userRegisterDetails); // Không cần thiết
-            if (e.getStatus() == HttpStatus.CONFLICT) { // Email hoặc username đã tồn tại
-                // Cố gắng xác định lỗi cụ thể hơn nếu có thể từ message của exception
+            if (e.getStatus() == HttpStatus.CONFLICT) {
                 if (e.getMessage().toLowerCase().contains("email")) {
-                    bindingResult.rejectValue("email", "error.userRegister", e.getMessage());
+                    bindingResult.rejectValue("email", "DuplicateValue", e.getMessage());
                 } else if (e.getMessage().toLowerCase().contains("tên đăng nhập")) {
-                    bindingResult.rejectValue("userName", "error.userRegister", e.getMessage());
+                    bindingResult.rejectValue("userName", "DuplicateValue", e.getMessage());
                 } else {
                     model.addAttribute("registrationError", e.getMessage());
                 }
@@ -103,13 +107,39 @@ public class authController {
             }
             return "auth/register";
         } catch (MessagingException e) {
-            // model.addAttribute("userRegister", userRegisterDetails); // Không cần thiết
+            logger.error("MessagingException during registration for email {}: {}", userRegisterDetails.getEmail(), e.getMessage(), e);
+            // model.addAttribute("userRegister", userRegisterDetails);
             model.addAttribute("registrationError", "Lỗi gửi email xác thực. Vui lòng thử lại hoặc liên hệ quản trị viên.");
             return "auth/register";
-        } catch (Exception e) {
-            // model.addAttribute("userRegister", userRegisterDetails); // Không cần thiết
+        } catch (Exception e) { // Bắt các Exception chung khác
+            logger.error("Unexpected Exception during registration for email {}: {}", userRegisterDetails.getEmail(), e.getMessage(), e);
+            // model.addAttribute("userRegister", userRegisterDetails);
             model.addAttribute("registrationError", "Đã có lỗi không mong muốn xảy ra trong quá trình đăng ký.");
             return "auth/register";
+        }
+    }
+    @GetMapping("/verify")
+    public String verifyAccount(@RequestParam("token") String token,
+                                @RequestParam("username") String username,
+                                @RequestParam("type") String type,
+                                RedirectAttributes redirectAttributes,
+                                Model model) {
+        try {
+            String verificationMessage = userService.verifyAccount(username, token, type);
+            // Nếu xác thực thành công, chuyển hướng đến trang đăng nhập với thông báo thành công
+            redirectAttributes.addFlashAttribute("verificationSuccess", verificationMessage);
+            return "redirect:/auth/login";
+        } catch (CustomException e) {
+            logger.warn("CustomException during account verification for username {}: {} - Status: {}", username, e.getMessage(), e.getStatus());
+            // Nếu có lỗi, hiển thị thông báo lỗi trên trang đăng nhập (hoặc một trang thông báo lỗi riêng)
+            // Ở đây, chúng ta sẽ thêm lỗi vào redirectAttributes để hiển thị trên trang login
+            redirectAttributes.addFlashAttribute("verificationError", e.getMessage());
+            return "redirect:/auth/login"; // Hoặc bạn có thể trả về một view lỗi cụ thể
+            // return "auth/verification-failed";
+        } catch (Exception e) {
+            logger.error("Unexpected exception during account verification for username {}: {}", username, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("verificationError", "Đã có lỗi không mong muốn xảy ra trong quá trình xác thực.");
+            return "redirect:/auth/login"; // Hoặc một view lỗi chung
         }
     }
 }
