@@ -1,8 +1,8 @@
 package com.anno.ERP_SpringBoot_Experiment.model.dto;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.DeviceInfo;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -17,6 +17,7 @@ public class UserLogin {
     @NotBlank(message = "Mật khẩu không được để trống.")
     String password;
 
-    @NotBlank(message = "Thông tin thiết bị không được để trống.")
+    @NotNull(message = "Thông tin thiết bị không được để trống.")
+    @Valid
     DeviceInfo deviceInfo;
 }

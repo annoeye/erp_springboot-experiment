@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.authenticated;
+package com.anno.ERP_SpringBoot_Experiment.configuration;
 
 import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;

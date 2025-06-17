@@ -1,23 +1,28 @@
 package com.anno.ERP_SpringBoot_Experiment.model.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
-import lombok.AccessLevel;
 import lombok.Data;
-import lombok.experimental.FieldDefaults;
 
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Data
 public class UserRegister {
-    @NotBlank(message = "Tên dùng để đăng nhập không được để trống")
-    @Size(min = 3, max = 20, message = "Đảm bảo nhập đúng độ dài của Tên đăng nhập! 3 => Name <= 20.")
-    String userName;
+    @NotEmpty(message = "Tên đăng nhập không được để trống")
+    @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
+    private String userName;
 
-    @NotBlank(message = "Mật khẩu không được để trống.")
-    String password;
+    @NotEmpty(message = "Email không được để trống")
+    @Email(message = "Email không đúng định dạng")
+    private String email;
 
-    @NotBlank(message = "Email không được để trống.")
-    @Email(message = "Email không hợp lệ!")
-    String email;
+    @NotEmpty(message = "Mật khẩu không được để trống")
+    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    private String password;
+
+    @NotEmpty(message = "Xác nhận mật khẩu không được để trống")
+    private String confirmPassword;
+
+    public boolean isPasswordConfirmed() {
+        return password != null && password.equals(confirmPassword);
+    }
 }
