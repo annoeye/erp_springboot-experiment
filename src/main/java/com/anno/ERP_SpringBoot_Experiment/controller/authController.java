@@ -32,7 +32,7 @@ public class authController {
         if (!model.containsAttribute("userLogin")) {
             model.addAttribute("userLogin", new UserLogin());
         }
-        return "auth/login";
+        return "pages/sign-up";
     }
 
     @GetMapping("/register")
