@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Argon Dashboard 2</title>
+
+    <!-- CSS Files -->
+    <link th:href="@{/css/output.css}" rel="stylesheet" />
+
+    <!-- Font Awesome Icons -->
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+
+    <!-- Scripts -->
+    <!-- Đã loại bỏ file ua-parser.js bị trùng lặp -->
+    <script th:src="@{/js/ua-parser.min.js}"></script>
+    <!-- Các script của bạn, sử dụng type="module" -->
+    <script type="module" th:src="@{/js/device-info.js}"></script>
+    <script type="module" th:src="@{/js/sign-up.js}"></script>
+</head>
+
+<body class="m-0 font-sans antialiased font-normal bg-white text-start text-base leading-default text-slate-500">
+<!-- Navbar -->
+<nav class="absolute top-0 z-30 flex flex-wrap items-center justify-between w-full px-4 py-2 mt-6 mb-4 shadow-none lg:flex-nowrap lg:justify-start">
+    <div class="container flex items-center justify-between py-0 flex-wrap-inherit">
+        <a class="py-1.75 ml-4 mr-4 font-bold text-white text-sm whitespace-nowrap lg:ml-0" th:href="@{/dashboard}"> Argon Dashboard 2 </a>
+        <button navbar-trigger class="px-3 py-1 ml-2 ... lg:hidden" type="button" aria-controls="navigation" aria-expanded="false" aria-label="Toggle navigation">
+            <!-- ... icon ... -->
+        </button>
+        <div navbar-menu class="items-center flex-grow ...">
+            <!-- Sử dụng th:href và URL do Spring quản lý -->
+            <ul class="flex flex-col pl-0 mx-auto mb-0 list-none lg:flex-row xl:ml-auto">
+                <li>
+                    <a class="flex items-center ... text-sm" th:href="@{/dashboard}">
+                        <i class="mr-1 fa fa-chart-pie opacity-60"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a class="block ... text-sm" th:href="@{/profile}">
+                        <i class="mr-1 fa fa-user opacity-60"></i> Profile
+                    </a>
+                </li>
+                <li>
+                    <a class="block ... text-sm" th:href="@{/sign-up}">
+                        <i class="mr-1 fas fa-user-circle opacity-60"></i> Sign Up
+                    </a>
+                </li>
+                <li>
+                    <a class="block ... text-sm" th:href="@{/auth/login}">
+                        <i class="mr-1 fas fa-key opacity-60"></i> Sign In
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="mt-0 transition-all duration-200 ease-in-out">
+    <section class="min-h-screen">
+        <!-- Header Background -->
+        <div class="bg-top relative flex items-start pt-12 pb-56 m-4 overflow-hidden bg-cover min-h-50-screen rounded-xl bg-[url('/assets/img/signup-cover.jpg')]">
+            <span class="absolute top-0 left-0 w-full h-full bg-center bg-cover bg-gradient-to-tl from-zinc-800 to-zinc-700 opacity-60"></span>
+            <div class="container z-10">
+                <div class="flex flex-wrap justify-center -mx-3">
+                    <div class="w-full max-w-full px-3 mx-auto mt-0 text-center lg:flex-0 shrink-0 lg:w-5/12">
+                        <h1 class="mt-12 mb-2 text-white">Welcome!</h1>
+                        <p class="text-white">Use these awesome forms to login or create new account in your project for free.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="container">
+            <div class="flex flex-wrap -mx-3 -mt-48 md:-mt-56 lg:-mt-48">
+                <div class="w-full max-w-full px-3 mx-auto mt-0 md:flex-0 shrink-0 md:w-8/12 lg:w-6/12 xl:w-5/12">
+                    <div class="relative z-0 flex flex-col min-w-0 break-words bg-white border-0 shadow-xl rounded-2xl bg-clip-border">
+                        <div class="p-6 mb-0 text-center bg-white border-b-0 rounded-t-2xl">
+                            <h5>Register</h5>
+                        </div>
+
+                        <div class="flex-auto p-6">
+                            <!-- ================================================================== -->
+                            <!-- FORM ĐÃ ĐƯỢC VIẾT LẠI HOÀN CHỈNH -->
+                            <!-- ================================================================== -->
+                            <form role="form" th:action="@{/auth/register}" th:object="${userRegister}" method="post" novalidate>
+
+                                <!-- Hàng 1: Họ tên và Ngày sinh -->
+                                <div class="flex flex-wrap sm:flex-nowrap gap-x-4 mb-4">
+                                    <!-- Họ và Tên -->
+                                    <div class="w-full sm:w-1/2">
+                                        <label for="fullName" class="sr-only">Họ và Tên</label>
+                                        <input type="text" th:field="*{fullName}"
+                                               th:classappend="${#fields.hasErrors('fullName')} ? 'border-red-500' : 'border-gray-300'"
+                                               class="w-full placeholder:text-gray-500 text-sm ... rounded-lg border"
+                                               placeholder="Họ và Tên" />
+                                        <!-- Vùng hiển thị lỗi (cho cả JS và Thymeleaf) -->
+                                        <div th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}" class="text-red-500 text-xs mt-1"></div>
+                                        <span id="fullName-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                                    </div>
+
+                                    <!-- Ngày sinh -->
+                                    <div class="w-full sm:w-1/2 flex gap-x-1">
+                                        <select id="select-day" class="w-1/3 ... rounded-lg border border-gray-300"><option disabled selected>Ngày</option></select>
+                                        <select id="select-month" class="w-1/3 ... rounded-lg border border-gray-300"><option disabled selected>Tháng</option></select>
+                                        <select id="select-year" class="w-1/3 ... rounded-lg border border-gray-300"><option disabled selected>Năm</option></select>
+                                    </div>
+                                </div>
+
+                                <!-- Hàng 2: Tên đăng nhập và Email -->
+                                <div class="flex flex-wrap sm:flex-nowrap gap-x-4 mb-4">
+                                    <!-- Tên đăng nhập -->
+                                    <div class="w-full sm:w-1/2">
+                                        <label for="userName" class="sr-only">Tên đăng nhập</label>
+                                        <input type="text" th:field="*{userName}"
+                                               th:classappend="${#fields.hasErrors('userName')} ? 'border-red-500' : 'border-gray-300'"
+                                               class="w-full placeholder:text-gray-500 text-sm ... rounded-lg border"
+                                               placeholder="Tên đăng nhập" />
+                                        <div th:if="${#fields.hasErrors('userName')}" th:errors="*{userName}" class="text-red-500 text-xs mt-1"></div>
+                                        <span id="userName-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                                    </div>
+                                    <!-- Email -->
+                                    <div class="w-full sm:w-1/2">
+                                        <label for="email" class="sr-only">Email</label>
+                                        <input type="email" th:field="*{email}"
+                                               th:classappend="${#fields.hasErrors('email')} ? 'border-red-500' : 'border-gray-300'"
+                                               class="w-full placeholder:text-gray-500 text-sm ... rounded-lg border"
+                                               placeholder="Email" />
+                                        <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="text-red-500 text-xs mt-1"></div>
+                                        <span id="email-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Hàng 3: Mật khẩu và Nhập lại mật khẩu -->
+                                <div class="flex flex-wrap sm:flex-nowrap gap-x-4 mb-4">
+                                    <!-- Mật khẩu -->
+                                    <div class="w-full sm:w-1/2">
+                                        <label for="password" class="sr-only">Mật khẩu</label>
+                                        <input type="password" th:field="*{password}"
+                                               th:classappend="${#fields.hasErrors('password')} ? 'border-red-500' : 'border-gray-300'"
+                                               class="w-full placeholder:text-gray-500 text-sm ... rounded-lg border"
+                                               placeholder="Mật khẩu" />
+                                        <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="text-red-500 text-xs mt-1"></div>
+                                        <span id="password-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                                    </div>
+                                    <!-- Nhập lại mật khẩu -->
+                                    <div class="w-full sm:w-1/2">
+                                        <label for="confirmPassword" class="sr-only">Nhập lại mật khẩu</label>
+                                        <input type="password" th:field="*{confirmPassword}"
+                                               th:classappend="${#fields.hasErrors('confirmPassword')} ? 'border-red-500' : 'border-gray-300'"
+                                               class="w-full placeholder:text-gray-500 text-sm ... rounded-lg border"
+                                               placeholder="Nhập lại mật khẩu" />
+                                        <div th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" class="text-red-500 text-xs mt-1"></div>
+                                        <span id="confirmPassword-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Nút Submit -->
+                                <div class="text-center">
+                                    <button type="submit" class="inline-block w-full px-5 py-2.5 mt-2 mb-2 font-bold ...">
+                                        Sign up
+                                    </button>
+                                </div>
+                                <p class="mt-2 mb-2 leading-normal text-sm">Already have an account?
+                                    <a th:href="@{/auth/login}" class="font-bold text-slate-700">Sign in</a>
+                                </p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12">
+        <div class="container">
+            <!-- ... footer links ... -->
+            <div class="flex flex-wrap -mx-3">
+                <div class="w-8/12 max-w-full px-3 mx-auto mt-1 text-center flex-0">
+                    <p class="mb-0 text-slate-400">
+                        Copyright ©
+                        <!-- Lấy năm hiện tại từ server, tốt hơn là dùng JS -->
+                        <span th:text="${#dates.year(#dates.createNow())}">2023</span>
+                        Argon Dashboard 2 by Creative Tim.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</main>
+
+<!-- Core JS Files -->
+<script th:src="@{/js/plugins/perfect-scrollbar.min.js}" async></script>
+<script th:src="@{/js/argon-dashboard-tailwind.js?v=1.0.1}" async></script>
+</body>
+</html>

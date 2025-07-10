@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.controller.apiRequest;
 
 import com.anno.ERP_SpringBoot_Experiment.model.dto.ChangePassword;
+import com.anno.ERP_SpringBoot_Experiment.model.dto.StopWork;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.UserLogin;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.UserRegister;
 import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUser;
@@ -43,4 +44,16 @@ public class authApiController {
     public ResponseEntity<?> sendPasswordResetCodeById(@PathVariable Long userId) throws MessagingException {
         return ResponseEntity.ok(userService.sendCodeResetPassword(userId));
     }
+
+    @PostMapping("/stop-work")
+    public ResponseEntity<String> stopWork(StopWork stopWork){
+        return ResponseEntity.ok(userService.stopWork(stopWork));
+    }
+
+    @PostMapping("/resume-work")
+    public ResponseEntity<String> resumeWork(StopWork stopWork) {
+        return ResponseEntity.ok(userService.resumeWork(stopWork));
+    }
+
+
 }

@@ -5,8 +5,16 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.Date;
+
 @Data
 public class UserRegister {
+    @NotEmpty(message = "Họ tên không được để trống")
+    private String fullName;
+
+    @NotEmpty(message = "Ngày sinh không được để trống")
+    private Date dateOfBirth;
+
     @NotEmpty(message = "Tên đăng nhập không được để trống")
     @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
     private String userName;

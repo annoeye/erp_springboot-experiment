@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 @Builder
 public class User implements UserDetails {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    @Size(max = 8)
+    String id;
 
     @Column(name = "user_name")
     String userName;

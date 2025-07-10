@@ -32,7 +32,7 @@ public class authController {
         if (!model.containsAttribute("userLogin")) {
             model.addAttribute("userLogin", new UserLogin());
         }
-        return "pages/sign-up";
+        return "pages/sign-in";
     }
 
     @GetMapping("/register")
@@ -40,7 +40,7 @@ public class authController {
         if (!model.containsAttribute("userRegister")) {
             model.addAttribute("userRegister", new UserRegister());
         }
-        return "auth/register";
+        return "pages/sign-up";
     }
 
     @PostMapping("/login")
@@ -51,7 +51,12 @@ public class authController {
             Model model,
             RedirectAttributes redirectAttributes
             ){
-        if (bindingResult.hasErrors()) return "auth/login";
+        if (bindingResult.hasErrors()) {
+            bindingResult.getAllErrors().forEach(error ->
+                    System.err.println("Validation Error: " + error.getDefaultMessage())
+            );
+            return "auth/login";
+        }
         try {
             AuthResponse authResponse = userService.loginUser(userLoginDetails);
             session.setAttribute("accessToken", authResponse.getAccessToken());
@@ -60,12 +65,15 @@ public class authController {
             session.setAttribute("email", authResponse.getEmail());
             session.setAttribute("userId", authResponse.getUserId());
             session.setAttribute("roles", authResponse.getRoles());
+            session.setAttribute("phoneNumber", authResponse.getPhoneNumber());
+            session.setAttribute("gender", authResponse.getGender());
+            session.setAttribute("avatarUrl", authResponse.getAvatarUrl());
             redirectAttributes.addFlashAttribute("loginSuccess", "Đăng nhập thành công!");
-            return "redirect:/dashboard";
+            return "auth/register";
         } catch (MessagingException e) {
             model.addAttribute("loginError", "Lỗi gửi email xác thực. Vui lòng thử lại.");
             return "auth/login";
-        }catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             model.addAttribute("userLogin", userLoginDetails);
             model.addAttribute("loginError", "Tên đăng nhập hoặc mật khẩu không đúng, hoặc đã có lỗi xảy ra.");
             return "auth/login";
@@ -118,6 +126,7 @@ public class authController {
             return "auth/register";
         }
     }
+
     @GetMapping("/verify")
     public String verifyAccount(@RequestParam("token") String token,
                                 @RequestParam("username") String username,

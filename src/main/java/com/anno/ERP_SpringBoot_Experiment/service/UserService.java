@@ -2,15 +2,18 @@ package com.anno.ERP_SpringBoot_Experiment.service;
 
 import com.anno.ERP_SpringBoot_Experiment.exception.CustomException;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.ChangePassword;
+import com.anno.ERP_SpringBoot_Experiment.model.dto.StopWork;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.UserLogin;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.UserRegister;
-import com.anno.ERP_SpringBoot_Experiment.model.entity.DeviceInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.entity.RefreshToken;
-import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.*;
 import com.anno.ERP_SpringBoot_Experiment.repository.RefreshTokenRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
+import com.anno.ERP_SpringBoot_Experiment.repository.ViolationHandlingRepository;
 import com.anno.ERP_SpringBoot_Experiment.response.AuthResponse;
+import com.anno.ERP_SpringBoot_Experiment.response.GetUserResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.helper.UserHelper;
 import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUser;
+import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUserActionLog;
 import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +31,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,23 +41,27 @@ public class UserService implements iUser {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final UserHelper userHelper;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final ViolationHandlingRepository violationHandlingRepository;
+    private final iUserActionLog userActionLogService;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-
-    @Value("${server.port}")
-    private String serverPort;
-
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int OTP_LENGTH = 6;
     private static final int OTP_UPPER_BOUND = (int) Math.pow(10, OTP_LENGTH);
     private static final String OTP_FORMAT_PATTERN = "%0" + OTP_LENGTH + "d";
 
+    @Value("${server.port}")
+    private String serverPort;
+
+
+
     @Override
     @Transactional
     public String createUser(UserRegister body) throws MessagingException {
 
-        if (!isEmailFormat(body.getEmail())) {
+        if (!userHelper.isEmailFormat(body.getEmail())) {
             throw new CustomException("Email không đúng định dạng", HttpStatus.BAD_REQUEST);
         }
         userRepository.findByEmail(body.getEmail()).ifPresent(existingUser -> {
@@ -71,10 +78,11 @@ public class UserService implements iUser {
                 .build();
 
         User user = User.builder()
+                .id(userHelper.generateRandom())
                 .userName(body.getUserName())
                 .email(body.getEmail())
                 .password(passwordEncoder.encode(body.getPassword()))
-                .emailVerificationToken(createShortToken(tempUserDetailsForToken, 5000L * 60))
+                .emailVerificationToken(userHelper.createShortToken(tempUserDetailsForToken, 5000L * 60))
                 .tokenExpiryDate(LocalDateTime.now().plusMinutes(5))
                 .active(User.Active.INACTIVE)
                 .build();
@@ -109,7 +117,7 @@ public class UserService implements iUser {
                         .password("")
                         .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
                         .build();
-                String newEmailToken = createShortToken(tempUserDetailsForToken, 300000L);
+                String newEmailToken = userHelper.createShortToken(tempUserDetailsForToken, 300000L);
                 logger.debug("DEBUG: Token được tạo mới: {}", newEmailToken);
 
                 user.setEmailVerificationToken(newEmailToken);
@@ -143,7 +151,7 @@ public class UserService implements iUser {
             }
 
             return AuthResponse.builder()
-                    .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến " + maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
+                    .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến " + userHelper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
                     .accessToken(null)
                     .refreshToken(null)
                     .username(user.getUsername())
@@ -175,7 +183,7 @@ public class UserService implements iUser {
         for (RefreshToken rt : userRefreshTokens) {
             if (rt.getDeviceInfo() != null && !rt.getDeviceInfo().isEmpty()) {
                 for (DeviceInfo existingDi : rt.getDeviceInfo()) {
-                    if (areDeviceInfoMatching(existingDi, deviceInfoFromRequest)) {
+                    if (userHelper.areDeviceInfoMatching(existingDi, deviceInfoFromRequest)) {
                         targetRefreshToken = rt;
                         if (!Objects.equals(existingDi.getIpAddress(), deviceInfoFromRequest.getIpAddress())) {
                             existingDi.setIpAddress(deviceInfoFromRequest.getIpAddress());
@@ -207,12 +215,17 @@ public class UserService implements iUser {
         }
         logger.info("Đăng nhập thành công cho user: {}", user.getUsername());
         String accessToken = jwtService.generateToken(userDetails, currentAccessTokenLifespanMillis);
+        userActionLogService.log(user, UserActionLog.ActionType.LOGIN, null, "Đăng nhập", null);
+        logger.info("Đã lưu thông tin người đăng nhập vào lịch sử hoạt động");
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(finalRefreshTokenString)
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .userId(user.getId())
+                .avatarUrl(user.getAvatarUrl())
+                .gender(user.getGender())
+                .phoneNumber(user.getPhoneNumber())
                 .roles(user.getRoles().stream()
                         .map(role -> role.getRole().name())
                         .toList())
@@ -288,46 +301,70 @@ public class UserService implements iUser {
         return String.format("Mã xác thực đặt lại mật khẩu đã được gửi đến email của user: %s.", user.getUsername());
     }
 
-    private String createShortToken(UserDetails userDetails, long expirationTimeMillis) {
-        return jwtService.generateToken(userDetails, expirationTimeMillis);
+    @Override
+    public String stopWork(StopWork stopWorkDto) {
+        User user = userRepository.getUserByUsername(stopWorkDto.getHandledByUserName());
+        User targetUser = userRepository.getUserByUsername(stopWorkDto.getTargetUser());
+        if (user.getActive().equals(User.Active.ACTIVE)) {
+            user.setActive(User.Active.LOCKED);
+            ViolationHandling violationHandling = ViolationHandling
+                    .builder()
+                    .handledBy(user)
+                    .targetUser(targetUser)
+                    .action(stopWorkDto.getActionType())
+                    .createdAt(LocalDateTime.now())
+                    .startAt(stopWorkDto.getStartAt())
+                    .endAt(stopWorkDto.getEndAt())
+                    .reason(stopWorkDto.getReason())
+                    .build();
+
+            userRepository.save(user);
+            violationHandlingRepository.save(violationHandling);
+            logger.info("Người dùng {} đã bị xử lý vi phạm", user.getUsername());
+        }else
+            logger.error("Gặp lỗi khi xử lý người vi phạm {}", user.getUsername());
+        return "Thực hiện dừng công việc thành công.";
     }
 
-    private boolean isEmailFormat(String input) {
-        return input != null && Pattern.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$", input);
-    }
+    @Override
+    public String resumeWork(StopWork stopWorkDto) {
+        User user = userRepository.getUserByUsername(stopWorkDto.getHandledByUserName());
+        User targetUser = userRepository.getUserByUsername(stopWorkDto.getTargetUser());
+        if (user.getActive().equals(User.Active.LOCKED)) {
+            user.setActive(User.Active.ACTIVE);
+            ViolationHandling violationHandling = ViolationHandling
+                    .builder()
+                    .handledBy(user)
+                    .targetUser(targetUser)
+                    .action(stopWorkDto.getActionType())
+                    .createdAt(LocalDateTime.now())
+                    .startAt(null)
+                    .endAt(null)
+                    .reason(stopWorkDto.getReason())
+                    .build();
 
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return email;
+            userRepository.save(user);
+            violationHandlingRepository.save(violationHandling);
+            logger.info("Đã mở khóa {}", user.getUsername());
         }
+            logger.error("Gặp lỗi khi mở khóa người vi phạm {}", user.getUsername());
+        return "Mở khóa thành công.";
+    }
 
-        int atIndex = email.indexOf("@");
-        String localPart = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
+    @Override
+    public Object getUser(UserHelper.UserRequestType type, Object param) {
+        switch (type) {
+            case GET_ALL:
+                return userRepository.findAll();
 
-        if (localPart.length() <= 5) {
-            return localPart + domain;
+            case GET_BY_ID:
+               if (param instanceof String id)
+                   return userRepository.findUserById(id)
+                           .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND));
+
+            default:
+                throw new UnsupportedOperationException("Loại yêu cầu không được hỗ trợ");
         }
-
-        String firstTwo = localPart.substring(0, 2);
-        String lastThree = localPart.substring(localPart.length() - 3);
-        int starCount = localPart.length() - 5;
-        String stars = "*".repeat(starCount);
-
-        return firstTwo + stars + lastThree + domain;
     }
 
-    private boolean areDeviceInfoMatching(DeviceInfo d1, DeviceInfo d2) {
-        if (d1 == null || d2 == null) return false;
-        String d1Type = (d1.getDeviceType() != null) ? d1.getDeviceType().trim().toLowerCase() : null;
-        String d2Type = (d2.getDeviceType() != null) ? d2.getDeviceType().trim().toLowerCase() : null;
-
-        String d1Os = (d1.getOsName() != null) ? d1.getOsName().trim().toLowerCase() : null;
-        String d2Os = (d2.getOsName() != null) ? d2.getOsName().trim().toLowerCase() : null;
-
-        boolean typeMatch = Objects.equals(d1Type, d2Type);
-        boolean osMatch = Objects.equals(d1Os, d2Os);
-
-        return typeMatch && osMatch;
-    }
 }

@@ -1,9 +1,8 @@
 package com.anno.ERP_SpringBoot_Experiment.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,14 +11,18 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthResponse {
-    private String message;
-    private String accessToken;
-    private String refreshToken;
-    private String username;
-    private String email;
-    private Long userId;
-    private List<String> roles;
-    private LocalDateTime accessTokenExpiry;
-    private LocalDateTime refreshTokenExpiry;
+    String message;
+    String accessToken;
+    String refreshToken;
+    String username;
+    String avatarUrl;
+    String email;
+    String userId;
+    String phoneNumber;
+    User.Gender gender;
+    List<String> roles;
+    LocalDateTime accessTokenExpiry;
+    LocalDateTime refreshTokenExpiry;
 }
