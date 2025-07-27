@@ -16,11 +16,11 @@ public class UserActionLogService implements iUserActionLog {
     private final UserActionLogRepository userActionLogRepository;
 
     @Override
-    public void log(User user, UserActionLog.ActionType action, Long targetId, String description, String targetType) {
+    public void log(User user, UserActionLog.ActionType action, String targetId, String description, String targetType) {
         UserActionLog log = UserActionLog.builder()
                 .user(user)
                 .actionType(action)
-                .targetId(targetId)
+                .targetId(Long.valueOf(targetId))
                 .targetType(targetType)
                 .createdAt(LocalDateTime.now())
                 .description(description)

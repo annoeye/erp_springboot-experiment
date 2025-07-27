@@ -5,7 +5,8 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.ViolationHandling;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface ViolationHandlingRepository extends JpaRepository<ViolationHandling, Long> {
-    ViolationHandling findViolationHandlingByTargetUser_Id(Long id);
+    ViolationHandling findViolationHandlingByTargetUser_Id(UUID targetUser_id);
 }

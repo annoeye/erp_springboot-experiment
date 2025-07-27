@@ -24,7 +24,7 @@ public class RefreshToken {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User userInfo;
+    User userInfo;
 
     @Column(name = "token")
     String token;

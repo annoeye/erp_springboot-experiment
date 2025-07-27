@@ -8,13 +8,14 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 
 import java.util.Objects;
+import java.util.UUID;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Data
 public class ChangePassword {
 
     @NotBlank
-    Long id;
+    UUID id;
 
     @NotBlank(message = "Mã xác thực không được để trống")
     String codeResetPassword;

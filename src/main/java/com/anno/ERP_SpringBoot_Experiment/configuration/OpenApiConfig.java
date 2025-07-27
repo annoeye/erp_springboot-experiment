@@ -20,8 +20,8 @@ public class OpenApiConfig {
     private String contactUrl;
     @Value("${spring.contact.email}")
     private String contactEmail;
-    @Value("${server.port}")
-    private String serverPort;
+    @Value("${server.url}")
+    private String serverUrl;
 
     @Bean
     public OpenAPI openAPI() {
@@ -38,7 +38,7 @@ public class OpenApiConfig {
                                 .name("Apache 2.0")
                                 .url("https://springdoc.org")))
                 .servers(List.of(
-                        new Server().url(serverPort).description("Development Server")
+                        new Server().url(serverUrl).description("Development Server")
                 ));
     }
 }

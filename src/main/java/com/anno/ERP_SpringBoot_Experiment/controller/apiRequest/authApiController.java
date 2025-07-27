@@ -11,6 +11,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/auth")
 @AllArgsConstructor
@@ -41,7 +43,7 @@ public class authApiController {
     }
 
     @PostMapping("/send-reset-code/{userId}")
-    public ResponseEntity<?> sendPasswordResetCodeById(@PathVariable Long userId) throws MessagingException {
+    public ResponseEntity<?> sendPasswordResetCodeById(@PathVariable UUID    userId) throws MessagingException {
         return ResponseEntity.ok(userService.sendCodeResetPassword(userId));
     }
 

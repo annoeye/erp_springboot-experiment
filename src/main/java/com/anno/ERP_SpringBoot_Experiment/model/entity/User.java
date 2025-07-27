@@ -21,11 +21,11 @@ import java.util.stream.Collectors;
 @Builder
 public class User implements UserDetails {
     @Id
-    @Size(max = 8)
-    String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    UUID id;
 
     @Column(name = "user_name")
-    String userName;
+    String username;
 
     @NotNull
     @Column(nullable = false)
@@ -93,8 +93,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-       if(email.isEmpty()) return userName;
-       return email;
+        return username;
     }
 
     @Override

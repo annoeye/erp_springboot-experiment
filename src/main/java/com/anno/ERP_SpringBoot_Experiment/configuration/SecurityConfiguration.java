@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.configuration;
 
 import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -20,12 +21,25 @@ import org.springframework.security.web.SecurityFilterChain;
 @AllArgsConstructor
 public class SecurityConfiguration {
 
+    @Autowired
     private final UserDetailsServiceImpl userDetailsService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+    private static final String[] SWAGGER_WHITELIST = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+    };
+
+    private static final String[] REQUEST_PERMIT_ALL = {
+            "api/auth/register",
+            "api/auth/login",
+            "/api/auth/verify**",
+    };
 
     @Bean
     @Order(1)
@@ -34,7 +48,8 @@ public class SecurityConfiguration {
                 .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers(SWAGGER_WHITELIST).permitAll()
+                        .requestMatchers(REQUEST_PERMIT_ALL).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -42,41 +57,41 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    @Bean
-    @Order(2)
-    public SecurityFilterChain formLoginFilterChain(HttpSecurity http) throws Exception {
-        http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/css/**",
-                                "/js/**",
-                                "/images/**",
-                                "/fonts/**",
-                                "/assets/**",
-                                "/favicon.ico",
-                                "/webjars/**",
-                                "/error"
-                        ).permitAll()
-                        .requestMatchers("/auth/**", "/public/**", "/register").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .formLogin(formLogin -> formLogin
-                        .loginPage("/auth/login")
-                        .loginProcessingUrl("/perform_login")
-                        .defaultSuccessUrl("/home", true)
-                        .failureUrl("/auth/login?error=true")
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/perform_logout")
-                        .logoutSuccessUrl("/auth/login?logout")
-                        .deleteCookies("JSESSIONID")
-                        .permitAll()
-                )
-                .userDetailsService(userDetailsService)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
-        return http.build();
-    }
+//    @Bean
+//    @Order(2)
+//    public SecurityFilterChain formLoginFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .authorizeHttpRequests(auth -> auth
+//                        .requestMatchers(
+//                                "/css/**",
+//                                "/js/**",
+//                                "/images/**",
+//                                "/fonts/**",
+//                                "/assets/**",
+//                                "/favicon.ico",
+//                                "/webjars/**",
+//                                "/error"
+//                        ).permitAll()
+//                        .requestMatchers("/auth/**", "/public/**", "/register").permitAll()
+//                        .requestMatchers("/admin/**").hasRole("ADMIN")
+//                        .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
+//                        .anyRequest().authenticated()
+//                )
+//                .formLogin(formLogin -> formLogin
+//                        .loginPage("/auth/login")
+//                        .loginProcessingUrl("/perform_login")
+//                        .defaultSuccessUrl("/home", true)
+//                        .failureUrl("/auth/login?error=true")
+//                        .permitAll()
+//                )
+//                .logout(logout -> logout
+//                        .logoutUrl("/perform_logout")
+//                        .logoutSuccessUrl("/auth/login?logout")
+//                        .deleteCookies("JSESSIONID")
+//                        .permitAll()
+//                )
+//                .userDetailsService(userDetailsService)
+//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
+//        return http.build();
+//    }
 }

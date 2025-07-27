@@ -11,12 +11,14 @@ import com.anno.ERP_SpringBoot_Experiment.response.GetUserResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.helper.UserHelper;
 import jakarta.mail.MessagingException;
 
+import java.util.UUID;
+
 public interface iUser {
     String createUser(UserRegister body) throws MessagingException;
     AuthResponse loginUser(UserLogin body) throws MessagingException;
     String verifyAccount(String userName, String token, String type);
     String changePassword(ChangePassword changePasswordDto) throws CustomException, MessagingException;
-    String sendCodeResetPassword(Long id) throws MessagingException;
+    String sendCodeResetPassword(UUID id) throws MessagingException;
     String stopWork(StopWork stopWorkDto);
     String resumeWork(StopWork stopWorkDto);
     Object getUser(UserHelper.UserRequestType type, Object param);

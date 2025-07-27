@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.Date;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -13,7 +14,7 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class GetUserResponse {
-    String id;
+    UUID id;
     String username;
     String fullName;
     String email;

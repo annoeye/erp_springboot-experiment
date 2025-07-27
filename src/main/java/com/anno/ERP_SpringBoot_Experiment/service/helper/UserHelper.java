@@ -2,13 +2,13 @@ package com.anno.ERP_SpringBoot_Experiment.service.helper;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.DeviceInfo;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Component
@@ -61,16 +61,6 @@ public class UserHelper {
     public boolean checkForViolations(LocalDateTime endDate){
         if (endDate == null) return false;
         return LocalDateTime.now().isAfter(endDate);
-    }
-
-    public String generateRandom() {
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder randomString = new StringBuilder();
-        for (int i = 0; i < 8; i++) {
-            int randomIndex = (int) (Math.random() * characters.length());
-            randomString.append(characters.charAt(randomIndex));
-        }
-        return randomString.toString();
     }
 
     public enum UserRequestType {

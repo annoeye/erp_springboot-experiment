@@ -55,8 +55,6 @@ public class UserService implements iUser {
     @Value("${server.port}")
     private String serverPort;
 
-
-
     @Override
     @Transactional
     public String createUser(UserRegister body) throws MessagingException {
@@ -64,11 +62,9 @@ public class UserService implements iUser {
         if (!userHelper.isEmailFormat(body.getEmail())) {
             throw new CustomException("Email không đúng định dạng", HttpStatus.BAD_REQUEST);
         }
-        userRepository.findByEmail(body.getEmail()).ifPresent(existingUser -> {
-            throw new CustomException("Email đã tồn tại.", HttpStatus.CONFLICT);
-        });
         userRepository.findByUsername(body.getUserName()).ifPresent(existingUser -> {
-            throw new CustomException("Tên đăng nhập đã tồn tại.", HttpStatus.CONFLICT);
+            if (existingUser.getActive() == User.Active.ACTIVE)
+                throw new CustomException("Tên đăng nhập đã tồn tại.", HttpStatus.CONFLICT);
         });
 
         UserDetails tempUserDetailsForToken = org.springframework.security.core.userdetails.User.builder()
@@ -76,27 +72,29 @@ public class UserService implements iUser {
                 .password("")
                 .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
                 .build();
+        boolean existedEmail = userRepository.findByEmail(body.getEmail()).isPresent();
 
         User user = User.builder()
-                .id(userHelper.generateRandom())
-                .userName(body.getUserName())
+                .username(body.getUserName())
                 .email(body.getEmail())
                 .password(passwordEncoder.encode(body.getPassword()))
                 .emailVerificationToken(userHelper.createShortToken(tempUserDetailsForToken, 5000L * 60))
                 .tokenExpiryDate(LocalDateTime.now().plusMinutes(5))
                 .active(User.Active.INACTIVE)
                 .build();
-        userRepository.save(user);
-        logger.info("Tạo tài khoản user chưa active: {}", user.getUsername());
 
+        logger.info("Tạo tài khoản user chưa active: {}", user.getUsername());
+        if (!existedEmail) userRepository.save(user);
         String type = "verifyAccount";
-        String verificationUrl = "http://localhost:" + serverPort + "/auth/verify?token=" + user.getEmailVerificationToken()+ "&username=" + user.getUsername() + "&type=" + type;
+        String verificationUrl = "http://localhost:" + serverPort + "api/auth/verify?token=" + user.getEmailVerificationToken()+ "&username=" + user.getUsername() + "&type=" + type;
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), verificationUrl);
         } catch (MessagingException e) {
             throw new MessagingException("Lỗi gửi email xác thực: " + e.getMessage());
         }
-        return "Yêu cầu xác nhận tài khoản.";
+        return (existedEmail) ?
+                "Email đã tồn tại nhưng chưa xác thực. Một email xác thực đã được gửi đến " + userHelper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra." :
+                "Một email xác thực đã được gửi đến" + userHelper.maskEmail(user.getEmail()) +". Vui lòng kiểm tra.";
     }
 
     @Override
@@ -131,7 +129,7 @@ public class UserService implements iUser {
             }
 
             String type = "verifyAccount";
-            String verificationUrl = "http://localhost:" + serverPort + "/auth/verify?token=" + user.getEmailVerificationToken() + "&username=" + user.getUsername() + "&type=" + type;
+            String verificationUrl = "http://localhost:" + serverPort + "api/auth/verify?token=" + user.getEmailVerificationToken() + "&username=" + user.getUsername() + "&type=" + type;
             logger.debug("DEBUG: URL xác thực đầy đủ được tạo: {}", verificationUrl);
             logger.debug("DEBUG: Token trích xuất từ URL: {}", user.getEmailVerificationToken());
 
@@ -145,7 +143,7 @@ public class UserService implements iUser {
                         .refreshToken(null)
                         .username(user.getUsername())
                         .email(user.getEmail())
-                        .userId(user.getId())
+                        .userId(String.valueOf(user.getId()))
                         .roles(null)
                         .build();
             }
@@ -156,7 +154,7 @@ public class UserService implements iUser {
                     .refreshToken(null)
                     .username(user.getUsername())
                     .email(user.getEmail())
-                    .userId(user.getId())
+                    .userId(String.valueOf(user.getId()))
                     .roles(null)
                     .build();
         }
@@ -222,7 +220,7 @@ public class UserService implements iUser {
                 .refreshToken(finalRefreshTokenString)
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .userId(user.getId())
+                .userId(String.valueOf(user.getId()))
                 .avatarUrl(user.getAvatarUrl())
                 .gender(user.getGender())
                 .phoneNumber(user.getPhoneNumber())
@@ -236,11 +234,11 @@ public class UserService implements iUser {
     @Transactional
     public String verifyAccount(String userName, String token, String type) {
 
-        User user = userRepository.findByEmail(userName)
+        User user = userRepository.findByUsername(userName)
                 .orElse(null);
 
         if (user == null) {
-            return "Người dùng '" + userName + "' không tìm thấy để xác thực.";
+            return "Người dùng " + userName + "không tìm thấy để xác thực.";
         }
 
         switch (type) {
@@ -283,7 +281,7 @@ public class UserService implements iUser {
 
     @Override
     @Transactional
-    public String sendCodeResetPassword(Long id) throws MessagingException {
+    public String sendCodeResetPassword(UUID id) throws MessagingException {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND));
 
@@ -309,6 +307,7 @@ public class UserService implements iUser {
             user.setActive(User.Active.LOCKED);
             ViolationHandling violationHandling = ViolationHandling
                     .builder()
+                    .id(UUID.randomUUID())
                     .handledBy(user)
                     .targetUser(targetUser)
                     .action(stopWorkDto.getActionType())
@@ -334,6 +333,7 @@ public class UserService implements iUser {
             user.setActive(User.Active.ACTIVE);
             ViolationHandling violationHandling = ViolationHandling
                     .builder()
+                    .id(UUID.randomUUID())
                     .handledBy(user)
                     .targetUser(targetUser)
                     .action(stopWorkDto.getActionType())
@@ -358,8 +358,8 @@ public class UserService implements iUser {
                 return userRepository.findAll();
 
             case GET_BY_ID:
-               if (param instanceof String id)
-                   return userRepository.findUserById(id)
+               if (param instanceof UUID id)
+                   return userRepository.findById(id)
                            .orElseThrow(() -> new CustomException("Người dùng không tồn tại", HttpStatus.NOT_FOUND));
 
             default:

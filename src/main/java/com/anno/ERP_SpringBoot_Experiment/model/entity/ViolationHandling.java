@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.UUID;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
@@ -16,16 +17,16 @@ import java.time.LocalDateTime;
 public class ViolationHandling {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    UUID id;
 
-    @OneToOne
-    @JoinColumn(name = "target_user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_user_id", referencedColumnName = "id")
     User targetUser;
 
-    @ManyToOne
-    @JoinColumn(name = "handled_by")
-    User handledBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "handled_by", referencedColumnName = "id")
+    private User handledBy;
 
     String reason;
 
