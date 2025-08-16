@@ -31,7 +31,7 @@ public class ViolationHandling {
     String reason;
 
     @Enumerated(EnumType.STRING)
-    UserActionLog.ActionType action;
+    Log.ActionType action;
     LocalDateTime startAt;
     LocalDateTime endAt;
 

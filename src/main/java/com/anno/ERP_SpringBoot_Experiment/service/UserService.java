@@ -6,14 +6,15 @@ import com.anno.ERP_SpringBoot_Experiment.model.dto.StopWork;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.UserLogin;
 import com.anno.ERP_SpringBoot_Experiment.model.dto.UserRegister;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.*;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
+import com.anno.ERP_SpringBoot_Experiment.repository.CreateAccountRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.RefreshTokenRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ViolationHandlingRepository;
 import com.anno.ERP_SpringBoot_Experiment.response.AuthResponse;
-import com.anno.ERP_SpringBoot_Experiment.response.GetUserResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.helper.UserHelper;
 import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUser;
-import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUserActionLog;
+import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUserAction;
 import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +32,10 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class UserService implements iUser {
+public class    UserService implements iUser {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -44,8 +44,9 @@ public class UserService implements iUser {
     private final UserHelper userHelper;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CreateAccountRepository createAccountRepository;
     private final ViolationHandlingRepository violationHandlingRepository;
-    private final iUserActionLog userActionLogService;
+    private final iUserAction userActionLogService;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int OTP_LENGTH = 6;
@@ -61,40 +62,66 @@ public class UserService implements iUser {
 
         if (!userHelper.isEmailFormat(body.getEmail())) {
             throw new CustomException("Email không đúng định dạng", HttpStatus.BAD_REQUEST);
+        } else if (!body.getPassword().equals(body.getConfirmPassword())) {
+            throw new CustomException("Mật khẩu không khớp", HttpStatus.BAD_REQUEST);
         }
-        userRepository.findByUsername(body.getUserName()).ifPresent(existingUser -> {
-            if (existingUser.getActive() == User.Active.ACTIVE)
-                throw new CustomException("Tên đăng nhập đã tồn tại.", HttpStatus.CONFLICT);
-        });
+
+        userRepository.findByEmail(body.getEmail())
+                .filter(u -> u.getStatus() == ActiveStatus.ACTIVE)
+                .ifPresent(u -> { throw new CustomException("Email đã tồn tại.", HttpStatus.CONFLICT); });
+
+        userRepository.findByUsername(body.getUserName())
+                .ifPresent(existingUser -> {
+                    if (!existingUser.getEmail().equals(body.getEmail())) {
+                        throw new CustomException("Tên đăng nhập đã tồn tại với email khác. Hãy kiểm tra " + userHelper.maskEmail(existingUser.getEmail()) + ".", HttpStatus.CONFLICT);
+                    }
+                });
+
+        CreateAccount createAccount = createAccountRepository.findByToken(body.getToken())
+                .orElseThrow(() -> new CustomException("Token không hợp lệ.", HttpStatus.BAD_REQUEST));
+
+        if (!createAccount.getEndTime().isBefore(LocalDateTime.now())) {
+            throw new CustomException("Token lỗi.", HttpStatus.BAD_REQUEST);
+        }
+
+        User user = userRepository.findByUsernameAndEmail(body.getUserName(), body.getEmail())
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setFullName(body.getFullName());
+                    newUser.setName(body.getUserName());
+                    newUser.setEmail(body.getEmail());
+                    newUser.setRoles(new HashSet<>(createAccount.getRoles()));
+                    newUser.setPassword(passwordEncoder.encode(body.getPassword()));
+                    newUser.setStatus(ActiveStatus.INACTIVE);
+                    logger.info("Tạo user mới: {}", newUser.getUsername());
+                    return newUser;
+                });
+
 
         UserDetails tempUserDetailsForToken = org.springframework.security.core.userdetails.User.builder()
-                .username(body.getUserName())
+                .username(user.getUsername()) // Lấy username từ đối tượng user đã có
                 .password("")
                 .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
                 .build();
-        boolean existedEmail = userRepository.findByEmail(body.getEmail()).isPresent();
 
-        User user = User.builder()
-                .username(body.getUserName())
-                .email(body.getEmail())
-                .password(passwordEncoder.encode(body.getPassword()))
-                .emailVerificationToken(userHelper.createShortToken(tempUserDetailsForToken, 5000L * 60))
-                .tokenExpiryDate(LocalDateTime.now().plusMinutes(5))
-                .active(User.Active.INACTIVE)
-                .build();
+        String verificationToken = userHelper.createShortToken(tempUserDetailsForToken, 5 * 60 * 1000L); // 5 phút
+        user.setEmailVerificationToken(verificationToken);
+        user.setTokenExpiryDate(LocalDateTime.now().plusMinutes(5));
 
-        logger.info("Tạo tài khoản user chưa active: {}", user.getUsername());
-        if (!existedEmail) userRepository.save(user);
+        userRepository.save(user);
+
         String type = "verifyAccount";
-        String verificationUrl = "http://localhost:" + serverPort + "api/auth/verify?token=" + user.getEmailVerificationToken()+ "&username=" + user.getUsername() + "&type=" + type;
+        String verificationUrl = "http://localhost:" + serverPort + "/api/auth/verify?token=" + user.getEmailVerificationToken() + "&username=" + user.getUsername() + "&type=" + type;
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), verificationUrl);
         } catch (MessagingException e) {
+            logger.error("Lỗi gửi email xác thực cho {}: {}", user.getEmail(), e.getMessage(), e);
             throw new MessagingException("Lỗi gửi email xác thực: " + e.getMessage());
         }
-        return (existedEmail) ?
-                "Email đã tồn tại nhưng chưa xác thực. Một email xác thực đã được gửi đến " + userHelper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra." :
-                "Một email xác thực đã được gửi đến" + userHelper.maskEmail(user.getEmail()) +". Vui lòng kiểm tra.";
+
+        return (user.getCreatedAt() != null) ?
+                "Email đã tồn tại nhưng chưa xác thực. Một email xác thực mới đã được gửi đến " + userHelper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra." :
+                "Một email xác thực đã được gửi đến " + userHelper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.";
     }
 
     @Override
@@ -213,7 +240,7 @@ public class UserService implements iUser {
         }
         logger.info("Đăng nhập thành công cho user: {}", user.getUsername());
         String accessToken = jwtService.generateToken(userDetails, currentAccessTokenLifespanMillis);
-        userActionLogService.log(user, UserActionLog.ActionType.LOGIN, null, "Đăng nhập", null);
+        userActionLogService.log(user, Log.ActionType.LOGIN, null, "Đăng nhập", null);
         logger.info("Đã lưu thông tin người đăng nhập vào lịch sử hoạt động");
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -238,7 +265,7 @@ public class UserService implements iUser {
                 .orElse(null);
 
         if (user == null) {
-            return "Người dùng " + userName + "không tìm thấy để xác thực.";
+            return "Người dùng " + userName + " không tìm thấy để xác thực.";
         }
 
         switch (type) {

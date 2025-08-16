@@ -11,9 +11,6 @@ public class UserRegister {
     @NotBlank(message = "Họ tên không được để trống")
     private String fullName;
 
-    @NotNull(message = "Ngày sinh không được để trống")
-    private LocalDateTime dateOfBirth;
-
     @NotBlank(message = "Tên đăng nhập không được để trống")
     @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
     private String userName;
@@ -29,7 +26,8 @@ public class UserRegister {
     @NotBlank(message = "Xác nhận mật khẩu không được để trống")
     private String confirmPassword;
 
-    public boolean isPasswordConfirmed() {
-        return password != null && password.equals(confirmPassword);
-    }
+    @NotBlank(message = "Token không được để trống")
+    private String token;
+
+
 }

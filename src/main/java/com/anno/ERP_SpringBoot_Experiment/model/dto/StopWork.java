@@ -1,6 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.dto;
 
-import com.anno.ERP_SpringBoot_Experiment.model.entity.UserActionLog;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.Log;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -16,7 +16,7 @@ public class StopWork {
     String reason;
     LocalDateTime startAt;
     LocalDateTime endAt;
-    UserActionLog.ActionType actionType;
+    Log.ActionType actionType;
 
 
 }

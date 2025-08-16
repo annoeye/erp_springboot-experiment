@@ -1,24 +1,23 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
+import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Set;
+
+@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "roles")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Role {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+@Builder
+public class Role extends IdentityOnly {
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    User.ERole role;
+    @ManyToMany(mappedBy = "roles")
+    Set<CreateAccount> accounts;
 }

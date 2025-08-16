@@ -1,5 +1,13 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
+import com.anno.ERP_SpringBoot_Experiment.model.base.Auditable;
+import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuthCode;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
+import com.anno.ERP_SpringBoot_Experiment.model.listener.AuditEntityListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -8,26 +16,25 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "Users")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@EntityListeners(AuditEntityListener.class)
 @Builder
-public class User implements UserDetails {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    UUID id;
+public class User extends IdentityOnly implements UserDetails, Auditable {
 
-    @Column(name = "user_name")
-    String username;
+    @Column(name = "full_name")
+    @Pattern(regexp = "^[\\p{L}\\s]+$", message = "Tên chỉ được chứa chữ cái và khoảng trắng!")
+    String fullName;
 
-    @NotNull
+    @NotNull(message = "Mật khẩu không được để trống")
     @Column(nullable = false)
     String password;
 
@@ -35,65 +42,60 @@ public class User implements UserDetails {
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại chỉ được 10 số!")
     String phoneNumber;
 
+    @NotNull(message = "Email không được để trống")
     @Email(message = "Email phải hợp lệ!")
-    @NotNull
     @Column(nullable = false)
-    String email;
-
-    @Column(name = "full_name")
-    @Pattern(regexp = "^[A-Za-z\\s]+$", message = "Tên chỉ có thể là chữ cái!")
-    String fullName;
+    private String email;
 
     @Column(name = "date_of_birth")
     Date dateOfBirth;
 
-    @Enumerated(EnumType.STRING)
-    Gender gender;
-
     @Column(name = "avatar_url")
-    String AvatarUrl;
-
-    @Column(name = "created_at")
-    @Temporal(TemporalType.TIMESTAMP)
-    LocalDateTime createdAt;
-
-    @Column(name = "update_at")
-    @Temporal(TemporalType.TIMESTAMP)
-    LocalDateTime updatedAt;
-
-    @Enumerated(EnumType.STRING)
-    Active active;
-
-    @Column(name = "email_verification_token")
-    String emailVerificationToken;
-
-    @Size(max = 6)
-    @Column(name = "code_reset_password")
-    String codeResetPassword;
-
-    @Column(name = "token_expiry_date")
-    LocalDateTime tokenExpiryDate;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(  name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    Set<Role> roles = new HashSet<>();
+    String avatarUrl;
 
     @OneToMany(mappedBy = "userInfo", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<RefreshToken> refreshTokens;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    Set<RoleType> roles = new HashSet<>();
+
+    /* ============================ 🧩 Embedded Fields ============================ */
+
+    @Embedded
+    AuditInfo auditInfo;
+
+    @Embedded
+    AuthCode authCode;
+
+    /* ============================ 🗂️ Enum ============================ */
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    ActiveStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    Gender gender;
+
+    /* ============================ 🔐 UserDetails ============================ */
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if (roles.isEmpty()) return Collections.emptyList();
+        if (roles == null || roles.isEmpty()) return Collections.emptyList();
         return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
     }
 
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
 
     @Override
@@ -103,7 +105,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return active != Active.LOCKED;
+        return status != ActiveStatus.LOCKED;
     }
 
     @Override
@@ -113,19 +115,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return active == Active.ACTIVE;
-    }
-        public enum Gender {
-        MALE, FEMALE, OTHER
-    }
-
-    public enum Active {
-        LOCKED, ACTIVE, INACTIVE
-    }
-
-    public enum ERole {
-        ROLE_USER,
-        ROLE_ADMIN,
-        ROLE_SUPER_ADMIN
+        return status == ActiveStatus.ACTIVE;
     }
 }
