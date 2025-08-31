@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.embedded;
 
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
@@ -24,16 +25,16 @@ public class AuthCode {
 
     @Column(name = "purpose", nullable = false)
     @Enumerated(EnumType.STRING)
-    Purpose purpose;
+    ActiveStatus purpose;
 
     @Column(name = "expiry_date", nullable = false)
     LocalDateTime expiryDate;
 
-    public enum Purpose {
-
+    public AuthCode authCode(String code,  ActiveStatus purpose, LocalDateTime expiryDate) {
+        this.code = code;
+        this.purpose = purpose;
+        this.expiryDate = expiryDate;
+        return this;
     }
 
-    public boolean isExpired() {
-        return expiryDate.isBefore(LocalDateTime.now());
-    }
 }

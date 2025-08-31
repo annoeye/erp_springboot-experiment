@@ -2,13 +2,12 @@ package com.anno.ERP_SpringBoot_Experiment.service.implementation;
 
 
 import com.anno.ERP_SpringBoot_Experiment.exception.CustomException;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.ChangePassword;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.StopWork;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.UserLogin;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.UserRegister;
+import com.anno.ERP_SpringBoot_Experiment.dto.ChangePassword;
+import com.anno.ERP_SpringBoot_Experiment.dto.StopWork;
+import com.anno.ERP_SpringBoot_Experiment.dto.UserLogin;
+import com.anno.ERP_SpringBoot_Experiment.dto.UserRegister;
 import com.anno.ERP_SpringBoot_Experiment.response.AuthResponse;
-import com.anno.ERP_SpringBoot_Experiment.response.GetUserResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.helper.UserHelper;
+import Helper;
 import jakarta.mail.MessagingException;
 
 import java.util.UUID;
@@ -21,5 +20,5 @@ public interface iUser {
     String sendCodeResetPassword(UUID id) throws MessagingException;
     String stopWork(StopWork stopWorkDto);
     String resumeWork(StopWork stopWorkDto);
-    Object getUser(UserHelper.UserRequestType type, Object param);
+    Object getUser(Helper.UserRequestType type, Object param);
 }

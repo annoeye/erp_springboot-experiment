@@ -45,7 +45,7 @@ public class User extends IdentityOnly implements UserDetails, Auditable {
     @NotNull(message = "Email không được để trống")
     @Email(message = "Email phải hợp lệ!")
     @Column(nullable = false)
-    private String email;
+    String email;
 
     @Column(name = "date_of_birth")
     Date dateOfBirth;
@@ -62,7 +62,7 @@ public class User extends IdentityOnly implements UserDetails, Auditable {
             joinColumns = @JoinColumn(name = "user_id")
     )
     @Enumerated(EnumType.STRING)
-    @Column(name = "role")
+    @Column(name = "roles")
     Set<RoleType> roles = new HashSet<>();
 
     /* ============================ 🧩 Embedded Fields ============================ */

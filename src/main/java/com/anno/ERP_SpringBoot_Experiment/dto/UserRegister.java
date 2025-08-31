@@ -1,33 +1,35 @@
-package com.anno.ERP_SpringBoot_Experiment.model.dto;
+package com.anno.ERP_SpringBoot_Experiment.dto;
 
+import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import jakarta.validation.constraints.*;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.Set;
 
 @Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserRegister {
     @NotBlank(message = "Họ tên không được để trống")
-    private String fullName;
+    String fullName;
 
     @NotBlank(message = "Tên đăng nhập không được để trống")
     @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
-    private String userName;
+    String userName;
 
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không đúng định dạng")
-    private String email;
+    String email;
 
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
-    private String password;
+    String password;
 
     @NotBlank(message = "Xác nhận mật khẩu không được để trống")
-    private String confirmPassword;
+    String confirmPassword;
 
-    @NotBlank(message = "Token không được để trống")
-    private String token;
-
+    Set<RoleType> roles;
+    String createdBy;
 
 }

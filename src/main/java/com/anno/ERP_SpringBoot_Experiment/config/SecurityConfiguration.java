@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.configuration;
+package com.anno.ERP_SpringBoot_Experiment.config;
 
 import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;

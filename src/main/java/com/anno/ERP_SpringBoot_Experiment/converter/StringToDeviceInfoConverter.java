@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.converter;
 
-import com.anno.ERP_SpringBoot_Experiment.model.entity.DeviceInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;

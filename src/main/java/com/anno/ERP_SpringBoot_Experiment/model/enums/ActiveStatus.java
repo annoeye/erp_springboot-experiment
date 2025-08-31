@@ -3,10 +3,6 @@ package com.anno.ERP_SpringBoot_Experiment.model.enums;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Tập hợp tất cả trạng thái & hành động trong hệ thống.
- * Được gom nhóm bằng comment để dễ quản lý.
- */
 @Getter
 @RequiredArgsConstructor
 public enum ActiveStatus {

@@ -1,9 +1,9 @@
 package com.anno.ERP_SpringBoot_Experiment.controller.apiRequest;
 
-import com.anno.ERP_SpringBoot_Experiment.model.dto.ChangePassword;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.StopWork;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.UserLogin;
-import com.anno.ERP_SpringBoot_Experiment.model.dto.UserRegister;
+import com.anno.ERP_SpringBoot_Experiment.dto.ChangePassword;
+import com.anno.ERP_SpringBoot_Experiment.dto.StopWork;
+import com.anno.ERP_SpringBoot_Experiment.dto.UserLogin;
+import com.anno.ERP_SpringBoot_Experiment.dto.UserRegister;
 import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUser;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;

@@ -1,6 +1,6 @@
-package com.anno.ERP_SpringBoot_Experiment.model.dto;
+package com.anno.ERP_SpringBoot_Experiment.dto;
 
-import com.anno.ERP_SpringBoot_Experiment.model.entity.DeviceInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.AccessLevel;

@@ -16,8 +16,4 @@ import java.util.Set;
 @Table(name = "roles")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class Role extends IdentityOnly {
-
-    @ManyToMany(mappedBy = "roles")
-    Set<CreateAccount> accounts;
-}
+public class Role extends IdentityOnly {}

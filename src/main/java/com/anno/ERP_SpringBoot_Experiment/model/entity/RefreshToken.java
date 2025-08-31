@@ -1,38 +1,31 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
-import com.anno.ERP_SpringBoot_Experiment.converter.DeviceInfoListConverter;
+import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuthCode;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "refresh_token")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RefreshToken {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+public class RefreshToken extends IdentityOnly {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     User userInfo;
 
-    @Column(name = "token")
-    String token;
+    @Embedded
+    AuthCode authCode;
 
-    @Column(name = "expiry_date")
-    LocalDateTime expiryDate;
-
-    @Column(name = "device_info", columnDefinition = "TEXT")
-    @Convert(converter = DeviceInfoListConverter.class)
-    List<DeviceInfo> deviceInfo;
+    @ElementCollection
+    List<DeviceInfo> deviceInfos;
 }

@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.configuration;
+package com.anno.ERP_SpringBoot_Experiment.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;

@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.model.dto;
+package com.anno.ERP_SpringBoot_Experiment.dto;
 
 import com.anno.ERP_SpringBoot_Experiment.exception.CustomException;
 import jakarta.validation.constraints.NotBlank;

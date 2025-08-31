@@ -1,20 +1,20 @@
-package com.anno.ERP_SpringBoot_Experiment.service.helper;
+package com.anno.ERP_SpringBoot_Experiment.service.UserService;
 
-import com.anno.ERP_SpringBoot_Experiment.model.entity.DeviceInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Component
-public class UserHelper {
-    @Autowired
-    private JwtService jwtService;
+@RequiredArgsConstructor
+public class Helper {
+
+    private final JwtService jwtService;
 
     public String createShortToken(UserDetails userDetails, long expirationTimeMillis) {
         return jwtService.generateToken(userDetails, expirationTimeMillis);
@@ -61,13 +61,6 @@ public class UserHelper {
     public boolean checkForViolations(LocalDateTime endDate){
         if (endDate == null) return false;
         return LocalDateTime.now().isAfter(endDate);
-    }
-
-    public enum UserRequestType {
-        GET_ALL,
-        GET_BY_ID,
-        GET_BY_EMAIL,
-        GET_ACTIVE
     }
 
 }
