@@ -8,11 +8,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-public interface RoleRepository extends JpaRepository<Role, Long> {
+public interface RoleRepository extends JpaRepository<Role, UUID> {
 
-    Optional<Role> findByName(RoleType role);
+    Optional<Role> findByName(String name);
 
     @Query("SELECT r FROM Role r WHERE r.name IN :roles")
     List<Role> findByRoleIn(@Param("roles") List<RoleType> roles);
+
+    String name(String name);
 }

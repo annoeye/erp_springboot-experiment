@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.response;
 
-import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -18,12 +19,11 @@ public class GetUserResponse {
     String username;
     String fullName;
     String email;
-    String password;
     String numberPhone;
     Date dateOfBirth;
-    User.Gender gender;
+    Gender gender;
     String avatarUrl;
-    User.Active active;
+    ActiveStatus active;
     Set<String> roles;
 
 }

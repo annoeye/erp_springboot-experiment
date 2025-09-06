@@ -1,17 +1,13 @@
 package com.anno.ERP_SpringBoot_Experiment.controller.apiRequest;
 
-import com.anno.ERP_SpringBoot_Experiment.dto.ChangePassword;
-import com.anno.ERP_SpringBoot_Experiment.dto.StopWork;
-import com.anno.ERP_SpringBoot_Experiment.dto.UserLogin;
-import com.anno.ERP_SpringBoot_Experiment.dto.UserRegister;
+import com.anno.ERP_SpringBoot_Experiment.dto.*;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.implementation.iUser;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,31 +27,17 @@ public class authApiController {
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<?> verifyAccount(@RequestParam("token") String token,
-                                           @RequestParam("username") String username,
-                                           @RequestParam("type") String type) {
-        return ResponseEntity.ok(userService.verifyAccount(username, token, type));
+    public ResponseEntity<?> verifyAccount(@RequestParam("token") String code,
+                                           @RequestParam("type") ActiveStatus type,
+                                           AccountVerificationDto body
+                                           ) {
+        userService.verifyAccount(code, type, body);
+        return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePassword body) throws MessagingException {
-        return ResponseEntity.ok(userService.changePassword(body));
+    @PostMapping("/send-reset-code/{email}")
+    public ResponseEntity<?> sendPasswordResetCode(@PathVariable String email) throws MessagingException {
+        userService.sendCodeResetPassword(email);
+        return ResponseEntity.ok().build();
     }
-
-    @PostMapping("/send-reset-code/{userId}")
-    public ResponseEntity<?> sendPasswordResetCodeById(@PathVariable UUID    userId) throws MessagingException {
-        return ResponseEntity.ok(userService.sendCodeResetPassword(userId));
-    }
-
-    @PostMapping("/stop-work")
-    public ResponseEntity<String> stopWork(StopWork stopWork){
-        return ResponseEntity.ok(userService.stopWork(stopWork));
-    }
-
-    @PostMapping("/resume-work")
-    public ResponseEntity<String> resumeWork(StopWork stopWork) {
-        return ResponseEntity.ok(userService.resumeWork(stopWork));
-    }
-
-
 }

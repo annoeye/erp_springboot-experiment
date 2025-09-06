@@ -6,9 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.event.VerificationEmailEvent;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.RefreshToken;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
-import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.RefreshTokenRepository;
-import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.response.DeviceInfoResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.EmailService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -38,14 +35,13 @@ public class Event {
     private final RefreshTokenRepository refreshTokenRepository;
     private final Helper helper;
     private final JwtService jwtService;
-    private final UserRepository userRepository;
     private final UserDetailsServiceImpl userDetailsService;
     @Value("${server.port}") private String serverPort;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleVerificationEmail(VerificationEmailEvent body) {
         try {
-            String verificationUrl = "http://localhost:" + serverPort + "/api/auth/verify?token=" + body.emailVerificationToken() + "&username=" +  body.username() + "&purpose=" + body.purpose();
+            String verificationUrl = "http://localhost:" + serverPort + "/api/auth/verify?token=" + body.emailVerificationToken() + "&purpose=" + body.purpose();
             emailService.sendVerificationEmail(
                     body.email(),
                     body.username(),

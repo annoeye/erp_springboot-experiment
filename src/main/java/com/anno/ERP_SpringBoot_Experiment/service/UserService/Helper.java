@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -57,10 +56,6 @@ public class Helper {
         boolean osMatch = Objects.equals(d1Os, d2Os);
 
         return typeMatch && osMatch;
-    }
-    public boolean checkForViolations(LocalDateTime endDate){
-        if (endDate == null) return false;
-        return LocalDateTime.now().isAfter(endDate);
     }
 
 }

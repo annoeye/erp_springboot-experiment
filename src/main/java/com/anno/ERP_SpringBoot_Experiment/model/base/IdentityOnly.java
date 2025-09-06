@@ -11,11 +11,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Builder
 public abstract class IdentityOnly {
     @Id
-    @Column(name = "id", updatable = false, nullable = false)
-    String id = UUID.randomUUID().toString();
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "CHAR(36)")
+    UUID id;
 
     String name;
 }

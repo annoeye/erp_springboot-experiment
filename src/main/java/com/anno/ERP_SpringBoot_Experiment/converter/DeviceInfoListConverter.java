@@ -1,12 +1,13 @@
 package com.anno.ERP_SpringBoot_Experiment.converter;
 
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import org.slf4j.Logger; // Thêm import
-import org.slf4j.LoggerFactory; // Thêm import
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;

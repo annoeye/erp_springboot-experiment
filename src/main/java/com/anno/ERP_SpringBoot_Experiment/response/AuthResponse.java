@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.response;
 
-import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import lombok.*;
@@ -8,7 +7,6 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Data
