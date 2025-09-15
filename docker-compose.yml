@@ -1,44 +1,35 @@
-version: '3.8'
+version: "3.9"
 
 services:
   spring-app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: spring-app
     ports:
       - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/springboot_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ddinhnndb
     depends_on:
-      mysql-db:
-        condition: service_healthy
-    restart: on-failure
+      - oracle-db
     networks:
-      - spring-mysql-network
+      - backend
 
-  mysql-db:
-    image: mysql:8
+  oracle-db:
+    image: container-registry.oracle.com/database/express:21.3.0-xe
+    container_name: oracle-db
     environment:
-      MYSQL_ROOT_PASSWORD: ddinhnndb
-      MYSQL_DATABASE: springboot_db
-    volumes:
-      - db-data:/var/lib/mysql
+      ORACLE_PWD: ddinhnn11
+      ORACLE_CHARACTERSET: AL32UTF8
     ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pddinhnndb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      - "1521:1521"
+      - "5500:5500"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
     networks:
-      - spring-mysql-network
-
-networks:
-  spring-mysql-network:
-    driver: bridge
+      - backend
 
 volumes:
-  db-data:
+  oracle_data:
+
+networks:
+  backend:
+    driver: bridge

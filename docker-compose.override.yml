@@ -1,0 +1,7 @@
+version: "3.9"
+
+services:
+  spring-app:
+    volumes:
+      - ./target/app.jar:/app/app.jar
+    command: ["java", "-jar", "/app/app.jar"]
