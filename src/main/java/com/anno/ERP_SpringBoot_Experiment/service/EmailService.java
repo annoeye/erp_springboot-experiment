@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -28,6 +29,7 @@ public class EmailService {
         return templateEngine.process("/mail/" + templateName, context);
     }
 
+    @Async
     public void sendVerificationEmail(String to, String username, String verificationUrl) throws MessagingException {
 
         MimeMessage message = mailSender.createMimeMessage();
@@ -47,6 +49,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendPasswordResetOtpEmail(String to, String username, String otp) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

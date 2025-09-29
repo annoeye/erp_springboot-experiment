@@ -14,7 +14,7 @@ import java.util.UUID;
 public abstract class IdentityOnly {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "CHAR(36)")
+    @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
     String name;

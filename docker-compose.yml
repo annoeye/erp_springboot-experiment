@@ -19,13 +19,23 @@ services:
     environment:
       ORACLE_PWD: ddinhnn11
       ORACLE_CHARACTERSET: AL32UTF8
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     ports:
       - "1521:1521"
       - "5500:5500"
+    depends_on:
+      - redis
     volumes:
       - oracle_data:/opt/oracle/oradata
     networks:
       - backend
+
+  redis:
+    image: "redis:latest"
+    container_name: redis
+    ports:
+      - "6379:6379"
 
 volumes:
   oracle_data:

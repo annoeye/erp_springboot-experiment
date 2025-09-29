@@ -12,15 +12,18 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    Optional<User> findByAuthCode_Code(String authCode);
+    @Query("SELECT u FROM User u WHERE u.authCode.code = :code")
+    Optional<User> findByAuthCode(@Param("code") String code);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findByEmail(String email);
 
-    @Query("SELECT u FROM User u WHERE u.name = :userName")
-    Optional<User> findByUsername(@Param("userName") String userName);
+    @Query("SELECT u FROM User u WHERE u.name = :name")
+    Optional<User> findByName(@Param("name") String name);
 
-    @Query("SELECT u FROM User u WHERE u.name = :username AND u.email = :email")
-    Optional<User> findByUsernameAndEmail(@Param("username") String username, @Param("email") String email);
+    @Query("SELECT u FROM User u WHERE u.name = :value OR u.email = :value")
+    Optional<User> findByNameOrEmail(@Param("value") String value);
 
+    @Query("SELECT u FROM User u WHERE u.name = :name OR u.email = :email")
+    Optional<User> findByNameAndEmail(@Param("name") String name, @Param("email") String email);
 }

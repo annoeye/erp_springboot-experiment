@@ -25,6 +25,4 @@ public class AuthResponse {
     String phoneNumber;
     Gender gender;
     Set<RoleType> roles = new HashSet<>();
-    LocalDateTime accessTokenExpiry;
-    LocalDateTime refreshTokenExpiry;
 }

@@ -20,21 +20,14 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthCode {
 
-    @Column(name = "code", nullable = false)
+    @Column(name = "code")
     String code;
 
-    @Column(name = "purpose", nullable = false)
+    @Column(name = "purpose")
     @Enumerated(EnumType.STRING)
     ActiveStatus purpose;
 
-    @Column(name = "expiry_date", nullable = false)
+    @Column(name = "expiry_date")
     LocalDateTime expiryDate;
-
-    public AuthCode authCode(String code,  ActiveStatus purpose, LocalDateTime expiryDate) {
-        this.code = code;
-        this.purpose = purpose;
-        this.expiryDate = expiryDate;
-        return this;
-    }
 
 }

@@ -68,10 +68,10 @@ public class User extends IdentityOnly implements UserDetails, Auditable {
     /* ============================ 🧩 Embedded Fields ============================ */
 
     @Embedded
-    AuditInfo auditInfo;
+    AuditInfo auditInfo = new AuditInfo();
 
     @Embedded
-    AuthCode authCode;
+    AuthCode authCode = new AuthCode();
 
     /* ============================ 🗂️ Enum ============================ */
 

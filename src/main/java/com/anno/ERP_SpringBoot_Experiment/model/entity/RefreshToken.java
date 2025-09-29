@@ -24,7 +24,7 @@ public class RefreshToken extends IdentityOnly {
     User userInfo;
 
     @Embedded
-    AuthCode authCode;
+    AuthCode authCode = new AuthCode();
 
     @ElementCollection
     List<DeviceInfo> deviceInfos;

@@ -18,6 +18,7 @@ public enum ActiveStatus {
     TWO_FACTOR_AUTH("Xác thực hai lớp"),
     INVITATION("Thư mời"),
     ACCOUNT_UNLOCK("Mở khóa tài khoản"),
+    LOGIN_VERIFICATION("Đang xác nhận tính hợp lệ của đăng nhập"),
 
     // ==========================
     // 🔑 Đăng nhập / Tài khoản
@@ -33,6 +34,7 @@ public enum ActiveStatus {
     // 👤 Người dùng
     // ==========================
     BLOCK_USER("Khóa người dùng"),
+    GET_ALL("Lấy toàn bộ người dùng"),
     UNBLOCK_USER("Mở khóa người dùng"),
     DELETE_USER("Xóa người dùng"),
     UPDATE_USER_PROFILE("Cập nhật hồ sơ người dùng"),

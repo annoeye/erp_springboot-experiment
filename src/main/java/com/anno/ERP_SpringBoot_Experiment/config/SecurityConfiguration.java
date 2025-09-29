@@ -1,11 +1,8 @@
 package com.anno.ERP_SpringBoot_Experiment.config;
 
-import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -28,9 +25,6 @@ import java.util.List;
 @AllArgsConstructor
 public class SecurityConfiguration {
 
-    @Autowired
-    private final UserDetailsServiceImpl userDetailsService;
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -46,11 +40,12 @@ public class SecurityConfiguration {
             "api/auth/register",
             "api/auth/login",
             "/api/auth/verify**",
-            "/api/user/Create-Link"
+            "/api/user/Create-Link",
+            "/api/auth/test-response",
+            "/api/auth/get-user/**"
     };
 
     @Bean
-    @Order(1)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/api/**")
@@ -77,42 +72,4 @@ public class SecurityConfiguration {
         source.registerCorsConfiguration("/api/**", corsConfiguration);
         return source;
     }
-
-//    @Bean
-//    @Order(2)
-//    public SecurityFilterChain formLoginFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers(
-//                                "/css/**",
-//                                "/js/**",
-//                                "/images/**",
-//                                "/fonts/**",
-//                                "/assets/**",
-//                                "/favicon.ico",
-//                                "/webjars/**",
-//                                "/error"
-//                        ).permitAll()
-//                        .requestMatchers("/auth/**", "/public/**", "/register").permitAll()
-//                        .requestMatchers("/admin/**").hasRole("ADMIN")
-//                        .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
-//                        .anyRequest().authenticated()
-//                )
-//                .formLogin(formLogin -> formLogin
-//                        .loginPage("/auth/login")
-//                        .loginProcessingUrl("/perform_login")
-//                        .defaultSuccessUrl("/home", true)
-//                        .failureUrl("/auth/login?error=true")
-//                        .permitAll()
-//                )
-//                .logout(logout -> logout
-//                        .logoutUrl("/perform_logout")
-//                        .logoutSuccessUrl("/auth/login?logout")
-//                        .deleteCookies("JSESSIONID")
-//                        .permitAll()
-//                )
-//                .userDetailsService(userDetailsService)
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
-//        return http.build();
-//    }
 }

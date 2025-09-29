@@ -1,0 +1,17 @@
+{
+  "name": "erp_springboot-experiment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/annoeye/erp_springboot-experiment"
+  },
+  "private": true,
+  "dependencies": {
+    "k6": "^0.0.0"
+  }
+}
