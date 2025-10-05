@@ -1,7 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.service;
 
-import com.anno.ERP_SpringBoot_Experiment.service.implementation.iRedis;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.anno.ERP_SpringBoot_Experiment.service.impl.iRedis;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,10 +11,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@RequiredArgsConstructor
 public class RedisService implements iRedis {
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public boolean hasKey(String key) {
@@ -27,8 +27,8 @@ public class RedisService implements iRedis {
     }
 
     @Override
-    public Long getExpire(String key, TimeUnit timeUnit) {
-        return redisTemplate.getExpire(key, timeUnit);
+    public void getExpire(String key, TimeUnit timeUnit) {
+        redisTemplate.getExpire(key, timeUnit);
     }
 
     @Override

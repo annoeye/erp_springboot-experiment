@@ -1,11 +1,9 @@
 package com.anno.ERP_SpringBoot_Experiment.service.event.email;
 
 import com.anno.ERP_SpringBoot_Experiment.event.VerificationEmailEvent;
-import com.anno.ERP_SpringBoot_Experiment.repository.RefreshTokenRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.EmailService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
-import com.anno.ERP_SpringBoot_Experiment.service.UserService.Helper;
 import com.anno.ERP_SpringBoot_Experiment.service.event.base.BaseEventListener;
 import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +18,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class VerificationEmailListener extends BaseEventListener {
 
     public VerificationEmailListener(EmailService emailService,
-                                     RefreshTokenRepository refreshTokenRepository,
-                                     Helper helper,
                                      JwtService jwtService,
                                      UserDetailsServiceImpl userDetailsService,
                                      @Value("${server.port}") String serverPort) {
-        super(emailService, refreshTokenRepository, helper, jwtService, userDetailsService);
+        super(emailService, jwtService, userDetailsService);
         this.serverPort = serverPort;
     }
 

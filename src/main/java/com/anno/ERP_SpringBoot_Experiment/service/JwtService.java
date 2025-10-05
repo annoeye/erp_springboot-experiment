@@ -32,22 +32,12 @@ public class JwtService {
     }
 
     @SafeVarargs
-    public final String generateToken(
-            UserDetails userDetails,
-            long expirationTimeMillis,
-            Map<String, Object>... extraClaims
-    ) {
+    public final String generateToken(UserDetails userDetails, long expirationTimeMillis, Map<String, Object>... extraClaims) {
         Map<String, Object> allClaims = new HashMap<>();
         for (Map<String, Object> claimMap : extraClaims) {
             allClaims.putAll(claimMap);
         }
-        return Jwts.builder()
-                .claims(allClaims)
-                .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expirationTimeMillis))
-                .signWith(getSignInKey())
-                .compact();
+        return Jwts.builder().claims(allClaims).subject(userDetails.getUsername()).issuedAt(new Date(System.currentTimeMillis())).expiration(new Date(System.currentTimeMillis() + expirationTimeMillis)).signWith(getSignInKey()).compact();
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -64,12 +54,9 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSignInKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        return Jwts.parser().verifyWith(getSignInKey()).build().parseSignedClaims(token).getPayload();
     }
+
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);

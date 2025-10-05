@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.authenticated;
 
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
+import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -29,6 +30,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private final RedisService redisService;
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -36,11 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String jwt;
         final String userName;
@@ -56,19 +54,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             userName = jwtService.extractUsername(jwt);
             if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userName);
-                if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
+
+                String accessToken = "access_token:" + jwt;
+                boolean isTokenActiveInRedis = redisService.hasKey(accessToken);
+
+                if (jwtService.isTokenValid(jwt, userDetails) && isTokenActiveInRedis) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    logger.debug("Người dùng '{}' đã xác thực thành công qua JWT.", userName);
+                    logger.debug("Người dùng '{}' đã xác thực thành công qua JWT và Redis.", userName);
                 } else {
-                    logger.warn("Mã thông báo JWT không hợp lệ đối với người dùng: {}. Mã thông báo sẽ bị bỏ qua.", userName);
+                    if (!isTokenActiveInRedis) {
+                        logger.warn("Mã thông báo JWT hợp lệ nhưng không tìm thấy trong Redis (có thể đã đăng xuất): {}. Mã thông báo sẽ bị bỏ qua.", userName);
+                    } else {
+                        logger.warn("Mã thông báo JWT không hợp lệ đối với người dùng: {}. Mã thông báo sẽ bị bỏ qua.", userName);
+                    }
                 }
             }
             filterChain.doFilter(request, response);
@@ -87,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Chữ ký JWT không hợp lệ: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             logger.warn("JWT tuyên bố chuỗi trống hoặc đối số không hợp lệ: {}", e.getMessage());
- handleJwtException(response, HttpServletResponse.SC_BAD_REQUEST, "JWT không hợp lệ (khiếu nại hoặc lập luận): " + e.getMessage());
+            handleJwtException(response, HttpServletResponse.SC_BAD_REQUEST, "JWT không hợp lệ (khiếu nại hoặc lập luận): " + e.getMessage());
         }
     }
 
@@ -96,13 +96,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
             response.setStatus(status);
             response.setContentType("application/json;charset=UTF-8");
-            String jsonErrorResponse = String.format(
-                    "{\"timestamp\": %d, \"status\": %d, \"error\": \"%s\", \"message\": \"%s\"}",
-                    System.currentTimeMillis(),
-                    status,
-                    HttpStatus.valueOf(status).getReasonPhrase().replace("\"", "\\\""),
-                    message.replace("\"", "\\\"")
-            );
+            String jsonErrorResponse = String.format("{\"timestamp\": %d, \"status\": %d, \"error\": \"%s\", \"message\": \"%s\"}", System.currentTimeMillis(), status, HttpStatus.valueOf(status).getReasonPhrase().replace("\"", "\\\""), message.replace("\"", "\\\""));
             response.getWriter().write(jsonErrorResponse);
             response.getWriter().flush();
         } else {

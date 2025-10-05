@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.event.email;
 
 import com.anno.ERP_SpringBoot_Experiment.event.SendCodeResetPassword;
-import com.anno.ERP_SpringBoot_Experiment.repository.RefreshTokenRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.EmailService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
@@ -19,12 +18,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class ResetPasswordListener extends BaseEventListener {
 
     public ResetPasswordListener(EmailService emailService,
-                                 RefreshTokenRepository refreshTokenRepository,
-                                 Helper helper,
                                  JwtService jwtService,
                                  UserDetailsServiceImpl userDetailsService,
                                  @Value("${server.port}") String serverPort) {
-        super(emailService, refreshTokenRepository, helper, jwtService, userDetailsService);
+        super(emailService, jwtService, userDetailsService);
         this.serverPort = serverPort;
     }
 

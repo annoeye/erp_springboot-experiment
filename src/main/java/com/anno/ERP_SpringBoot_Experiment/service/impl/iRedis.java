@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.service.implementation;
+package com.anno.ERP_SpringBoot_Experiment.service.impl;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +10,7 @@ public interface iRedis {
 
     void delete(String... keys);
 
-    Long getExpire(String key, TimeUnit timeUnit);
+    void getExpire(String key, TimeUnit timeUnit);
 
     void setValue(String key, Object value);
 

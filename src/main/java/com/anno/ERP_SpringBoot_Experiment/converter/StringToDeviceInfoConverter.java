@@ -18,7 +18,7 @@ public class StringToDeviceInfoConverter implements Converter<String, DeviceInfo
 
     @Override
     public DeviceInfo convert(String source) {
-        if (source == null || source.isEmpty()) return null;
+        if (source.isEmpty()) return null;
         try {
             return objectMapper.readValue(source, DeviceInfo.class);
         } catch (JsonProcessingException e) {

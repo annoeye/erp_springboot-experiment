@@ -23,9 +23,9 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    private String processHtmlTemplate(String templateName, Map<String, Object> variable){
-        Context context =new Context();
-        if (variable != null) variable.forEach(context ::setVariable);
+    private String processHtmlTemplate(String templateName, Map<String, Object> variable) {
+        Context context = new Context();
+        if (variable != null) variable.forEach(context::setVariable);
         return templateEngine.process("/mail/" + templateName, context);
     }
 
@@ -39,10 +39,7 @@ public class EmailService {
         helper.setTo(to);
         helper.setSubject("Xác thực tài khoản");
 
-        Map<String, Object> variables = Map.of(
-                "username", username,
-                "verificationUrl", verificationUrl
-        );
+        Map<String, Object> variables = Map.of("username", username, "verificationUrl", verificationUrl);
         String htmlContent = processHtmlTemplate("verification-email.html", variables);
         helper.setText(htmlContent, true);
 
@@ -58,10 +55,7 @@ public class EmailService {
         helper.setTo(to);
         helper.setSubject("Mã xác thực đặt lại mật khẩu");
 
-        Map<String, Object> variables = Map.of(
-                "username", username,
-                "otp", otp
-        );
+        Map<String, Object> variables = Map.of("username", username, "otp", otp);
 
         String htmlContent = processHtmlTemplate("password-reset-otp-email.html", variables);
         helper.setText(htmlContent, true);

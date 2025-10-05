@@ -1,17 +1,15 @@
-package com.anno.ERP_SpringBoot_Experiment.dto;
+package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
-import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Set;
-
-@Data
+@Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserRegister {
+public class UserRegisterRequest {
     @NotBlank(message = "Họ tên không được để trống")
     String fullName;
 

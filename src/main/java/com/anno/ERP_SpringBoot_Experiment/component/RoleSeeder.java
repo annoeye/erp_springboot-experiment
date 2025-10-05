@@ -25,7 +25,7 @@ public class RoleSeeder {
                 .toList();
 
         if (missingRoles.isEmpty()) {
-            log.info("✅ Tất cả Role đã tồn tại.");
+            log.info("Tất cả Role đã tồn tại.");
             return;
         }
 
@@ -33,7 +33,7 @@ public class RoleSeeder {
             Role role = new Role();
             role.setName(roleType.name());
             roleRepository.save(role);
-            log.info("➕ Đã thêm Role: {}", roleType.name());
+            log.info("Đã thêm Role: {}", roleType.name());
         });
     }
 }

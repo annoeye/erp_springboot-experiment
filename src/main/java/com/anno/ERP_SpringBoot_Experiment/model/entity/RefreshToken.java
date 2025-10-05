@@ -14,18 +14,12 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
-@Table(name = "refresh_token")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RefreshToken extends IdentityOnly {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
     User userInfo;
 
-    @Embedded
     AuthCode authCode = new AuthCode();
 
-    @ElementCollection
     List<DeviceInfo> deviceInfos;
 }

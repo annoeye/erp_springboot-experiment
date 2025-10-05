@@ -1,10 +1,10 @@
-package com.anno.ERP_SpringBoot_Experiment.response;
+package com.anno.ERP_SpringBoot_Experiment.service.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@Data
-@NoArgsConstructor
+@Getter
+@Setter
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
