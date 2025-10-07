@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.event;
+package com.anno.ERP_SpringBoot_Experiment.domainevents;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import lombok.Builder;

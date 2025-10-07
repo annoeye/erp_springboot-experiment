@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: ERP_SpringBoot-Experiment
+  profiles:
+    active: dev
+
+  contact:
+    name: ANNOEYE
+    url: zalo.me/0971791373
+    email: annoeye@gmail.com
+
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
+    username: Spring_app
+    password: ddinhnn11
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  cloud:
+    function:
+      definition: syncVideos;receiveVideos
+    stream:
+      bindings:
+        syncVideos-out-0:
+          destination: sync-videos-topic
+        receiveVideos-in-0:
+          destination: sync-videos-topic
+          group: video-group
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: my-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: erpspringbootexperiment@gmail.com
+    password: "onfw cbkp xfmh arow"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+  output:
+    ansi:
+      enabled: ALWAYS
+
+server:
+  port: 8080
+  url: http://localhost:8080
+
+frontend:
+  url: http://localhost:5173/berry-vue
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tryItOutEnabled: true
+    enabled: true
+
+application:
+  security:
+    jwt:
+      secret-key: N0lwM0VjcmV0S2V5Rm9ySlBUSXNzdWVyQW5kVmVyaWZpY2F0aW9uUHVycG9zZXM=
+
+logging:
+  level:
+    root: INFO
+    com:
+      anno:
+        ERP_SpringBoot_Experiment:
+          service: DEBUG
+    org.apache.kafka.clients.admin.AdminClientConfig: WARN
+    org.apache.kafka.clients.consumer.ConsumerConfig: WARN
+    org.apache.kafka.clients.producer.ProducerConfig: WARN
+  pattern:
+    console: "%d{HH:mm:ss} %green([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n"

@@ -1,9 +1,9 @@
 package com.anno.ERP_SpringBoot_Experiment.service.UserService;
 
 import com.anno.ERP_SpringBoot_Experiment.common.constants.AppConstant;
-import com.anno.ERP_SpringBoot_Experiment.event.SaveDeviceInfo;
-import com.anno.ERP_SpringBoot_Experiment.event.SendCodeResetPassword;
-import com.anno.ERP_SpringBoot_Experiment.event.VerificationEmailEvent;
+import com.anno.ERP_SpringBoot_Experiment.domainevents.SaveDeviceInfo;
+import com.anno.ERP_SpringBoot_Experiment.domainevents.SendCodeResetPassword;
+import com.anno.ERP_SpringBoot_Experiment.domainevents.VerificationEmailEvent;
 import com.anno.ERP_SpringBoot_Experiment.mapper.UserMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;

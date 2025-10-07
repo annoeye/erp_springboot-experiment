@@ -1,6 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.event.device;
 
-import com.anno.ERP_SpringBoot_Experiment.event.SaveDeviceInfo;
+import com.anno.ERP_SpringBoot_Experiment.domainevents.SaveDeviceInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.DeviceInfoResponse;
