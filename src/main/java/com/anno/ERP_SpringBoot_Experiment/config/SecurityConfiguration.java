@@ -39,7 +39,8 @@ public class SecurityConfiguration {
             "/api/auth/verify**",
             "/api/auth/test-response",
             "/api/auth/logout",
-            "/api/auth/search"
+            "/api/auth/search",
+            "/api/kafka/publish**"
     };
 
     @Bean

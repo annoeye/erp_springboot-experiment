@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.service.impl;
+package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
 import java.util.List;
 import java.util.Map;

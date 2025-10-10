@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.service.impl;
+package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
 
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;

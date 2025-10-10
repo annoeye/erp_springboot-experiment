@@ -1,6 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service;
 
-import com.anno.ERP_SpringBoot_Experiment.service.impl.iRedis;
+import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iRedis;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;

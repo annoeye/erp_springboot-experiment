@@ -43,22 +43,28 @@ public class ErpSpringBootExperimentApplication {
             log.warn("The host name could not be determined, using `localhost` as fallback");
         }
 
+        String swaggerUiPath = env.getProperty("springdoc.swagger-ui.path");
+        if (StringUtils.isBlank(swaggerUiPath)) {
+            swaggerUiPath = "/swagger-ui.html";
+        }
+
         log.info("""
-                        
+
                         ----------------------------------------------------------
-                        \t\
-                        Application '{}' is running! Access URLs:
-                        \t\
-                        Local: \t\t{}://localhost:{}{}
-                        \t\
-                        External: \t{}://{}:{}{}
-                        \t\
-                        Profile(s): \t{}
+                        \tApplication '{}' is running! Access URLs:
+                        \tLocal: \t\t{}://localhost:{}{}
+                        \tSwagger UI: \t{}://localhost:{}{}{}
+                        \tExternal: \t{}://{}:{}{}
+                        \tProfile(s): \t{}
                         ----------------------------------------------------------""",
                 env.getProperty("spring.application.name"),
                 protocol,
                 serverPort,
                 contextPath,
+                protocol,
+                serverPort,
+                contextPath.equals("/") ? "" : contextPath,
+                swaggerUiPath,
                 protocol,
                 hostAddress,
                 serverPort,

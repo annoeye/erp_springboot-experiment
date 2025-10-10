@@ -15,25 +15,8 @@ spring:
     password: ddinhnn11
     driver-class-name: oracle.jdbc.OracleDriver
 
-  cloud:
-    function:
-      definition: receiveVideos # syncVideos
-    stream:
-      bindings:
-        syncVideos-out-0:
-          destination: sync-videos-topic
-        receiveVideos-in-0:
-          destination: sync-videos-topic
-          group: video-group
   kafka:
     bootstrap-servers: localhost:9092
-    consumer:
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
   jpa:
     hibernate:
@@ -98,5 +81,8 @@ logging:
     org.apache.kafka.clients.admin.AdminClientConfig: WARN
     org.apache.kafka.clients.consumer.ConsumerConfig: WARN
     org.apache.kafka.clients.producer.ProducerConfig: WARN
+    org.hibernate: WARN
+
+
   pattern:
     console: "%d{HH:mm:ss} %green([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n"

@@ -7,29 +7,30 @@ import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
-import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class UserSender implements CommandLineRunner {
-    final UserRepository userRepository;
-    final PasswordEncoder passwordEncoder;
-
+public class UserSeeder implements CommandLineRunner {
+    UserRepository userRepository;
+    PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
-        if (userRepository.count() == 0) {
+        if (userRepository.count() > 0) {
             return;
         }
 
-        final var account = new User();
-        account.setId(UUID.randomUUID());
+        log.info("Kiểm tra không thấy có account nào tồn tại. Yêu cầu tạo mới account 'ADMIN'.");
+        final var account = new  User();
+
         account.setFullName("Ngô Ngọc Định");
         account.setName("ADMIN");
         account.setEmail("ADMIN@gmail.com");

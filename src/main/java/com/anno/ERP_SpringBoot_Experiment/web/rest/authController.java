@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.web.rest.impl;
+package com.anno.ERP_SpringBoot_Experiment.web.rest;
 
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;

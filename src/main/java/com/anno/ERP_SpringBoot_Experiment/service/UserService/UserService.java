@@ -9,12 +9,13 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
-import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
+import com.anno.ERP_SpringBoot_Experiment.service.KafkaService.ActiveLogService;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.ActiveLogDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
 import com.anno.ERP_SpringBoot_Experiment.service.event.device.SaveDeviceInfoListener;
-import com.anno.ERP_SpringBoot_Experiment.service.impl.iUser;
+import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,6 @@ public class UserService implements iUser {
     private final Helper helper;
     private final ApplicationEventPublisher eventPublisher;
     private final SaveDeviceInfoListener deviceInfoEventListener;
-    private final RedisService redisService;
     private static final int OTP_LENGTH = 6;
     private static final int OTP_UPPER_BOUND = (int) Math.pow(10, OTP_LENGTH);
     private static final String OTP_FORMAT_PATTERN = "%0" + OTP_LENGTH + "d";
@@ -48,6 +48,7 @@ public class UserService implements iUser {
     @Value("${frontend.url}")
     private String frontendUrl;
     private final UserMapper userMapper;
+    private final ActiveLogService  activeLogService;
 
 
     @Override
@@ -149,6 +150,11 @@ public class UserService implements iUser {
         }
         DeviceInfoResponse result = deviceInfoEventListener.handleDeviceInfo(new SaveDeviceInfo(user, body.getDeviceInfo(), ActiveStatus.LOGIN_VERIFICATION));
 
+        ActiveLogDto dto = ActiveLogDto.builder()
+                .performedBy(String.valueOf(user.getId()))
+                .status(ActiveStatus.LOGIN)
+                .build();
+        activeLogService.sendMessage(dto);
 
         return Response.ok(AuthResponse.builder()
                 .message("Đăng nhập thành công.")
