@@ -19,7 +19,7 @@ import java.util.Set;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiError {
-    @JsonFormat(pattern = "dd/MM/yyyy ||  hh:mm:ss")
+    @JsonFormat(pattern = "dd/MM/yyyy || hh:mm:ss")
     LocalDateTime timestamp = LocalDateTime.now();
     int code;
     String message;

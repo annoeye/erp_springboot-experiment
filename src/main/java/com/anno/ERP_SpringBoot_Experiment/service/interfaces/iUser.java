@@ -18,7 +18,7 @@ public interface iUser {
     Response<AuthResponse> loginUser(final UserLoginRequest body) throws MessagingException;
     Response<?> verifyAccount(final String code, final ActiveStatus type, final AccountVerificationRequest request);
     Response<?> sendCodeResetPassword(final String email) throws MessagingException;
-    Page<UserDto>  search(final UserSearchRequest request);
+    Page<UserDto> search(final UserSearchRequest request);
 //    Page<UserSearchRequest> search(final UserSearchRequest request);
 //    Response<?> logoutUser(HttpServletRequest request);
 }

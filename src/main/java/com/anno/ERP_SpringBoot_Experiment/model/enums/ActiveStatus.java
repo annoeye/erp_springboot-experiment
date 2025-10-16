@@ -57,6 +57,7 @@ public enum ActiveStatus {
     DELETE_PRODUCT("Xóa sản phẩm"),
     IMPORT_PRODUCTS("Nhập sản phẩm"),
     EXPORT_PRODUCTS("Xuất sản phẩm"),
+    DELETE_CATEGORY("Xóa danh mục"),
 
     // ==========================
     // 🧾 Đơn hàng / Hóa đơn
