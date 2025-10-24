@@ -16,12 +16,11 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
     open-in-view: false
 
   mail:
@@ -48,6 +47,18 @@ spring:
   output:
     ansi:
       enabled: ALWAYS
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+integration:
+  minio:
+    access-key: admin
+    secret-key: admin@2025
+    url: http://localhost:9000
 
 server:
   port: 8080
@@ -78,10 +89,29 @@ logging:
       anno:
         ERP_SpringBoot_Experiment:
           service: DEBUG
-    org.apache.kafka.clients.admin.AdminClientConfig: WARN
-    org.apache.kafka.clients.consumer.ConsumerConfig: WARN
-    org.apache.kafka.clients.producer.ProducerConfig: WARN
+    org:
+      apache:
+        kafka:
+          clients:
+            admin.AdminClientConfig: WARN
+            consumer.ConsumerConfig: WARN
+            producer.ProducerConfig: WARN
+      hibernate:
+        apache:
+          catalina:
+            loader:
+              WebappClassLoaderBase: ERROR
+        tool:
+          schema:
+            internal:
+              ExceptionHandlerLoggedImpl: ERROR
+        springframework:
+          data:
+            repository:
+              config:
+                RepositoryConfigurationExtensionSupport: ERROR
     org.hibernate: WARN
+#    org.springframework: DEBUG
 
 
   pattern:

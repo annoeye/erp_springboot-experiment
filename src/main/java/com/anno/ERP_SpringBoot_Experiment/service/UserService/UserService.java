@@ -10,13 +10,21 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.KafkaService.ActiveLogService;
+import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ActiveLogDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserSearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.DeviceInfoResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.event.device.SaveDeviceInfoListener;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +37,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -49,6 +60,7 @@ public class UserService implements iUser {
     private String frontendUrl;
     private final UserMapper userMapper;
     private final ActiveLogService  activeLogService;
+    private final RedisService redisService;
 
 
     @Override
@@ -263,23 +275,22 @@ public class UserService implements iUser {
 
     }
 
-//
-//    @Override
-//    public Response<?> logoutUser(HttpServletRequest request) {
-//        final String authHeader = request.getHeader("Authorization");
-//        final String jwt;
-//
-//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-//            return;
-//        }
-//
-//        jwt = authHeader.substring(7);
-//        String accessTokenKey = "access_token:" + jwt;
-//
-//        if (redisService.hasKey(accessTokenKey)) {
-//            redisService.delete(accessTokenKey);
-//            log.info("Người dùng đã đăng xuất. Access Token đã được thu hồi.");
-//        }
-//
-//    }
+
+    @Override
+    public void logoutUser(HttpServletRequest request) {
+        final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return;
+        }
+
+        jwt = authHeader.substring(7);
+        String accessTokenKey = "access_token:" + jwt;
+
+        if (redisService.hasKey(accessTokenKey)) {
+            redisService.delete(accessTokenKey);
+            log.info("Người dùng đã đăng xuất. Access Token đã được thu hồi.");
+        }
+    }
 }

@@ -1,19 +1,18 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
-import com.anno.ERP_SpringBoot_Experiment.model.base.Auditable;
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuthCode;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
-import com.anno.ERP_SpringBoot_Experiment.model.listener.AuditEntityListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.proxy.HibernateProxy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,14 +22,13 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "Users")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EntityListeners(AuditEntityListener.class)
 @Builder
-public class User extends IdentityOnly implements UserDetails, Auditable {
+public class User extends IdentityOnly implements UserDetails {
 
     @Column(name = "full_name")
     @Pattern(regexp = "^[\\p{L}\\s]+$", message = "Tên chỉ được chứa chữ cái và khoảng trắng!")
@@ -62,14 +60,17 @@ public class User extends IdentityOnly implements UserDetails, Auditable {
     )
     @Enumerated(EnumType.STRING)
     @Column(name = "roles")
+    @Builder.Default
     Set<RoleType> roles = new HashSet<>();
 
     /* ============================ 🧩 Embedded Fields ============================ */
 
     @Embedded
+    @Builder.Default
     AuditInfo auditInfo = new AuditInfo();
 
     @Embedded
+    @Builder.Default
     AuthCode authCode = new AuthCode();
 
     /* ============================ 🗂️ Enum ============================ */
@@ -115,5 +116,21 @@ public class User extends IdentityOnly implements UserDetails, Auditable {
     @Override
     public boolean isEnabled() {
         return status == ActiveStatus.ACTIVE;
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        User user = (User) o;
+        return getId() != null && Objects.equals(getId(), user.getId());
+    }
+
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
     }
 }

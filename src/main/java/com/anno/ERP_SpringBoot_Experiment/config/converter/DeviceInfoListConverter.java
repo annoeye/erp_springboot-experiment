@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.converter;
+package com.anno.ERP_SpringBoot_Experiment.config.converter;
 
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.DeviceInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;

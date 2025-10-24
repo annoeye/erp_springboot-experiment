@@ -8,9 +8,13 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.authController;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -60,9 +64,9 @@ public class authControllerImpl implements authController {
         );
     }
 
-//    @Override
-//    public ResponseEntity<?> logout(HttpServletRequest request) {
-//        userService.logoutUser(request);
-//        return ResponseEntity.ok(Map.of("message", "Đăng xuất thành công."));
-//    }
+    @Override
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        userService.logoutUser(request);
+        return ResponseEntity.ok(Map.of("message", "Đăng xuất thành công."));
+    }
 }

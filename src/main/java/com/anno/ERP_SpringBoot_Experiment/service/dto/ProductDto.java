@@ -1,5 +1,8 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
+import jakarta.persistence.Column;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -14,7 +17,12 @@ import java.util.List;
 public class ProductDto {
     String name;
 
+    @Column(nullable = false)
     String sku;
 
-    List<String> mediaItems;
+    List<MediaItem> mediaItems;
+
+    String skuCategory;
+
+    ActiveStatus status;
 }

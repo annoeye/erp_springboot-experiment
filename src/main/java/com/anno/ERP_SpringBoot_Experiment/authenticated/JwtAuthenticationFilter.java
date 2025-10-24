@@ -33,12 +33,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final RedisService redisService;
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
-
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String jwt;
         final String userName;
@@ -64,11 +68,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     logger.debug("Người dùng '{}' đã xác thực thành công qua JWT và Redis.", userName);
                 } else {
+                    String errorMessage;
                     if (!isTokenActiveInRedis) {
-                        logger.warn("Mã thông báo JWT hợp lệ nhưng không tìm thấy trong Redis (có thể đã đăng xuất): {}. Mã thông báo sẽ bị bỏ qua.", userName);
+                        errorMessage = "Mã thông báo không tìm thấy trong Redis (có thể đã đăng xuất).";
+                        logger.warn("Mã thông báo JWT hợp lệ nhưng không tìm thấy trong Redis (đã đăng xuất): {}. Yêu cầu bị chặn.", userName);
                     } else {
-                        logger.warn("Mã thông báo JWT không hợp lệ đối với người dùng: {}. Mã thông báo sẽ bị bỏ qua.", userName);
+                        errorMessage = "Mã thông báo không hợp lệ.";
+                        logger.warn("Mã thông báo JWT không hợp lệ đối với người dùng: {}. Yêu cầu bị chặn.", userName);
                     }
+                    handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, errorMessage);
+                    return;
                 }
             }
             filterChain.doFilter(request, response);

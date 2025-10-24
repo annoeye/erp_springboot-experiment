@@ -6,10 +6,15 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificatio
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserSearchRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RequestMapping("/api/auth")
@@ -42,8 +47,8 @@ public interface authController {
     Response<PagingResponse<UserDto>> search(@RequestBody final UserSearchRequest request );
 
 
-//    @PostMapping("/logout")
-//     ResponseEntity<?> logout
-//            (final HttpServletRequest request);
+    @PostMapping("/logout")
+    ResponseEntity<?> logout
+            (final HttpServletRequest request);
 
 }

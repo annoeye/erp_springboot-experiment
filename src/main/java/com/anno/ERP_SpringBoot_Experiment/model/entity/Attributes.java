@@ -1,28 +1,24 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
-import com.anno.ERP_SpringBoot_Experiment.model.listener.AuditEntityListener;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.proxy.HibernateProxy;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
 @Table(name = "Attributes")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EntityListeners(AuditEntityListener.class)
 public class Attributes extends IdentityOnly {
     @Embedded
     SkuInfo sku;
@@ -40,16 +36,37 @@ public class Attributes extends IdentityOnly {
     @Enumerated(EnumType.STRING)
     StockStatus statusProduct;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(
-            name = "specifications",
-            columnDefinition = "json"
-    )
-    Map<String, String> specifications = new HashMap<>();
+    @Column(name = "specifications", columnDefinition = "CLOB")
+    private String specifications;
 
-    @Column(name = "key_words")
+    @ElementCollection(fetch = FetchType.LAZY)
+    @Column(name = "keyword")
     Set<String> keywords;
 
-    @Enumerated(EnumType.STRING)
-    ActiveStatus status;
+    @Embedded
+    AuditInfo auditInfo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "product_sku",
+            nullable = false
+    )
+    @ToString.Exclude
+    Product product;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        Attributes that = (Attributes) o;
+        return getId() != null && Objects.equals(getId(), that.getId());
+    }
+
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+    }
 }

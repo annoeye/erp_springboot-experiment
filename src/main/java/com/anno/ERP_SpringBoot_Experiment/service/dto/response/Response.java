@@ -27,6 +27,14 @@ public class Response<T>  {
                 .build();
     }
 
+    public static <T> Response<T> ok(T data, String message) {
+        final ApiError status = new ApiError(message, HttpStatus.OK.value());
+        return Response.<T>builder()
+                .status(status)
+                .data(data)
+                .build();
+    }
+
     public static <T> Response<T> created(T data) {
         final ApiError status = new ApiError(HttpStatus.CREATED.value());
         return Response.<T>builder()

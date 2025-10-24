@@ -30,6 +30,7 @@ public class KafkaConfig {
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         return mapper;
+
     }
 
     @Bean

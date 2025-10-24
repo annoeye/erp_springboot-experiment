@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-@Component
+@Component("featureUserHelper")
 @RequiredArgsConstructor
 public class Helper {
 

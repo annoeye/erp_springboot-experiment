@@ -11,6 +11,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 
 public interface iUser {
@@ -20,5 +21,5 @@ public interface iUser {
     Response<?> sendCodeResetPassword(final String email) throws MessagingException;
     Page<UserDto> search(final UserSearchRequest request);
 //    Page<UserSearchRequest> search(final UserSearchRequest request);
-//    Response<?> logoutUser(HttpServletRequest request);
+    void logoutUser(HttpServletRequest request);
 }

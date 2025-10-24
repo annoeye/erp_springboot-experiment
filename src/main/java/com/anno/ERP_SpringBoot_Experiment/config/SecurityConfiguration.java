@@ -39,8 +39,8 @@ public class SecurityConfiguration {
             "/api/auth/verify**",
             "/api/auth/test-response",
             "/api/auth/logout",
-            "/api/auth/search",
-            "/api/kafka/publish**"
+            "/api/merchandise/**",
+            "/api/images/**"
     };
 
     @Bean
@@ -52,7 +52,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(SWAGGER_WHITELIST)
                         .permitAll().requestMatchers(REQUEST_PERMIT_ALL)
-                        .permitAll().requestMatchers("/api/auth/get-user/**").hasRole("USER")
+//                        .permitAll().requestMatchers("/api/merchandise/**").hasRole("ADMIN")
+                        .permitAll().requestMatchers("/api/auth/search").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/get-user/**").hasRole("USER")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
