@@ -46,7 +46,7 @@ public class CategoryService implements iCategory {
     @Override
     @Transactional
     public Response<CategoryDto> update(final CategoryDto request) { // sửa tên thôi
-        Optional<Category> optionalCategory = categoryRepository.findCategoriesBySkuInfo_SKU(request.getSku());
+        Optional<Category> optionalCategory = categoryRepository.findCategoriesBySkuInfo_SKU(request.getSkuInfo().getSKU());
         Category category = optionalCategory.orElseThrow(() -> new BusinessException("Danh mục không tồn tại."));
         category.setName(request.getName());
         category.getAuditInfo().setUpdatedAt(LocalDateTime.now());

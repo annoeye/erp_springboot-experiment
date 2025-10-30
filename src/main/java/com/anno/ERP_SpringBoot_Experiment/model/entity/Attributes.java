@@ -3,12 +3,15 @@ package com.anno.ERP_SpringBoot_Experiment.model.entity;
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -36,8 +39,12 @@ public class Attributes extends IdentityOnly {
     @Enumerated(EnumType.STRING)
     StockStatus statusProduct;
 
-    @Column(name = "specifications", columnDefinition = "CLOB")
-    private String specifications;
+    @ElementCollection
+    @CollectionTable(
+            name = "attributes_specifications",
+            joinColumns = @JoinColumn(name = "attributes_id")
+    )
+    List<Specification> specifications = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
     @Column(name = "keyword")
@@ -47,11 +54,7 @@ public class Attributes extends IdentityOnly {
     AuditInfo auditInfo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "product_sku",
-            nullable = false
-    )
-    @ToString.Exclude
+    @JoinColumn(name = "product_id")
     Product product;
 
     @Override

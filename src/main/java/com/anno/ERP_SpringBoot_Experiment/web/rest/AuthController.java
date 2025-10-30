@@ -18,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RequestMapping("/api/auth")
-public interface authController {
+public interface AuthController {
 
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)

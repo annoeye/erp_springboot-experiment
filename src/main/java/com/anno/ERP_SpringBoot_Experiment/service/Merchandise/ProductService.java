@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
-import com.anno.ERP_SpringBoot_Experiment.mapper.ProductMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
@@ -9,6 +8,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
+import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.Helper;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
@@ -33,7 +33,6 @@ import java.util.UUID;
 public class ProductService implements iProduct {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final ProductMapper productMapper;
     private final SecurityUtil securityUtil;
     private final Helper featureMerchandiseHelper;
     private final MinioService minioService;

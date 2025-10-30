@@ -1,3 +1,4 @@
+
 spring:
   application:
     name: ERP_SpringBoot-Experiment
@@ -73,14 +74,17 @@ springdoc:
     enabled: true
   swagger-ui:
     path: /swagger-ui.html
-    operationsSorter: method
-    tryItOutEnabled: true
     enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false
+  default-consumes-media-type: multipart/form-data
+  default-produces-media-type: application/json
 
 application:
   security:
     jwt:
-      secret-key: N0lwM0VjcmV0S2V5Rm9ySlBUSXNzdWVyQW5kVmVyaWZpY2F0aW9uUHVycG9zZXM=
+      secret-key: N0pwM0VjcmV0S2V5Rm9ySlBUSXNzdWVyQW5kVmVyaWZpY2F0aW9uUHVycG9zZXM=
 
 logging:
   level:

@@ -1,28 +1,22 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
-import jakarta.persistence.Column;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
+import java.io.Serializable;
 import java.util.List;
+import java.util.UUID;
 
-@Getter
-@Setter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProductDto {
+/**
+ * DTO for {@link Product}
+ */
+@Value
+public class ProductDto implements Serializable {
+    UUID id;
     String name;
-
-    @Column(nullable = false)
-    String sku;
-
-    List<MediaItem> mediaItems;
-
-    String skuCategory;
-
+    SkuInfoDto skuInfo;
+    List<MediaItemDto> mediaItems;
     ActiveStatus status;
+    String description;
 }

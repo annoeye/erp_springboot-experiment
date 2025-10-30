@@ -48,13 +48,14 @@ public class Product extends IdentityOnly implements SkuAware {
     @ToString.Exclude
     Category category;
 
-//    @OneToMany(
-//            mappedBy = "product",
-//            cascade = CascadeType.ALL,
-//            orphanRemoval = true
-//    )
-    ////    @Builder.Default
-//    List<Attributes> attributes = new ArrayList<>();
+    @OneToMany(
+            mappedBy = "product",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    //    @Builder.Default
+    List<Attributes> attributes = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable=false)

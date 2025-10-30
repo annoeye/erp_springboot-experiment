@@ -40,7 +40,8 @@ public class SecurityConfiguration {
             "/api/auth/test-response",
             "/api/auth/logout",
             "/api/merchandise/**",
-            "/api/images/**"
+            "/api/images/**",
+            "/api/notifications/**"
     };
 
     @Bean

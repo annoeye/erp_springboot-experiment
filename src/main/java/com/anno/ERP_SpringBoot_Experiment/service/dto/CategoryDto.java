@@ -1,15 +1,17 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
+import lombok.Value;
 
-@Getter
-@Setter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class CategoryDto {
+import java.io.Serializable;
+import java.util.UUID;
+
+/**
+ * DTO for {@link Category}
+ */
+@Value
+public class CategoryDto implements Serializable {
+    UUID id;
     String name;
-    String sku;
+    SkuInfoDto skuInfo;
 }

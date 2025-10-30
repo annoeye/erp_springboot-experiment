@@ -1,16 +1,19 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest.impl;
 
+import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.AttributesService;
 import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.CategoryService;
 import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.ProductService;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CategorySearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.PagingRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PageableData;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
-import com.anno.ERP_SpringBoot_Experiment.web.rest.merchandiseController;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.MerchandiseController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +28,10 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-public class merchandiseControllerImpl implements merchandiseController {
+public class merchandiseControllerImpl implements MerchandiseController {
     private final ProductService productService;
     private final CategoryService categoryService;
+    private final AttributesService attributesService;
     private final MinioService minioService;
 
     @Override
@@ -71,5 +75,10 @@ public class merchandiseControllerImpl implements merchandiseController {
 
     public ResponseEntity<String> upload(@RequestBody MultipartFile file) throws IOException {
         return ResponseEntity.ok(minioService.uploadFile(file));
+    }
+
+    @Override
+    public Response<AttributesDto> addAttributes(CreateAttributesRequest request) {
+        return attributesService.create(request);
     }
 }

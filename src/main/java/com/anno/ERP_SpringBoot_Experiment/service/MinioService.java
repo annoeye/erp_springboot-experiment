@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.service;
 
 import io.minio.*;
+import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
 @Service
@@ -51,18 +54,17 @@ public class MinioService {
 
             String objectName = UUID.randomUUID() + fileExtension;
 
-            InputStream inputStream = file.getInputStream();
+            try (InputStream inputStream = file.getInputStream()) {
+                minioClient.putObject(
+                        PutObjectArgs.builder()
+                                .bucket(BUCKET_NAME)
+                                .object(objectName)
+                                .stream(inputStream, file.getSize(), - 1)
+                                .contentType(file.getContentType())
+                                .build()
+                );
+            }
 
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(BUCKET_NAME)
-                            .object(objectName)
-                            .stream(inputStream, file.getSize(), - 1)
-                            .contentType(file.getContentType())
-                            .build()
-            );
-
-            inputStream.close();
             return objectName;
 
         } catch (Exception e) {
@@ -107,8 +109,10 @@ public class MinioService {
                             .expiry(expiryInSeconds)
                             .build()
             );
-        } catch (Exception e) {
+        } catch (MinioException | IOException e) {
             throw new RuntimeException("Có lỗi khi tạo URL tạm thời: " + e.getMessage(), e);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
     }
 

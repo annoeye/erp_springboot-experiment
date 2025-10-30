@@ -6,7 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
-import com.anno.ERP_SpringBoot_Experiment.web.rest.authController;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.AuthController;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-public class authControllerImpl implements authController {
+public class authControllerImpl implements AuthController {
 
     private final iUser userService;
     private final UserMapper userMapper;

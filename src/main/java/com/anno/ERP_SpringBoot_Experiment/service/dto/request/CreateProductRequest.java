@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -15,5 +16,5 @@ public class CreateProductRequest {
     String description;
     String categorySku;
     ActiveStatus status;
-    List<MultipartFile> images;
+    List<MultipartFile> images = new ArrayList<>();
 }
