@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class User extends IdentityOnly implements UserDetails {
+public class    User extends IdentityOnly implements UserDetails {
 
     @Column(name = "full_name")
     @Pattern(regexp = "^[\\p{L}\\s]+$", message = "Tên chỉ được chứa chữ cái và khoảng trắng!")

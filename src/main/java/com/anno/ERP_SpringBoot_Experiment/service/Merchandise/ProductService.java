@@ -8,7 +8,6 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
-import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.Helper;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
@@ -81,6 +80,7 @@ public class ProductService implements iProduct {
 
         return Response.ok(productRepository.save(product));
     }
+    // Thiếu RUD
 
     @Override
     public Response<?> deleteProduct(@NonNull final List<UUID> ids) {
@@ -88,4 +88,5 @@ public class ProductService implements iProduct {
         productRepository.softDeleteAllByIds(ids, securityUtil.getCurrentUsername());
         return Response.noContent();
     }
+
 }

@@ -120,3 +120,10 @@ logging:
 
   pattern:
     console: "%boldYellow(%d{HH:mm:ss.SSS}) %boldCyan(%d{yyyy-MM-dd}) %green([%thread]) %highlight(%-5level) %cyan(%logger{36}) %magenta([%file:%line]) %yellow(-) %msg%n"
+
+vnpay:
+  pay-url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+  return-url: "${VNPAY_RETURN_URI:http://localhost:4200/payments/payment-callback}" # return
+  tmn-code: "SYXILNQA"
+  secret-key: "PR6MH2S24AM1566BB0HKV9C4UAQ3BNVH"
+  api-url: "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"

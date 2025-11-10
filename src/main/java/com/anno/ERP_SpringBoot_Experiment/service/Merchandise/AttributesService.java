@@ -13,13 +13,16 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
+import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -32,31 +35,38 @@ public class AttributesService implements iAttributes {
     private final SpecificationMapper  specificationMapper;
     private final AttributesMapper attributesMapper;
     private final Helper merchandiseHelper;
+    private final SecurityUtil securityUtil;
 
-    @Override
+    @Transactional
     public Response<AttributesDto> create(CreateAttributesRequest request) {
 
-        Optional<Product> optionalProduct = productRepository
-                .findProductById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()));
+        if (request.getStockQuantity() < 0) {
+            throw new BusinessException("Số lượng tồn kho không thể là số âm.");
+        }
+
+        Product product = productRepository
+                .findById(UUID.fromString(request.getProductId()))
+                .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + request.getProductId() + " không tồn tại."));
+
 
         List<Specification> Specification = request.getData().stream()
                 .map(data  -> {
                     String key = merchandiseHelper.generateKey();
                     return new Specification(key, data);
-                })
-                .toList();
+                }).toList();
+
+        AuditInfo audit = new AuditInfo();
+        audit.setCreatedAt(LocalDateTime.now());
+        audit.setCreatedBy(securityUtil.getCurrentUsername());
 
         Attributes attributes = new Attributes();
         attributes.setName(request.getName());
-        attributes.setAuditInfo(new AuditInfo());
+        attributes.setAuditInfo(audit);
         attributes.setSku(new SkuInfo());
         attributes.setKeywords(request.getKeywords());
         attributes.setPrice(request.getPrice());
         attributes.setSalePrice(request.getSalePrice());
-        attributes.setProduct(
-                optionalProduct.orElseThrow(
-                        () -> new BusinessException("Sản phẩm không tồn tại."))
-        );
+        attributes.setProduct(product);
         attributes.setStockQuantity(request.getStockQuantity());
         attributes.setSpecifications(Specification);
 
@@ -64,4 +74,5 @@ public class AttributesService implements iAttributes {
                 attributesMapper.toDto(attributesRepository.save(attributes))
         );
     }
+    // Test Create. Thiếu RUD
 }

@@ -7,7 +7,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.DeviceInfoRespons
 import com.anno.ERP_SpringBoot_Experiment.service.EmailService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
-import com.anno.ERP_SpringBoot_Experiment.service.UserDetailsServiceImpl;
+import com.anno.ERP_SpringBoot_Experiment.service.UserDetails.UserDetailsServiceImpl;
 import com.anno.ERP_SpringBoot_Experiment.service.event.base.BaseEventListener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
