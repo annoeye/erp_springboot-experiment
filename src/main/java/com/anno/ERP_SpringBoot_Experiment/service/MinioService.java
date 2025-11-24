@@ -1,3 +1,4 @@
+
 package com.anno.ERP_SpringBoot_Experiment.service;
 
 import io.minio.*;
@@ -121,5 +122,24 @@ public class MinioService {
      */
     public String getPresignedUrl(@NonNull final String fileName) {
         return getPresignedUrl(fileName, 7 * 24 * 60 * 60); // 7 ngày
+    }
+
+    /**
+     * Xóa file từ MinIO
+     *
+     * @param fileName Tên file cần xóa
+     */
+    public void deleteFile(@NonNull final String fileName) {
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(BUCKET_NAME)
+                            .object(fileName)
+                            .build()
+            );
+            log.info("Đã xóa file {} từ MinIO", fileName);
+        } catch (Exception e) {
+            throw new RuntimeException("Có lỗi khi xóa tệp từ MinIO: " + e.getMessage(), e);
+        }
     }
 }

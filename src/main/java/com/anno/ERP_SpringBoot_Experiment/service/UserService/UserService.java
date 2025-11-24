@@ -80,7 +80,7 @@ public class UserService implements iUser {
 
         userRepository.findByName(body.getName()).ifPresent(existingUser -> {
             if (!existingUser.getEmail().equals(body.getEmail())) {
-                throw new BusinessException("Tên đăng nhập đã tồn tại với email khác. Hãy kiểm tra " + helper.maskEmail(existingUser.getEmail()) + ".");
+                throw new BusinessException("Tên đăng nhập đã tồn tại với email khác. Hãy kiểm tra " + helper.maskEmail(existingUser.getEmail()) + " nếu là bạn.");
             }
         });
 

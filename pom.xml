@@ -34,6 +34,19 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- Spring Boot Starter Test already includes JUnit 5 and Mockito -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Remove these duplicate test dependencies -->
+        <!-- junit-jupiter, mockito-core, mockito-junit-jupiter, junit-jupiter-api, -->
+        <!-- junit-jupiter-engine are already included in spring-boot-starter-test -->
+
+        <!-- Remove mockito-all as it's deprecated and conflicts with mockito-core -->
+
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
@@ -140,11 +153,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-stream</artifactId>
         </dependency>
@@ -178,8 +186,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version> <configuration>
-                <source>${java.version}</source>
-                <target>${java.version}</target>
+                <source>21</source>
+                <target>21</target>
                 <annotationProcessorPaths>
                     <path>
                         <groupId>org.projectlombok</groupId>
@@ -192,6 +200,7 @@
                         <version>${org.mapstruct.version}</version>
                     </path>
                 </annotationProcessorPaths>
+                <compilerArgs>--enable-preview</compilerArgs>
             </configuration>
             </plugin>
             <plugin>

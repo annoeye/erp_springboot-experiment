@@ -47,7 +47,6 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSp
         if (ids == null || ids.isEmpty()) {
             return;
         }
-
         LocalDateTime deletionTime = LocalDateTime.now().plusDays(30);
         softDeleteAllByIds(ids, deletedBy, deletionTime);
     }

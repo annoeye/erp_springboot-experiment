@@ -31,6 +31,7 @@ public class Product extends IdentityOnly implements SkuAware {
 
     @Embedded
     @Column(nullable=false)
+    @Builder.Default
     SkuInfo skuInfo = new SkuInfo();
 
     @ElementCollection
@@ -54,7 +55,7 @@ public class Product extends IdentityOnly implements SkuAware {
             orphanRemoval = true,
             fetch = FetchType.LAZY
     )
-    //    @Builder.Default
+        @Builder.Default
     List<Attributes> attributes = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)

@@ -1,3 +1,4 @@
+
 package com.anno.ERP_SpringBoot_Experiment.service.dto.response;
 
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ApiError;
@@ -68,5 +69,9 @@ public class Response<T>  {
         return Response.<T>builder()
                 .status(status)
                 .build();
+    }
+
+    public String getMessage() {
+        return status != null ? status.getMessage() : null;
     }
 }

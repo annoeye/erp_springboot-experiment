@@ -78,7 +78,7 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
   show-actuator: false
-  default-consumes-media-type: multipart/form-data
+#  default-consumes-media-type: multipart/form-data
   default-produces-media-type: application/json
 
 application:

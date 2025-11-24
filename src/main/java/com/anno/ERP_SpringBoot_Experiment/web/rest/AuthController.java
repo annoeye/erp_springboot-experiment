@@ -30,7 +30,7 @@ public interface AuthController {
     Response<RegisterResponse>  register
             (@Valid @RequestBody final UserRegisterRequest body) throws MessagingException;
 
-    @GetMapping("/verify")
+        @GetMapping("/verify")
     @ResponseStatus(HttpStatus.OK)
     Response<?> verifyAccount(
             @RequestParam("token") final String code,

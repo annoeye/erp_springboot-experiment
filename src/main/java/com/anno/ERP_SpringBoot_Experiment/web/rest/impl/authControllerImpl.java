@@ -43,7 +43,7 @@ public class authControllerImpl implements AuthController {
     }
 
     @Override
-    public Response<?>  sendPasswordResetCode(final String email) throws MessagingException {
+    public Response<?> sendPasswordResetCode(final String email) throws MessagingException {
         return Response.ok(userService.sendCodeResetPassword(email));
     }
 

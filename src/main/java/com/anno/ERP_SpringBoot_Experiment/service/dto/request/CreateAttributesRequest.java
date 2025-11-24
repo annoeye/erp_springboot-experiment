@@ -7,7 +7,6 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
-import java.util.List;
 import java.util.Set;
 
 @Data
@@ -22,7 +21,6 @@ public class CreateAttributesRequest {
     int stockQuantity;
     @NotNull(message = "Khôn được để trống trạng thái hàng.")
     StockStatus statusProduct;
-    List<String> data;
     Set<String> keywords;
     @NotNull(message = "Không được để trống nguồn sản phẩm")
     String productId;

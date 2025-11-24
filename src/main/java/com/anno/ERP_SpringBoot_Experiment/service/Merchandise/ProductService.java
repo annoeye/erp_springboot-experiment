@@ -10,6 +10,7 @@ import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
@@ -20,6 +21,7 @@ import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +43,38 @@ public class ProductService implements iProduct {
     private final MinioService minioService;
     private final ProductMapper productMapper;
 
+    private List<MediaItem> uploadImages(List<MultipartFile> images) {
+        List<MediaItem> mediaItems = new ArrayList<>();
+        List<String> uploadedUrls = new ArrayList<>();
+        
+        try {
+            for (MultipartFile file : images) {
+                if (file.isEmpty()) continue;
+
+                String url = minioService.uploadFile(file);
+                uploadedUrls.add(url);
+                
+                String key = featureMerchandiseHelper.generateKey();
+                MediaItem mediaItem = new MediaItem();
+                mediaItem.setKey(key);
+                mediaItem.setUrl(url);
+                mediaItems.add(mediaItem);
+            }
+            return mediaItems;
+            
+        } catch (Exception e) {
+            // Rollback
+            for (String url : uploadedUrls) {
+                try {
+                    minioService.deleteFile(url);
+                } catch (Exception deleteEx) {
+                    log.error("Không thể xóa file {} sau khi rollback: {}", url, deleteEx.getMessage());
+                }
+            }
+            throw new BusinessException("Lỗi khi upload file: " + e.getMessage());
+        }
+    }
+
     @Override
     public Response<?> addProduct(@ModelAttribute CreateProductRequest request) {
         List<MultipartFile> images = request.getImages();
@@ -56,21 +90,7 @@ public class ProductService implements iProduct {
 
         List<MediaItem> mediaItems = new ArrayList<>();
         if (images != null && !images.isEmpty()) {
-            for (MultipartFile file : images) {
-                if (file.isEmpty()) continue;
-
-                try {
-                    String url = minioService.uploadFile(file);
-                    String key = featureMerchandiseHelper.generateKey();
-
-                    MediaItem mediaItem = new MediaItem();
-                    mediaItem.setKey(key);
-                    mediaItem.setUrl(url);
-                    mediaItems.add(mediaItem);
-                } catch (Exception e) {
-                    throw new BusinessException("Lỗi khi upload file: " + e.getMessage());
-                }
-            }
+            mediaItems = uploadImages(images);
         }
 
         Product product = Product.builder()
@@ -110,13 +130,20 @@ public class ProductService implements iProduct {
         log.info("Đã cập nhật sản phẩm '{}' với ID {}", request.getName(), request.getId());
         return Response.ok(productMapper.toDto(productRepository.save(product)), "Cập nhập sản phẩm thành công.");
     }
-    // Thiếu RUD
 
     @Override
     public Response<?> deleteProduct(@NonNull final List<UUID> ids) {
         // xóa 1 list
         productRepository.softDeleteAllByIds(ids, securityUtil.getCurrentUsername());
         return Response.noContent();
+    }
+
+    @Override
+    @Transactional
+    public Page<ProductDto> search(@NonNull ProductSearchRequest request) {
+//        productRepository.deleteAllExpiredCategories();
+        return productRepository.findAll(request.specification(), request.getPaging().pageable())
+                .map(productMapper::toDto);
     }
 
     @Override
@@ -129,23 +156,7 @@ public class ProductService implements iProduct {
             throw new BusinessException("Ảnh không được để trống.");
         }
 
-        List<MediaItem> newItems = new ArrayList<>();
-        for (MultipartFile file : images) {
-            if (newItems.isEmpty()) continue;
-
-            try {
-                String url = minioService.uploadFile(file);
-                String key = featureMerchandiseHelper.generateKey();
-
-                MediaItem mediaItem = new MediaItem();
-                mediaItem.setKey(key);
-                mediaItem.setUrl(url);
-                newItems.add(mediaItem);
-            } catch (Exception e) {
-                throw new BusinessException("Lỗi khi upload file: " + e.getMessage());
-            }
-        }
-
+        List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
         log.info("Đã thêm {} ảnh mới vào sản phẩm {}", newItems.size(), productId);
 
@@ -155,22 +166,62 @@ public class ProductService implements iProduct {
     @Override
     @Transactional
     public Response<?> deleteProductImage(String productId, String imageKey) {
-        final var product = productRepository.findById(UUID.fromString(productId))
+        final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
                 .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
 
-        boolean removed = product.getMediaItems().removeIf(mediaItem -> mediaItem.getKey().equals(imageKey));
+        MediaItem itemToDelete = product.getMediaItems().stream()
+                .filter(mediaItem -> mediaItem.getKey().equals(imageKey))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Không tìm thấy ảnh với key: " + imageKey));
 
-        if (!removed) throw new BusinessException("Không tìm thấy ảnh với key: " + imageKey);
+        try {
+            minioService.deleteFile(itemToDelete.getUrl());
+        } catch (Exception e) {
+            log.error("Lỗi khi xóa file trên MinIO: {}", e.getMessage());
+        }
+
+        product.getMediaItems().remove(itemToDelete);
 
         log.info("Đã xóa ảnh {} khỏi sản phẩm {}", imageKey, productId);
-        return Response.ok(productRepository.save(product), "Xóa ảnh thành công.");
-
+        
+        Product savedProduct = productRepository.save(product);
+        return Response.ok(productMapper.toDto(savedProduct), "Xóa ảnh thành công.");
     }
 
     @Override
     @Transactional
     public Response<?> replaceProductImages(String productId, List<MultipartFile> images) {
-        return null;
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(featureMerchandiseHelper.normalizeUUID(productId));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("ID sản phẩm không hợp lệ.");
+        }
+
+        final var product = productRepository.findById(uuid)
+                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
+
+        if (images == null || images.isEmpty()) {
+            throw new BusinessException("Ảnh không được để trống.");
+        }
+
+        for (MediaItem oldItem : product.getMediaItems()) {
+            try {
+                minioService.deleteFile(oldItem.getUrl());
+            } catch (Exception e) {
+                log.error("Lỗi khi xóa file cũ {}: {}", oldItem.getUrl(), e.getMessage());
+            }
+        }
+
+        product.getMediaItems().clear();
+
+        List<MediaItem> newItems = uploadImages(images);
+        product.getMediaItems().addAll(newItems);
+        log.info("Đã thay thế {} ảnh cho sản phẩm {}", newItems.size(), productId);
+
+        // Trả về DTO thay vì Entity
+        Product savedProduct = productRepository.save(product);
+        return Response.ok(productMapper.toDto(savedProduct), "Thay thế ảnh thành công.");
     }
 
 }
