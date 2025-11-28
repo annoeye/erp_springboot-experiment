@@ -48,7 +48,6 @@ public interface AuthController {
 
 
     @PostMapping("/logout")
-    ResponseEntity<?> logout
-            (final HttpServletRequest request);
+    ResponseEntity<?> logout(final HttpServletRequest request);
 
 }

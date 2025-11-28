@@ -11,7 +11,6 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.KafkaService.ActiveLogService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ActiveLogDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
@@ -59,7 +58,7 @@ public class UserService implements iUser {
     @Value("${frontend.url}")
     private String frontendUrl;
     private final UserMapper userMapper;
-    private final ActiveLogService  activeLogService;
+    private final ActiveLogService activeLogService;
     private final RedisService redisService;
 
 
@@ -162,11 +161,11 @@ public class UserService implements iUser {
         }
         DeviceInfoResponse result = deviceInfoEventListener.handleDeviceInfo(new SaveDeviceInfo(user, body.getDeviceInfo(), ActiveStatus.LOGIN_VERIFICATION));
 
-        ActiveLogDto dto = ActiveLogDto.builder()
-                .performedBy(String.valueOf(user.getId()))
-                .status(ActiveStatus.LOGIN)
-                .build();
-        activeLogService.sendMessage(dto);
+//        ActiveLogDto dto = ActiveLogDto.builder()
+//                .performedBy(String.valueOf(user.getId()))
+//                .status(ActiveStatus.LOGIN)
+//                .build();
+//        activeLogService.sendMessage(dto);
 
         return Response.ok(AuthResponse.builder()
                 .message("Đăng nhập thành công.")
@@ -270,9 +269,8 @@ public class UserService implements iUser {
 
     @Override
     public Page<UserDto> search(@NonNull final UserSearchRequest request) {
-        return userRepository.findAll(request.specification(), request.getPaging().pageable())
-                .map(userMapper::toDto);
-
+        return userRepository.findAll(request.specification(), request.getPaging()
+                .pageable()).map(userMapper::toDto);
     }
 
 
@@ -290,7 +288,7 @@ public class UserService implements iUser {
 
         if (redisService.hasKey(accessTokenKey)) {
             redisService.delete(accessTokenKey);
-            log.info("Người dùng đã đăng xuất. Access Token đã được thu hồi.");
+            log.info("Người dùng đã đăng xuất.");
         }
     }
 }
