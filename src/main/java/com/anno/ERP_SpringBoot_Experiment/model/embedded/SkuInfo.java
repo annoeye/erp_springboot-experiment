@@ -19,4 +19,15 @@ import lombok.experimental.FieldDefaults;
 public class SkuInfo {
     @Column(name = "sku")
     String SKU;
+
+    @Column(name = "sku_name")
+    String name;
+
+    public String getSku() {
+        return SKU;
+    }
+
+    public void setSku(String sku) {
+        this.SKU = sku;
+    }
 }

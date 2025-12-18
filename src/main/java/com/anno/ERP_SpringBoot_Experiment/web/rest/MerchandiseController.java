@@ -21,10 +21,9 @@ import java.util.List;
 public interface MerchandiseController {
 
     /*************       Product CRUD      *****************/
-    
+
     @PostMapping(
-            value = "/add-Product",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+            value = "/add-Product"
     )
     @ResponseStatus(HttpStatus.CREATED)
     Response<?> addProduct(@ModelAttribute CreateProductRequest request);
@@ -42,7 +41,7 @@ public interface MerchandiseController {
     Page<ProductDto> searchProduct(@Valid @RequestBody ProductSearchRequest request);
 
     /*************       Product Images Management      *****************/
-    
+
     @PostMapping(
             value = "/add-Product-Images/{productId}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -71,7 +70,7 @@ public interface MerchandiseController {
     );
 
     /*************       Category CRUD      *****************/
-    
+
     @PostMapping("/add-Category")
     @ResponseStatus(HttpStatus.CREATED)
     Response<String> addCategory(@Valid @RequestParam String name);
@@ -89,7 +88,7 @@ public interface MerchandiseController {
     Response<PagingResponse<CategoryDto>> searchCategory(@Valid @RequestBody CategorySearchRequest request);
 
     /*************       Attributes Management      *****************/
-    
+
     @PostMapping("/add-Attributes")
     @ResponseStatus(HttpStatus.CREATED)
     Response<AttributesDto> addAttributes(@Valid @RequestBody CreateAttributesRequest request);

@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -50,7 +49,7 @@ public class AttributesService implements iAttributes {
         }
 
         Product product = productRepository
-                .findById(UUID.fromString(request.getProductId()))
+                .findById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()))
                 .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + request.getProductId() + " không tồn tại."));
 
         AuditInfo audit = new AuditInfo();
@@ -61,6 +60,8 @@ public class AttributesService implements iAttributes {
         Attributes attributes = new Attributes();
         attributes.setName(request.getName());
         attributes.setAuditInfo(audit);
+        attributes.setColor(request.getColor());
+        attributes.setOption(request.getOption());
         attributes.setSku(new SkuInfo());
         attributes.setKeywords(request.getKeywords());
         attributes.setPrice(request.getPrice());
@@ -73,7 +74,7 @@ public class AttributesService implements iAttributes {
         Attributes savedAttributes = attributesRepository.save(attributes);
         log.info("Đã tạo attributes '{}' với SKU {} cho sản phẩm {}", 
                 savedAttributes.getName(), 
-                savedAttributes.getSku().getSKU(), 
+                savedAttributes.getSku().getSku(),
                 product.getName());
 
         return Response.ok(
@@ -141,7 +142,7 @@ public class AttributesService implements iAttributes {
         
         log.info("Đã cập nhật attributes '{}' với SKU {}", 
                 updatedAttributes.getName(), 
-                updatedAttributes.getSku().getSKU());
+                updatedAttributes.getSku().getSku());
 
         return Response.ok(
                 attributesMapper.toDto(updatedAttributes),
@@ -190,7 +191,7 @@ public class AttributesService implements iAttributes {
     @Override
     @Transactional
     public Response<?> deleteByProduct(@NonNull String productId) {
-        Product product = productRepository.findById(UUID.fromString(productId))
+        Product product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
                 .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + productId + " không tồn tại."));
 
         List<Attributes> attributesList = attributesRepository.findAllByProduct(product);
@@ -223,7 +224,7 @@ public class AttributesService implements iAttributes {
     @Override
     @Transactional
     public Response<List<AttributesDto>> getByProduct(@NonNull String productId) {
-        Product product = productRepository.findById(UUID.fromString(productId))
+        Product product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
                 .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + productId + " không tồn tại."));
 
         List<Attributes> attributesList = attributesRepository.findAllByProductAndAuditInfo_DeletedAtIsNull(product);
@@ -278,7 +279,7 @@ public class AttributesService implements iAttributes {
 
 
                 log.info("Đã tạo thông số mới cho attributes {}",
-                        attributes.getSku().getSKU());
+                        attributes.getSku().getSku());
             }
             
             case COPY_FROM_OTHER -> {
@@ -301,8 +302,8 @@ public class AttributesService implements iAttributes {
                 attributes.setSpecifications(specifications);
                 log.info("Đã copy {} thông số từ attributes {} sang attributes {}", 
                         specifications.size(),
-                        sourceAttributes.getSku().getSKU(),
-                        attributes.getSku().getSKU());
+                        sourceAttributes.getSku().getSku(),
+                        attributes.getSku().getSku());
             }
         }
         

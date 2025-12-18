@@ -20,6 +20,8 @@ public class AttributesDto implements Serializable {
     double price;
     double salePrice;
     int stockQuantity;
+    String color;
+    String option;
     StockStatus statusProduct;
     List<SpecificationDto> specifications;
     Set<String> keywords;

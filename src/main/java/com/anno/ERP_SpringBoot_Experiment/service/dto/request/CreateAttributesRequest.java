@@ -17,6 +17,10 @@ public class CreateAttributesRequest {
     @NotNull(message = "Không được để trống giá.")
     double price;
     double salePrice;
+    @NotBlank(message = "Không được để trống mới.")
+    String color;
+    @NotBlank(message = "Không được để trống option.")
+    String option;
     @NotNull(message = "Không được để trống số lượng")
     int stockQuantity;
     @NotNull(message = "Khôn được để trống trạng thái hàng.")

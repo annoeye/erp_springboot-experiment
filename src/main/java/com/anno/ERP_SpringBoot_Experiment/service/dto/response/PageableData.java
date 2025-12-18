@@ -1,18 +1,22 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.response;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PageableData {
     int pageNumber;
     int pageSize;
     int totalPage;
     long totalRecord;
+    int currentPage;
+    int totalPages;
+    long totalElements;
 
     public PageableData setPageNumber(final int pageNumber) {
         this.pageNumber = pageNumber + 1;

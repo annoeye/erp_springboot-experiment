@@ -5,6 +5,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -24,6 +25,10 @@ import java.util.Set;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Attributes extends IdentityOnly {
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "name", column = @Column(name = "sku_name"))
+    })
+    @JsonIgnore
     SkuInfo sku;
 
     @Column(name = "price")
@@ -34,6 +39,11 @@ public class Attributes extends IdentityOnly {
 
     @Column(name = "stock_quantity")
     int stockQuantity;
+
+    String color;
+
+    @Column(name = "attr_option")
+    String option;
 
     @Column(name = "status_product")
     @Enumerated(EnumType.STRING)

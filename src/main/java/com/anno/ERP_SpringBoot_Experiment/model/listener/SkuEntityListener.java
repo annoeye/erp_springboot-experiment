@@ -18,8 +18,8 @@ public class SkuEntityListener {
 
             SkuInfo skuInfo = skuAware.getSkuInfo();
 
-            if (skuInfo != null && (skuInfo.getSKU() == null || skuInfo.getSKU().isEmpty())) {
-                skuInfo.setSKU(generate());
+            if (skuInfo != null && (skuInfo.getSku() == null || skuInfo.getSku().isEmpty())) {
+                skuInfo.setSku(generate());
             }
         }
     }

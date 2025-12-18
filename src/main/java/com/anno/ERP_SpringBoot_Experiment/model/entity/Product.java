@@ -7,6 +7,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.listener.SkuEntityListener;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -47,6 +48,7 @@ public class Product extends IdentityOnly implements SkuAware {
             foreignKey = @ForeignKey(name = "FK_product_category")
     )
     @ToString.Exclude
+    @JsonIgnore
     Category category;
 
     @OneToMany(
@@ -55,14 +57,14 @@ public class Product extends IdentityOnly implements SkuAware {
             orphanRemoval = true,
             fetch = FetchType.LAZY
     )
-        @Builder.Default
+    @Builder.Default
+    @JsonIgnore
     List<Attributes> attributes = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable=false)
     ActiveStatus status;
 
-
+    @Column(nullable=false, length = 10000)
     String description;
 }
 

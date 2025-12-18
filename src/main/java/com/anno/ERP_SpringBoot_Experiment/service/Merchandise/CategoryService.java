@@ -34,6 +34,9 @@ public class CategoryService implements iCategory {
 
     @Override
     public Response<String> create(@NonNull final String name) {
+        if (categoryRepository.existsAllByName(name)) {
+            throw new BusinessException("Danh mục đã tồn tại.");
+        }
         Category category = new Category();
         category.setName(name);
         category.getAuditInfo().setCreatedBy(securityUtil.getCurrentUsername());
@@ -51,7 +54,7 @@ public class CategoryService implements iCategory {
         category.setName(request.getName());
         category.getAuditInfo().setUpdatedAt(LocalDateTime.now());
         category.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
-        log.info("Đã sửa danh mục thành {} với mã {}", category.getName(), category.getSkuInfo().getSKU());
+        log.info("Đã sửa danh mục thành {} với mã {}", category.getName(), category.getSkuInfo().getSku());
         return Response.ok(categoryMapper.toDto(categoryRepository.save(category)), "Sửa danh mục thành công.");
     }
 

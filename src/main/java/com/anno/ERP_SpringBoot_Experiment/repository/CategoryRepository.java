@@ -25,6 +25,8 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSp
     )
     void deleteAllExpiredCategories();
 
+    boolean existsAllByName(String name);
+
 
     /**
      * Cập nhật (soft delete) một danh sách các Category bằng cách
@@ -50,4 +52,6 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSp
         LocalDateTime deletionTime = LocalDateTime.now().plusDays(30);
         softDeleteAllByIds(ids, deletedBy, deletionTime);
     }
+
+    Optional<Category> findCategoryByName(String name);
 }

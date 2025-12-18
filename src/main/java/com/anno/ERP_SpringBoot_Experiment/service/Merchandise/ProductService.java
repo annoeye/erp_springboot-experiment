@@ -23,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -76,10 +75,9 @@ public class ProductService implements iProduct {
     }
 
     @Override
-    public Response<?> addProduct(@ModelAttribute CreateProductRequest request) {
-        List<MultipartFile> images = request.getImages();
+    public Response<?> addProduct(CreateProductRequest request) {
 
-        Optional<Category> optionalCategory = categoryRepository.findCategoriesBySkuInfo_SKU(request.getCategorySku());
+        Optional<Category> optionalCategory = categoryRepository.findCategoryByName(request.getCategoryName());
         Category category = optionalCategory.orElseThrow(
                 () -> new BusinessException("Danh mục không hợp lệ.")
         );
@@ -88,19 +86,12 @@ public class ProductService implements iProduct {
         audit.setCreatedAt(LocalDateTime.now());
         audit.setCreatedBy(securityUtil.getCurrentUsername());
 
-        List<MediaItem> mediaItems = new ArrayList<>();
-        if (images != null && !images.isEmpty()) {
-            mediaItems = uploadImages(images);
-        }
-
         Product product = Product.builder()
                 .name(request.getName().replaceAll("\\s+", "-").toUpperCase())
                 .category(category)
                 .skuInfo(new SkuInfo())
                 .auditInfo(audit)
                 .description(request.getDescription())
-                .mediaItems(mediaItems)
-                .status(request.getStatus())
                 .build();
 
         return Response.ok(productRepository.save(product));
@@ -149,7 +140,7 @@ public class ProductService implements iProduct {
     @Override
     @Transactional
     public Response<?> addProductImages(String productId, List<MultipartFile> images) {
-        final var product = productRepository.findById(UUID.fromString(productId))
+        final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
                 .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
 
         if (images == null || images.isEmpty()) {
