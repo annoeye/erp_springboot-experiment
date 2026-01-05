@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-public class PaymentDTO {
+public class PaymentVNPayDTO {
     @JsonProperty("amount")
     private Long amount; // Số tiền cần thanh toán
 

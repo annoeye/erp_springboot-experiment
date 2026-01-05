@@ -1,10 +1,12 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.mapper.CategoryMapper;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CategorySearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
@@ -38,7 +40,10 @@ public class CategoryService implements iCategory {
             throw new BusinessException("Danh mục đã tồn tại.");
         }
         Category category = new Category();
+        SkuInfo skuInfo = new SkuInfo();
+        skuInfo.setSku(name.toUpperCase());
         category.setName(name);
+        category.setSkuInfo(skuInfo);
         category.getAuditInfo().setCreatedBy(securityUtil.getCurrentUsername());
         category.getAuditInfo().setCreatedAt(LocalDateTime.now());
         categoryRepository.save(category);
@@ -74,5 +79,18 @@ public class CategoryService implements iCategory {
         categoryRepository.deleteAllExpiredCategories(); // Xóa tất cả cái quá hạn
         return categoryRepository.findAll(request.specification(), request.getPaging().pageable())
                 .map(categoryMapper::toDto);
+    }
+
+    @Override
+    public CategoryExitingResponse isExiting(String name) {
+        return categoryRepository.findCategoryByName(name)
+                .map(c -> CategoryExitingResponse.builder()
+                        .id(String.valueOf(c.getId()))
+                        .isExiting(true)
+                        .build())
+                .orElseGet(() -> CategoryExitingResponse.builder()
+                        .id(null)
+                        .isExiting(false)
+                        .build());
     }
 }

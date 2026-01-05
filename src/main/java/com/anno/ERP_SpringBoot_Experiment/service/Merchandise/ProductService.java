@@ -13,6 +13,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
@@ -28,7 +29,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -76,20 +76,19 @@ public class ProductService implements iProduct {
 
     @Override
     public Response<?> addProduct(CreateProductRequest request) {
-
-        Optional<Category> optionalCategory = categoryRepository.findCategoryByName(request.getCategoryName());
-        Category category = optionalCategory.orElseThrow(
-                () -> new BusinessException("Danh mục không hợp lệ.")
-        );
+        Category category = categoryRepository.findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
+                .orElseThrow(() -> new BusinessException("Danh mục không tồn tại."));
 
         AuditInfo audit = new AuditInfo();
         audit.setCreatedAt(LocalDateTime.now());
         audit.setCreatedBy(securityUtil.getCurrentUsername());
+        SkuInfo skuInfo = new SkuInfo();
+        skuInfo.setSku(category.getName().toUpperCase());
 
         Product product = Product.builder()
-                .name(request.getName().replaceAll("\\s+", "-").toUpperCase())
+                .name(request.getName())
                 .category(category)
-                .skuInfo(new SkuInfo())
+                .skuInfo(skuInfo)
                 .auditInfo(audit)
                 .description(request.getDescription())
                 .build();
@@ -135,6 +134,21 @@ public class ProductService implements iProduct {
 //        productRepository.deleteAllExpiredCategories();
         return productRepository.findAll(request.specification(), request.getPaging().pageable())
                 .map(productMapper::toDto);
+    }
+
+    @Override
+    public ProductIsExiting isExiting(String name) {
+        return productRepository.findProductByName(name)
+                .map(p -> ProductIsExiting
+                        .builder()
+                        .id(String.valueOf(p.getId()))
+                        .isExiting(true)
+                        .build())
+                .orElseGet(() -> ProductIsExiting
+                        .builder()
+                        .id(null)
+                        .isExiting(false)
+                        .build());
     }
 
     @Override

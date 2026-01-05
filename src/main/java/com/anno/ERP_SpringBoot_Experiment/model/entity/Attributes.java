@@ -50,10 +50,7 @@ public class Attributes extends IdentityOnly {
     StockStatus statusProduct;
 
     @ElementCollection
-    @CollectionTable(
-            name = "attributes_specifications",
-            joinColumns = @JoinColumn(name = "attributes_id")
-    )
+    @CollectionTable(name = "attributes_specifications", joinColumns = @JoinColumn(name = "attributes_id"))
     List<Specification> specifications = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -63,23 +60,43 @@ public class Attributes extends IdentityOnly {
     @Embedded
     AuditInfo auditInfo;
 
+    /*
+     * ============================ 📊 Analytics Fields ============================
+     */
+
+    @Column(name = "cost_price")
+    Double costPrice = 0.0; // Giá vốn (để tính biên lợi nhuận)
+
+    @Column(name = "sold_quantity")
+    Integer soldQuantity = 0; // Số lượng đã bán của variant này
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     Product product;
 
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null) return false;
-        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
-        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass) return false;
+        if (this == o)
+            return true;
+        if (o == null)
+            return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy
+                ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass()
+                : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy
+                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass()
+                : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass)
+            return false;
         Attributes that = (Attributes) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 
     @Override
     public final int hashCode() {
-        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+        return this instanceof HibernateProxy
+                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode()
+                : getClass().hashCode();
     }
 }

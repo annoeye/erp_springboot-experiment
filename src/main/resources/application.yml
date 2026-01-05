@@ -122,7 +122,7 @@ logging:
 
 vnpay:
   pay-url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-  return-url: "${VNPAY_RETURN_URI:http://localhost:4200/payments/payment-callback}" # return
-  tmn-code: "SYXILNQA"
-  secret-key: "PR6MH2S24AM1566BB0HKV9C4UAQ3BNVH"
+  return-url: "http://localhost:8080/api/payment/result"
+  tmn-code: "3YOBGQWB"
+  secret-key: "PJXUSCL77T7YKVEJ2O884B1OG6NG3INW"
   api-url: "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"

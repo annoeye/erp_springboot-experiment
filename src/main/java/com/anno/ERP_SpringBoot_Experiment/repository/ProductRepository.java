@@ -43,4 +43,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
         LocalDateTime deletionTime = LocalDateTime.now().plusDays(30);
         softDeleteAllByIds(ids, deletedBy, deletionTime);
     }
+
+    Optional<Product> findProductByName(String name);
 }

@@ -3,7 +3,6 @@ package com.anno.ERP_SpringBoot_Experiment.model.entity;
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.ProductQuantity;
-import com.anno.ERP_SpringBoot_Experiment.model.listener.SkuEntityListener;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -20,7 +19,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EntityListeners(SkuEntityListener.class)
 public class ShoppingCart extends IdentityOnly {
     
     @Embedded

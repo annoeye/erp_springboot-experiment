@@ -29,19 +29,33 @@ public class Helper {
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     UUID convertStringToUUID(String id) {
-        if (id == null || id.length() != 32) {
-            throw new IllegalArgumentException("Invalid ID format. Expected 32 characters.");
+        // Kiểm tra null đầu vào
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("ID không được để trống.");
         }
 
-        String formattedId = String.format("%s-%s-%s-%s-%s",
-                id.substring(0, 8),
-                id.substring(8, 12),
-                id.substring(12, 16),
-                id.substring(16, 20),
-                id.substring(20, 32)
-        );
+        // Làm sạch chuỗi: Loại bỏ khoảng trắng ở 2 đầu và tất cả dấu gạch ngang (-) nếu có
+        String cleanId = id.trim().replace("-", "");
 
-        return UUID.fromString(formattedId);
+        // Sau khi loại bỏ dấu gạch ngang, chuỗi bắt buộc phải có đúng 32 ký tự hex
+        if (cleanId.length() != 32) {
+            throw new IllegalArgumentException("Định dạng ID không hợp lệ. Mong đợi 32 ký tự (không tính dấu gạch ngang), nhưng nhận được: " + cleanId.length());
+        }
+
+        // Chèn lại dấu gạch ngang vào các vị trí chuẩn của UUID (8-4-4-4-12)
+        // Cách dùng StringBuilder này nhanh và tiết kiệm bộ nhớ hơn String.format
+        StringBuilder formattedId = new StringBuilder(36);
+        formattedId.append(cleanId, 0, 8).append("-");
+        formattedId.append(cleanId, 8, 12).append("-");
+        formattedId.append(cleanId, 12, 16).append("-");
+        formattedId.append(cleanId, 16, 20).append("-");
+        formattedId.append(cleanId, 20, 32);
+
+        try {
+            return UUID.fromString(formattedId.toString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("ID chứa ký tự không hợp lệ (chỉ chấp nhận a-f, A-F và 0-9).");
+        }
     }
 
     public String generateKey() {

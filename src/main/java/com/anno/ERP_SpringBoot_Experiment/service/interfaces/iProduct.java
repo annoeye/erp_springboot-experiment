@@ -4,6 +4,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import lombok.NonNull;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ public interface iProduct {
     Response<ProductDto> updateProduct(UpdateProductRequest request);
     Response<?> deleteProduct(@NonNull final List<UUID> ids);
     Page<ProductDto> search(@NonNull final ProductSearchRequest request);
+    ProductIsExiting isExiting(String name);
 
     Response<?> addProductImages(String productId, List<MultipartFile> images);
     Response<?> deleteProductImage(String productId, String imageKey);

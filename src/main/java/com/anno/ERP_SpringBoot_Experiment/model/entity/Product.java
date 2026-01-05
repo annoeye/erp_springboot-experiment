@@ -1,17 +1,17 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
-import com.anno.ERP_SpringBoot_Experiment.model.base.SkuAware;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
-import com.anno.ERP_SpringBoot_Experiment.model.listener.SkuEntityListener;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,47 +24,64 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EntityListeners(SkuEntityListener.class)
-public class Product extends IdentityOnly implements SkuAware {
+public class Product extends IdentityOnly {
 
-    @Embedded
-    AuditInfo auditInfo;
+        @Embedded
+        AuditInfo auditInfo;
 
-    @Embedded
-    @Column(nullable=false)
-    @Builder.Default
-    SkuInfo skuInfo = new SkuInfo();
+        @Embedded
+        @Column(nullable = false)
+        @Builder.Default
+        SkuInfo skuInfo = new SkuInfo();
 
-    @ElementCollection
-    @CollectionTable(name = "media_items",
-            joinColumns = @JoinColumn(name = "product_uuid"))
-    @Builder.Default
-    List<MediaItem> mediaItems = new ArrayList<>();
+        @ElementCollection
+        @CollectionTable(name = "media_items", joinColumns = @JoinColumn(name = "product_uuid"))
+        @Builder.Default
+        List<MediaItem> mediaItems = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "category_uuid",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_product_category")
-    )
-    @ToString.Exclude
-    @JsonIgnore
-    Category category;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "category_uuid", nullable = false, foreignKey = @ForeignKey(name = "FK_product_category"))
+        @ToString.Exclude
+        @OnDelete(action = OnDeleteAction.CASCADE)
+        @JsonIgnore
+        Category category;
 
-    @OneToMany(
-            mappedBy = "product",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
-    )
-    @Builder.Default
-    @JsonIgnore
-    List<Attributes> attributes = new ArrayList<>();
+        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+        @Builder.Default
+        @JsonIgnore
+        List<Attributes> attributes = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    ActiveStatus status;
+        @Enumerated(EnumType.STRING)
+        ActiveStatus status;
 
-    @Column(nullable=false, length = 10000)
-    String description;
+        /*
+         * ============================ 📊 Analytics Fields ============================
+         */
+
+        @Column(name = "total_sold_quantity")
+        @Builder.Default
+        Integer totalSoldQuantity = 0; // Tổng số lượng đã bán
+
+        @Column(name = "total_revenue")
+        @Builder.Default
+        Double totalRevenue = 0.0; // Tổng doanh thu
+
+        @Column(name = "total_orders")
+        @Builder.Default
+        Integer totalOrders = 0; // Số đơn hàng chứa sản phẩm này
+
+        @Column(name = "view_count")
+        @Builder.Default
+        Integer viewCount = 0; // Số lượt xem (cho conversion rate)
+
+        @Column(name = "average_rating")
+        @Builder.Default
+        Double averageRating = 0.0; // Đánh giá trung bình
+
+        @Column(name = "review_count")
+        @Builder.Default
+        Integer reviewCount = 0; // Số lượng đánh giá
+
+        @Column(nullable = false, length = 10000)
+        String description;
 }
-

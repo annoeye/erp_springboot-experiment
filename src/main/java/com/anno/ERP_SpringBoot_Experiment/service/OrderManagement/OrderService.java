@@ -6,7 +6,9 @@ import com.anno.ERP_SpringBoot_Experiment.model.embedded.PaymentInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.*;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentStatus;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentType;
 import com.anno.ERP_SpringBoot_Experiment.repository.*;
+import com.anno.ERP_SpringBoot_Experiment.service.BillService.BillService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
@@ -48,6 +50,7 @@ public class OrderService implements iOrder {
     private final BookingRepository bookingRepository;
     private final OrderMapper orderMapper;
     private final SecurityUtil securityUtil;
+    private final BillService billService; // ✅ INJECT BillService
 
     @Override
     @Transactional
@@ -83,7 +86,7 @@ public class OrderService implements iOrder {
         User customer = securityUtil.getCurrentUser()
                 .orElseThrow(() -> new BusinessException("Vui lòng đăng nhập"));
 
-        ShoppingCart cart = shoppingCartRepository.findById(UUID.fromString(cartId))
+        ShoppingCart cart = shoppingCartRepository.findById(convertStringToUUID(cartId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy giỏ hàng"));
 
         if (!cart.getUser().getId().equals(customer.getId())) {
@@ -97,7 +100,7 @@ public class OrderService implements iOrder {
         // Convert cart items to order items
         List<OrderItem> orderItems = cart.getItems().stream()
                 .map(item -> {
-                    Attributes attributes = attributesRepository.findById(UUID.fromString(item.getAttributesId()))
+                    Attributes attributes = attributesRepository.findById(convertStringToUUID(item.getAttributesId()))
                             .orElseThrow(() -> new BusinessException("Không tìm thấy sản phẩm"));
                     return buildOrderItem(attributes, item.getQuantity(), order, null);
                 })
@@ -125,7 +128,7 @@ public class OrderService implements iOrder {
         User customer = securityUtil.getCurrentUser()
                 .orElseThrow(() -> new BusinessException("Vui lòng đăng nhập"));
 
-        Booking booking = bookingRepository.findById(UUID.fromString(bookingId))
+        Booking booking = bookingRepository.findById(convertStringToUUID(bookingId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy booking"));
 
         Order order = buildOrderFromRequest(request, customer);
@@ -134,7 +137,7 @@ public class OrderService implements iOrder {
         // Convert booking products to order items
         List<OrderItem> orderItems = booking.getProducts().stream()
                 .map(item -> {
-                    Attributes attributes = attributesRepository.findById(UUID.fromString(item.getAttributesId()))
+                    Attributes attributes = attributesRepository.findById(convertStringToUUID(item.getAttributesId()))
                             .orElseThrow(() -> new BusinessException("Không tìm thấy sản phẩm"));
                     return buildOrderItem(attributes, item.getQuantity(), order, null);
                 })
@@ -151,7 +154,7 @@ public class OrderService implements iOrder {
 
     @Override
     public Response<OrderDto> getOrderById(String orderId) {
-        Order order = orderRepository.findById(UUID.fromString(orderId))
+        Order order = orderRepository.findById(convertStringToUUID(orderId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         // Kiểm tra quyền truy cập
@@ -204,7 +207,7 @@ public class OrderService implements iOrder {
     @Override
     @Transactional
     public Response<OrderDto> updateOrder(UpdateOrderRequest request) {
-        Order order = orderRepository.findById(UUID.fromString(request.getOrderId()))
+        Order order = orderRepository.findById(convertStringToUUID(request.getOrderId()))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         if (request.getStatus() != null) {
@@ -231,7 +234,7 @@ public class OrderService implements iOrder {
     @Override
     @Transactional
     public Response<OrderDto> updateOrderStatus(String orderId, OrderStatus newStatus) {
-        Order order = orderRepository.findById(UUID.fromString(orderId))
+        Order order = orderRepository.findById(convertStringToUUID(orderId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         validateStatusTransition(order.getStatus(), newStatus);
@@ -248,7 +251,7 @@ public class OrderService implements iOrder {
     @Override
     @Transactional
     public Response<OrderDto> confirmOrder(String orderId) {
-        Order order = orderRepository.findById(UUID.fromString(orderId))
+        Order order = orderRepository.findById(convertStringToUUID(orderId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != OrderStatus.PENDING) {
@@ -267,7 +270,7 @@ public class OrderService implements iOrder {
     @Override
     @Transactional
     public Response<OrderDto> cancelOrder(CancelOrderRequest request) {
-        Order order = orderRepository.findById(UUID.fromString(request.getOrderId()))
+        Order order = orderRepository.findById(convertStringToUUID(request.getOrderId()))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         if (!order.canBeCancelled()) {
@@ -292,7 +295,7 @@ public class OrderService implements iOrder {
     @Override
     @Transactional
     public Response<OrderDto> markAsDelivered(String orderId) {
-        Order order = orderRepository.findById(UUID.fromString(orderId))
+        Order order = orderRepository.findById(convertStringToUUID(orderId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != OrderStatus.SHIPPED) {
@@ -306,13 +309,36 @@ public class OrderService implements iOrder {
 
         Order savedOrder = orderRepository.save(order);
         log.info("Order {} marked as delivered", order.getOrderNumber());
+
+        // ✅ TỰ ĐỘNG TẠO BILL CHO COD/BNPL KHI GIAO HÀNG THÀNH CÔNG
+        try {
+            PaymentType paymentType = order.getPaymentInfo() != null
+                    ? PaymentType.valueOf(String.valueOf(order.getPaymentInfo().getPaymentMethod()))
+                    : PaymentType.PAYMENT_UPON_DELIVERY;
+
+            // Chỉ tạo Bill cho COD và BUY_NOW_PAY_LATER
+            if (paymentType == PaymentType.PAYMENT_UPON_DELIVERY ||
+                    paymentType == PaymentType.BUY_NOW_PAY_LATER) {
+
+                Bill bill = billService.createBillForCODOrder(savedOrder.getId().toString().replace("-", ""));
+                log.info("✅ Bill auto-created for COD/BNPL Order: {} -> Bill ID: {}",
+                        savedOrder.getOrderNumber(), bill.getId());
+            } else {
+                log.info("⚠️ Order {} is not COD/BNPL, skipping Bill creation", savedOrder.getOrderNumber());
+            }
+        } catch (Exception e) {
+            // Log error nhưng không fail transaction của Order
+            log.error("❌ Failed to create Bill for Order {}: {}", savedOrder.getOrderNumber(), e.getMessage());
+            // Không throw exception để không ảnh hưởng đến việc cập nhật Order status
+        }
+
         return Response.ok(orderMapper.toDto(savedOrder));
     }
 
     @Override
     @Transactional
     public Response<OrderDto> completeOrder(String orderId) {
-        Order order = orderRepository.findById(UUID.fromString(orderId))
+        Order order = orderRepository.findById(convertStringToUUID(orderId))
                 .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != OrderStatus.DELIVERED) {
@@ -323,8 +349,48 @@ public class OrderService implements iOrder {
         order.setCompletedAt(LocalDateTime.now());
 
         Order savedOrder = orderRepository.save(order);
+
+        // ✅ CẬP NHẬT ANALYTICS CHO PRODUCT VÀ ATTRIBUTES
+        updateProductAnalytics(savedOrder);
+
         log.info("Order {} completed", order.getOrderNumber());
         return Response.ok(orderMapper.toDto(savedOrder));
+    }
+
+    /**
+     * Cập nhật analytics cho Product và Attributes khi Order hoàn thành
+     * - Product: totalSoldQuantity, totalRevenue, totalOrders
+     * - Attributes: soldQuantity
+     */
+    private void updateProductAnalytics(Order order) {
+        for (OrderItem item : order.getOrderItems()) {
+            Product product = item.getProduct();
+            Attributes attributes = item.getAttributes();
+
+            // Cập nhật Product analytics
+            product.setTotalSoldQuantity(
+                    (product.getTotalSoldQuantity() != null ? product.getTotalSoldQuantity() : 0)
+                            + item.getQuantity());
+            product.setTotalRevenue(
+                    (product.getTotalRevenue() != null ? product.getTotalRevenue() : 0.0)
+                            + item.getSubtotal());
+            product.setTotalOrders(
+                    (product.getTotalOrders() != null ? product.getTotalOrders() : 0) + 1);
+            productRepository.save(product);
+
+            // Cập nhật Attributes analytics
+            attributes.setSoldQuantity(
+                    (attributes.getSoldQuantity() != null ? attributes.getSoldQuantity() : 0)
+                            + item.getQuantity());
+            attributesRepository.save(attributes);
+
+            log.info("📊 Updated analytics - Product: {} (+{} qty, +{} revenue), Attributes: {} (+{} sold)",
+                    product.getSkuInfo().getSku(),
+                    item.getQuantity(),
+                    item.getSubtotal(),
+                    attributes.getSku().getSku(),
+                    item.getQuantity());
+        }
     }
 
     @Override
@@ -392,12 +458,14 @@ public class OrderService implements iOrder {
     private List<OrderItem> createOrderItems(List<CreateOrderRequest.OrderItemRequest> itemRequests, Order order) {
         return itemRequests.stream()
                 .map(itemRequest -> {
-                    Attributes attributes = attributesRepository.findById(UUID.fromString(itemRequest.getAttributesId()))
-                            .orElseThrow(() -> new BusinessException("Không tìm thấy sản phẩm với ID: " + itemRequest.getAttributesId()));
+                    Attributes attributes = attributesRepository
+                            .findById(convertStringToUUID(itemRequest.getAttributesId()))
+                            .orElseThrow(() -> new BusinessException(
+                                    "Không tìm thấy sản phẩm với ID: " + itemRequest.getAttributesId()));
 
                     // Kiểm tra tồn kho
                     if (attributes.getStockQuantity() < itemRequest.getQuantity()) {
-                        throw new BusinessException("Sản phẩm " + attributes.getSku().getName() + " không đủ số lượng");
+                        throw new BusinessException("Sản phẩm " + attributes.getSku().getSku() + " không đủ số lượng");
                     }
 
                     return buildOrderItem(attributes, itemRequest.getQuantity(), order, itemRequest.getNotes());
@@ -412,7 +480,6 @@ public class OrderService implements iOrder {
                 .order(order)
                 .product(product)
                 .attributes(attributes)
-                .productName(product.getSkuInfo().getName())
                 .productSku(product.getSkuInfo().getSku())
                 .attributesSku(attributes.getSku().getSku())
                 .color(attributes.getColor())
@@ -509,7 +576,7 @@ public class OrderService implements iOrder {
             }
 
             if (request.getCustomerId() != null) {
-                predicates.add(cb.equal(root.get("customer").get("id"), UUID.fromString(request.getCustomerId())));
+                predicates.add(cb.equal(root.get("customer").get("id"), convertStringToUUID(request.getCustomerId())));
             }
 
             if (request.getCustomerName() != null) {
@@ -556,5 +623,20 @@ public class OrderService implements iOrder {
                 .contents(orderDtos)
                 .paging(pageableData)
                 .build();
+    }
+
+    private UUID convertStringToUUID(String id) {
+        if (id == null || id.length() != 32) {
+            throw new IllegalArgumentException("Invalid ID format. Expected 32 characters.");
+        }
+
+        String formattedId = String.format("%s-%s-%s-%s-%s",
+                id.substring(0, 8),
+                id.substring(8, 12),
+                id.substring(12, 16),
+                id.substring(16, 20),
+                id.substring(20, 32));
+
+        return UUID.fromString(formattedId);
     }
 }

@@ -54,4 +54,6 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSp
     }
 
     Optional<Category> findCategoryByName(String name);
+
+    Optional<Category> findCategoryById(UUID id);
 }

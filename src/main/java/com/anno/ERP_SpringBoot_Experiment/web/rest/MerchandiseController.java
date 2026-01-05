@@ -6,7 +6,9 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -26,7 +28,7 @@ public interface MerchandiseController {
             value = "/add-Product"
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Response<?> addProduct(@ModelAttribute CreateProductRequest request);
+    Response<?> addProduct(@RequestBody CreateProductRequest request);
 
     @PutMapping("/update-Product")
     @ResponseStatus(HttpStatus.OK)
@@ -69,6 +71,9 @@ public interface MerchandiseController {
             @RequestParam("images") List<MultipartFile> images
     );
 
+    @GetMapping("/checkProduct/{name}")
+    ProductIsExiting checkProduct(@RequestParam String name);
+
     /*************       Category CRUD      *****************/
 
     @PostMapping("/add-Category")
@@ -86,6 +91,9 @@ public interface MerchandiseController {
     @PostMapping("/search-Category")
     @ResponseStatus(HttpStatus.OK)
     Response<PagingResponse<CategoryDto>> searchCategory(@Valid @RequestBody CategorySearchRequest request);
+
+    @GetMapping("/checkCategory/{name}")
+    CategoryExitingResponse check(@RequestParam String name);
 
     /*************       Attributes Management      *****************/
 

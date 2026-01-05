@@ -4,6 +4,8 @@ import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.util.Objects;
@@ -19,30 +21,20 @@ import java.util.Objects;
 public class OrderItem extends IdentityOnly {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "order_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_order_item_order")
-    )
+    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "FK_order_item_order"))
     @ToString.Exclude
     Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "product_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_order_item_product")
-    )
+    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "FK_order_item_product"))
     @ToString.Exclude
+    @OnDelete(action = OnDeleteAction.CASCADE)
     Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "attributes_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_order_item_attributes")
-    )
+    @JoinColumn(name = "attributes_id", nullable = false, foreignKey = @ForeignKey(name = "FK_order_item_attributes"))
     @ToString.Exclude
+    @OnDelete(action = OnDeleteAction.CASCADE)
     Attributes attributes;
 
     @Column(name = "product_name", nullable = false, length = 500)
@@ -105,17 +97,26 @@ public class OrderItem extends IdentityOnly {
 
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null) return false;
-        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
-        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass) return false;
+        if (this == o)
+            return true;
+        if (o == null)
+            return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy
+                ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass()
+                : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy
+                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass()
+                : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass)
+            return false;
         OrderItem orderItem = (OrderItem) o;
         return getId() != null && Objects.equals(getId(), orderItem.getId());
     }
 
     @Override
     public final int hashCode() {
-        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+        return this instanceof HibernateProxy
+                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode()
+                : getClass().hashCode();
     }
 }

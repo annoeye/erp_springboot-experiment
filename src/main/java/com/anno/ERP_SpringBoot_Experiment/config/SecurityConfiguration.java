@@ -42,7 +42,8 @@ public class SecurityConfiguration {
             "/api/merchandise/**",
             "/api/images/**",
             "/api/notifications/**",
-            "/api/orders/**"
+            "/api/orders/**",
+            "/api/payment/result**"
     };
 
     @Bean

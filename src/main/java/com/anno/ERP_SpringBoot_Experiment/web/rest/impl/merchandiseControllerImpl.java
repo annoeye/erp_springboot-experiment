@@ -9,9 +9,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PageableData;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.MerchandiseController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,7 +37,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
     @Override
     @Operation(summary = "Tạo sản phẩm mới", description = "Tạo một sản phẩm mới trong hệ thống")
-    public Response<?> addProduct(@ModelAttribute CreateProductRequest request) {
+    public Response<?> addProduct(@RequestBody CreateProductRequest request) {
         return productService.addProduct(request);
     }
 
@@ -119,6 +117,11 @@ public class merchandiseControllerImpl implements MerchandiseController {
         return productService.replaceProductImages(productId, images);
     }
 
+    @Override
+    public ProductIsExiting checkProduct(String name) {
+        return productService.isExiting(name);
+    }
+
     /*************       Category CRUD      *****************/
 
     @Override
@@ -156,6 +159,11 @@ public class merchandiseControllerImpl implements MerchandiseController {
                         )
                         .build()
         );
+    }
+
+    @Override
+    public CategoryExitingResponse check(String name) {
+        return categoryService.isExiting(name);
     }
 
     /*************       Attributes Management      *****************/

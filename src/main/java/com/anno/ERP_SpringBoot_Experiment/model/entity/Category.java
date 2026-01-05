@@ -1,16 +1,15 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
-import com.anno.ERP_SpringBoot_Experiment.model.base.SkuAware;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.listener.SkuEntityListener;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "Category")
@@ -19,12 +18,20 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EntityListeners(SkuEntityListener.class)
-public class Category extends IdentityOnly implements SkuAware {
+public class Category extends IdentityOnly {
 
     @Embedded
     AuditInfo auditInfo = new AuditInfo();
 
     @Embedded
     SkuInfo skuInfo = new SkuInfo();
+
+    /**
+     * Danh sách Products thuộc Category này
+     * Khi xóa Category, tất cả Products liên quan sẽ bị xóa theo (CascadeType.ALL +
+     * orphanRemoval)
+     */
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    List<Product> products = new ArrayList<>();
 }
