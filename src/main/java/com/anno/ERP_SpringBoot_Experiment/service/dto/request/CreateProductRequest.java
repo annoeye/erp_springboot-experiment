@@ -8,6 +8,5 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateProductRequest {
     String name;
-    String description;
     String categoryId;
 }

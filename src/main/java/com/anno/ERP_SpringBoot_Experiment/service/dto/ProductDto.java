@@ -20,5 +20,4 @@ public class ProductDto implements Serializable {
     SkuInfoDto skuInfo;
     List<MediaItemDto> mediaItems;
     ActiveStatus status;
-    String description;
 }

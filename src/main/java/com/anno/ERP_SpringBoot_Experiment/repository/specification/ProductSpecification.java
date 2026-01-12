@@ -14,18 +14,19 @@ import java.util.Objects;
 public class ProductSpecification {
     private final String FIELD_NAME = "name";
     private final String FIELD_SKU = "sku";
-    private final String FIELD_DESCRIPTION = "description";
     private final String FIELD_STATUS = "status";
 
     private final List<Specification<Product>> specifications = new ArrayList<>();
 
-    public static ProductSpecification builder() {return new ProductSpecification();}
+    public static ProductSpecification builder() {
+        return new ProductSpecification();
+    }
 
     public ProductSpecification withName(final String name) {
         if (!ObjectUtils.isEmpty(name)) {
             specifications.add(
-                    (root, query, criteriaBuilder) ->
-                            criteriaBuilder.like(criteriaBuilder.upper(root.get(FIELD_NAME)), like(name)));
+                    (root, query, criteriaBuilder) -> criteriaBuilder.like(criteriaBuilder.upper(root.get(FIELD_NAME)),
+                            like(name)));
         }
         return this;
     }
@@ -33,17 +34,8 @@ public class ProductSpecification {
     public ProductSpecification withSku(final String sku) {
         if (!ObjectUtils.isEmpty(sku)) {
             specifications.add(
-                    (root, query, criteriaBuilder) ->
-                            criteriaBuilder.like(criteriaBuilder.upper(root.get(FIELD_SKU)), like(sku)));
-        }
-        return this;
-    }
-
-    public ProductSpecification withDescription(final String description) {
-        if (!ObjectUtils.isEmpty(description)) {
-            specifications.add(
-                    (root, query, criteriaBuilder) ->
-                            criteriaBuilder.like(criteriaBuilder.upper(root.get(FIELD_DESCRIPTION)), like(description)));
+                    (root, query, criteriaBuilder) -> criteriaBuilder.like(criteriaBuilder.upper(root.get(FIELD_SKU)),
+                            like(sku)));
         }
         return this;
     }
@@ -51,8 +43,8 @@ public class ProductSpecification {
     public ProductSpecification withStatus(final String status) {
         if (!ObjectUtils.isEmpty(status)) {
             specifications.add(
-                    (root, query, criteriaBuilder) ->
-                            criteriaBuilder.like(criteriaBuilder.upper(root.get(FIELD_STATUS)), like(status)));
+                    (root, query, criteriaBuilder) -> criteriaBuilder
+                            .like(criteriaBuilder.upper(root.get(FIELD_STATUS)), like(status)));
         }
         return this;
     }

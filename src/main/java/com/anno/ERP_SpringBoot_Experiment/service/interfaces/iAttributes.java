@@ -2,7 +2,6 @@ package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.SetSpecificationsRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import lombok.NonNull;
@@ -10,8 +9,9 @@ import lombok.NonNull;
 import java.util.List;
 
 public interface iAttributes {
-    
-    Response<AttributesDto> create(@NonNull CreateAttributesRequest request);
+
+    // Smart create: returns List (works for both single and batch)
+    Response<List<AttributesDto>> create(@NonNull CreateAttributesRequest request);
 
     Response<AttributesDto> update(@NonNull UpdateAttributesRequest request);
 
@@ -22,6 +22,4 @@ public interface iAttributes {
     Response<List<AttributesDto>> getByProduct(@NonNull String productId);
 
     Response<AttributesDto> getBySku(@NonNull String sku);
-
-    Response<AttributesDto> setSpecifications(SetSpecificationsRequest request);
 }

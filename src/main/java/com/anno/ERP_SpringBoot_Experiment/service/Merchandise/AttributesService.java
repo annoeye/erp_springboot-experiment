@@ -11,8 +11,8 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesBatchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.SetSpecificationsRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -42,45 +43,73 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
-    public Response<AttributesDto> create(@NonNull CreateAttributesRequest request) {
-
+    public Response<List<AttributesDto>> create(@NonNull CreateAttributesRequest request) {
         if (request.getStockQuantity() < 0) {
             throw new BusinessException("Số lượng tồn kho không thể là số âm.");
         }
 
+        List<String> colorsList = request.getColors();
+        List<String> optionsList = request.getOptions();
+
         Product product = productRepository
                 .findById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()))
-                .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + request.getProductId() + " không tồn tại."));
+                .orElseThrow(
+                        () -> new BusinessException("Sản phẩm với ID " + request.getProductId() + " không tồn tại."));
 
-        AuditInfo audit = new AuditInfo();
-        audit.setCreatedAt(LocalDateTime.now());
-        audit.setCreatedBy(securityUtil.getCurrentUsername());
+        String currentUser = securityUtil.getCurrentUsername();
+        LocalDateTime now = LocalDateTime.now();
 
+        List<Attributes> attributesList = new ArrayList<>();
 
-        Attributes attributes = new Attributes();
-        attributes.setName(request.getName());
-        attributes.setAuditInfo(audit);
-        attributes.setColor(request.getColor());
-        attributes.setOption(request.getOption());
-        attributes.setSku(new SkuInfo());
-        attributes.setKeywords(request.getKeywords());
-        attributes.setPrice(request.getPrice());
-        attributes.setSalePrice(request.getSalePrice());
-        attributes.setProduct(product);
-        attributes.setStatusProduct(StockStatus.NOT_ACTIVE);
-        attributes.setStockQuantity(request.getStockQuantity());
-//        attributes.setSpecifications(specifications); // Chưa set thông tin
+        // Tạo tổ hợp options × colors (1 item = 1 record, nhiều items = nhiều records)
+        for (String option : optionsList) {
+            for (String color : colorsList) {
+                AuditInfo audit = new AuditInfo();
+                audit.setCreatedAt(now);
+                audit.setCreatedBy(currentUser);
 
-        Attributes savedAttributes = attributesRepository.save(attributes);
-        log.info("Đã tạo attributes '{}' với SKU {} cho sản phẩm {}", 
-                savedAttributes.getName(), 
-                savedAttributes.getSku().getSku(),
-                product.getName());
+                Attributes attr = new Attributes();
+                attr.setProduct(product);
+                attr.setSku(new SkuInfo());
+                attr.setName(request.getName());
+                attr.setAuditInfo(audit);
+                attr.setPrice(request.getPrice());
+                attr.setSalePrice(request.getSalePrice());
+                attr.setStockQuantity(request.getStockQuantity());
+                attr.setOption(option);
+                attr.setColor(color);
+                attr.setKeywords(request.getKeywords());
 
-        return Response.ok(
-                attributesMapper.toDto(savedAttributes),
-                "Tạo attributes thành công. Nhưng chưa hoạt động. Hãy tạo Thông số sản phẩm. "
-        );
+                // Map specifications
+                if (request.getSpecifications() != null && !request.getSpecifications().isEmpty()) {
+                    List<Specification> specs = request.getSpecifications().stream()
+                            .map(specificationMapper::toEntity)
+                            .toList();
+                    attr.setSpecifications(specs);
+                    attr.setStatusProduct(request.getStatusProduct());
+                } else {
+                    attr.setStatusProduct(StockStatus.NOT_ACTIVE);
+                }
+
+                attributesList.add(attr);
+            }
+        }
+
+        // Save all at once
+        List<Attributes> savedList = attributesRepository.saveAll(attributesList);
+
+        log.info("Đã tạo {} attributes cho sản phẩm {} | options: {} | colors: {}",
+                savedList.size(),
+                product.getName(),
+                optionsList.size(),
+                colorsList.size());
+
+        String message = savedList.size() == 1
+                ? "Tạo attributes thành công."
+                : String.format("Đã tạo thành công %d variants từ %d options × %d colors.",
+                        savedList.size(), optionsList.size(), colorsList.size());
+
+        return Response.ok(attributesMapper.toDto(savedList), message);
     }
 
     @Override
@@ -139,15 +168,14 @@ public class AttributesService implements iAttributes {
         attributes.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
 
         Attributes updatedAttributes = attributesRepository.save(attributes);
-        
-        log.info("Đã cập nhật attributes '{}' với SKU {}", 
-                updatedAttributes.getName(), 
+
+        log.info("Đã cập nhật attributes '{}' với SKU {}",
+                updatedAttributes.getName(),
                 updatedAttributes.getSku().getSku());
 
         return Response.ok(
                 attributesMapper.toDto(updatedAttributes),
-                "Cập nhật attributes thành công."
-        );
+                "Cập nhật attributes thành công.");
     }
 
     @Override
@@ -164,8 +192,8 @@ public class AttributesService implements iAttributes {
         }
 
         if (attributesToDelete.size() != skus.size()) {
-            log.warn("Một số SKU không tồn tại. Yêu cầu: {}, Tìm thấy: {}", 
-                    skus.size(), 
+            log.warn("Một số SKU không tồn tại. Yêu cầu: {}, Tìm thấy: {}",
+                    skus.size(),
                     attributesToDelete.size());
         }
 
@@ -184,8 +212,7 @@ public class AttributesService implements iAttributes {
 
         return Response.ok(
                 null,
-                String.format("Đã xóa thành công %d attributes.", attributesToDelete.size())
-        );
+                String.format("Đã xóa thành công %d attributes.", attributesToDelete.size()));
     }
 
     @Override
@@ -210,15 +237,14 @@ public class AttributesService implements iAttributes {
 
         attributesRepository.saveAll(attributesList);
 
-        log.info("Đã xóa {} attributes của sản phẩm {} bởi user {}", 
-                attributesList.size(), 
-                product.getName(), 
+        log.info("Đã xóa {} attributes của sản phẩm {} bởi user {}",
+                attributesList.size(),
+                product.getName(),
                 currentUser);
 
         return Response.ok(
                 null,
-                String.format("Đã xóa thành công %d attributes của sản phẩm.", attributesList.size())
-        );
+                String.format("Đã xóa thành công %d attributes của sản phẩm.", attributesList.size()));
     }
 
     @Override
@@ -236,8 +262,7 @@ public class AttributesService implements iAttributes {
 
         log.info("Đã lấy {} attributes của sản phẩm {}", attributesList.size(), product.getName());
         return Response.ok(
-                attributesMapper.toDto(attributesList)
-        );
+                attributesMapper.toDto(attributesList));
     }
 
     @Override
@@ -249,77 +274,7 @@ public class AttributesService implements iAttributes {
         log.info("Đã lấy attributes với SKU {}", sku);
         return Response.ok(
                 attributesMapper.toDto(attributes),
-                "Lấy attributes thành công."
-        );
+                "Lấy attributes thành công.");
     }
 
-    @Override
-    @Transactional
-    public Response<AttributesDto> setSpecifications(SetSpecificationsRequest request) {
-        final var attributes = attributesRepository.findById(featureMerchandiseHelper.convertStringToUUID(request.getAttributesId()))
-                .orElseThrow(() -> new BusinessException("Attributes không tồn tại"));
-
-        if (request.getOption() == null) {
-            throw new BusinessException("Option không được để trống.");
-        }
-
-        List<Specification> specifications;
-        
-        switch (request.getOption()) {
-            case CREATE_NEW -> {
-                if (request.getSpecificationDto() == null || request.getSpecificationDto().isEmpty()) {
-                    throw new BusinessException("Thông số không được để trống.");
-                }
-
-                attributes.setStatusProduct(request.getStatus());
-                attributes.setSpecifications(request.getSpecificationDto()
-                        .stream()
-                        .map(specificationMapper::toEntity)
-                        .toList());
-
-
-                log.info("Đã tạo thông số mới cho attributes {}",
-                        attributes.getSku().getSku());
-            }
-            
-            case COPY_FROM_OTHER -> {
-                if (request.getSourceAttributesId() == null || request.getSourceAttributesId().isBlank()) {
-                    throw new BusinessException("Source Attributes ID không được để trống khi copy.");
-                }
-                
-                Attributes sourceAttributes = attributesRepository
-                        .findById(featureMerchandiseHelper.convertStringToUUID(request.getSourceAttributesId()))
-                        .orElseThrow(() -> new BusinessException("Source Attributes không tồn tại"));
-                
-                if (sourceAttributes.getSpecifications() == null || sourceAttributes.getSpecifications().isEmpty()) {
-                    throw new BusinessException("Source Attributes không có thông số để copy.");
-                }
-                
-                specifications = sourceAttributes.getSpecifications().stream()
-                        .map(spec -> new Specification(spec.getKey(), spec.getData()))
-                        .toList();
-                
-                attributes.setSpecifications(specifications);
-                log.info("Đã copy {} thông số từ attributes {} sang attributes {}", 
-                        specifications.size(),
-                        sourceAttributes.getSku().getSku(),
-                        attributes.getSku().getSku());
-            }
-        }
-        
-        attributes.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        attributes.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
-        
-        if (attributes.getStatusProduct() == StockStatus.NOT_ACTIVE) {
-            attributes.setStatusProduct(request.getStatus());
-            log.info("Đã kích hoạt trạng thái: {}", request.getStatus());
-        }
-        
-        Attributes savedAttributes = attributesRepository.save(attributes);
-        
-        return Response.ok(
-                attributesMapper.toDto(savedAttributes),
-                "Thiết lập thông số sản phẩm thành công."
-        );
-    }
 }

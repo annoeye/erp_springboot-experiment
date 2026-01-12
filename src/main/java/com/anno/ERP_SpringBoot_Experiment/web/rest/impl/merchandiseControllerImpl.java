@@ -33,7 +33,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
     private final AttributesService attributesService;
     private final MinioService minioService;
 
-    /*************       Product CRUD      *****************/
+    /************* Product CRUD *****************/
 
     @Override
     @Operation(summary = "Tạo sản phẩm mới", description = "Tạo một sản phẩm mới trong hệ thống")
@@ -59,9 +59,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
                         String normalized = normalizeUUID(id);
                         return UUID.fromString(normalized);
                     }
-                })
-                .collect(Collectors.toList());
-        
+                }).collect(Collectors.toList());
         return productService.deleteProduct(uuidList);
     }
 
@@ -69,20 +67,19 @@ public class merchandiseControllerImpl implements MerchandiseController {
         if (uuid == null || uuid.isBlank()) {
             throw new IllegalArgumentException("UUID không được để trống");
         }
-        
+
         String cleanUuid = uuid.replaceAll("-", "");
-        
+
         if (cleanUuid.length() != 32) {
             throw new IllegalArgumentException("UUID phải có 32 ký tự");
         }
-        
+
         return String.format("%s-%s-%s-%s-%s",
                 cleanUuid.substring(0, 8),
                 cleanUuid.substring(8, 12),
                 cleanUuid.substring(12, 16),
                 cleanUuid.substring(16, 20),
-                cleanUuid.substring(20, 32)
-        ).toLowerCase();
+                cleanUuid.substring(20, 32)).toLowerCase();
     }
 
     @Override
@@ -91,7 +88,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
         return productService.search(request);
     }
 
-    /*************       Product Images Management      *****************/
+    /************* Product Images Management *****************/
 
     @Override
     @Operation(summary = "Thêm hình ảnh sản phẩm", description = "Thêm một hoặc nhiều hình ảnh cho sản phẩm")
@@ -122,7 +119,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
         return productService.isExiting(name);
     }
 
-    /*************       Category CRUD      *****************/
+    /************* Category CRUD *****************/
 
     @Override
     @Operation(summary = "Tạo danh mục mới", description = "Tạo một danh mục sản phẩm mới")
@@ -147,7 +144,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
     public Response<PagingResponse<CategoryDto>> searchCategory(@RequestBody CategorySearchRequest request) {
         final Page<CategoryDto> categories = categoryService.search(request);
         final PagingRequest page = request.getPaging();
-        
+
         return Response.ok(
                 PagingResponse.<CategoryDto>builder()
                         .contents(categories.getContent())
@@ -155,10 +152,8 @@ public class merchandiseControllerImpl implements MerchandiseController {
                                 .setPageNumber(page.getPage() - 1)
                                 .setTotalPage(categories.getTotalPages())
                                 .setPageSize(page.getSize())
-                                .setTotalRecord(categories.getTotalElements())
-                        )
-                        .build()
-        );
+                                .setTotalRecord(categories.getTotalElements()))
+                        .build());
     }
 
     @Override
@@ -166,11 +161,11 @@ public class merchandiseControllerImpl implements MerchandiseController {
         return categoryService.isExiting(name);
     }
 
-    /*************       Attributes Management      *****************/
+    /************* Attributes Management *****************/
 
     @Override
     @Operation(summary = "Tạo thuộc tính sản phẩm", description = "Tạo thuộc tính/biến thể mới cho sản phẩm (ví dụ: màu sắc, kích thước)")
-    public Response<AttributesDto> addAttributes(@RequestBody CreateAttributesRequest request) {
+    public Response<List<AttributesDto>> addAttributes(@RequestBody CreateAttributesRequest request) {
         return attributesService.create(request);
     }
 

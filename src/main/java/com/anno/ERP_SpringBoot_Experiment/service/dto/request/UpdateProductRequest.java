@@ -14,7 +14,6 @@ import java.util.List;
 public class UpdateProductRequest {
     String id;
     String name;
-    String description;
     String categorySku;
     ActiveStatus status;
 }

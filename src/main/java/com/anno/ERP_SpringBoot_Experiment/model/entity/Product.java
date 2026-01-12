@@ -81,7 +81,4 @@ public class Product extends IdentityOnly {
         @Column(name = "review_count")
         @Builder.Default
         Integer reviewCount = 0; // Số lượng đánh giá
-
-        @Column(nullable = false, length = 10000)
-        String description;
 }

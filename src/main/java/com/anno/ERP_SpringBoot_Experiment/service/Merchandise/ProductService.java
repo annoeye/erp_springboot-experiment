@@ -45,14 +45,15 @@ public class ProductService implements iProduct {
     private List<MediaItem> uploadImages(List<MultipartFile> images) {
         List<MediaItem> mediaItems = new ArrayList<>();
         List<String> uploadedUrls = new ArrayList<>();
-        
+
         try {
             for (MultipartFile file : images) {
-                if (file.isEmpty()) continue;
+                if (file.isEmpty())
+                    continue;
 
                 String url = minioService.uploadFile(file);
                 uploadedUrls.add(url);
-                
+
                 String key = featureMerchandiseHelper.generateKey();
                 MediaItem mediaItem = new MediaItem();
                 mediaItem.setKey(key);
@@ -60,7 +61,7 @@ public class ProductService implements iProduct {
                 mediaItems.add(mediaItem);
             }
             return mediaItems;
-            
+
         } catch (Exception e) {
             // Rollback
             for (String url : uploadedUrls) {
@@ -76,7 +77,8 @@ public class ProductService implements iProduct {
 
     @Override
     public Response<?> addProduct(CreateProductRequest request) {
-        Category category = categoryRepository.findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
+        Category category = categoryRepository
+                .findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
                 .orElseThrow(() -> new BusinessException("Danh mục không tồn tại."));
 
         AuditInfo audit = new AuditInfo();
@@ -90,7 +92,6 @@ public class ProductService implements iProduct {
                 .category(category)
                 .skuInfo(skuInfo)
                 .auditInfo(audit)
-                .description(request.getDescription())
                 .build();
 
         return Response.ok(productRepository.save(product));
@@ -131,7 +132,7 @@ public class ProductService implements iProduct {
     @Override
     @Transactional
     public Page<ProductDto> search(@NonNull ProductSearchRequest request) {
-//        productRepository.deleteAllExpiredCategories();
+        // productRepository.deleteAllExpiredCategories();
         return productRepository.findAll(request.specification(), request.getPaging().pageable())
                 .map(productMapper::toDto);
     }
@@ -188,7 +189,7 @@ public class ProductService implements iProduct {
         product.getMediaItems().remove(itemToDelete);
 
         log.info("Đã xóa ảnh {} khỏi sản phẩm {}", imageKey, productId);
-        
+
         Product savedProduct = productRepository.save(product);
         return Response.ok(productMapper.toDto(savedProduct), "Xóa ảnh thành công.");
     }
