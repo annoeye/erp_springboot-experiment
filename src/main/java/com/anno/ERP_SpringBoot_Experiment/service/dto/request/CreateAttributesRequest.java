@@ -36,8 +36,6 @@ public class CreateAttributesRequest {
 
     List<SpecificationDto> specifications;
 
-    // Array values - auto creates combinations (1 item = single, multiple items =
-    // batch)
     @NotEmpty(message = "Phải có ít nhất 1 color")
     List<String> colors;
 

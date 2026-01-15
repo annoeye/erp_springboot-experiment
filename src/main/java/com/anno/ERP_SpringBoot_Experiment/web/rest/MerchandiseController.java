@@ -6,10 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -67,7 +64,7 @@ public interface MerchandiseController {
 
         @PostMapping("/add-Category")
         @ResponseStatus(HttpStatus.CREATED)
-        Response<String> addCategory(@Valid @RequestParam String name);
+        Response<CategoryCreateResponse> addCategory(@Valid @RequestParam String name);
 
         @PutMapping("/update-Category")
         @ResponseStatus(HttpStatus.OK)
@@ -106,7 +103,9 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<List<AttributesDto>> getAttributesByProduct(@PathVariable String productId);
 
-        @GetMapping("/get-Attributes-by-Sku/{sku}")
+        @GetMapping("/get-Attributes-by-Sku/{sku}a")
         @ResponseStatus(HttpStatus.OK)
         Response<AttributesDto> getAttributesBySku(@PathVariable String sku);
+
+        // ở đây
 }

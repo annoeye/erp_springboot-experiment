@@ -43,7 +43,8 @@ public class SecurityConfiguration {
             "/api/images/**",
             "/api/notifications/**",
             "/api/orders/**",
-            "/api/payment/result**"
+            "/api/payment/result**",
+            "http://localhost:5678/**"
     };
 
     @Bean

@@ -6,6 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CategorySearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
@@ -35,7 +36,7 @@ public class CategoryService implements iCategory {
     private final Helper featureMerchandiseHelper;
 
     @Override
-    public Response<String> create(@NonNull final String name) {
+    public Response<CategoryCreateResponse> create(@NonNull final String name) {
         if (categoryRepository.existsAllByName(name)) {
             throw new BusinessException("Danh mục đã tồn tại.");
         }
@@ -48,7 +49,10 @@ public class CategoryService implements iCategory {
         category.getAuditInfo().setCreatedAt(LocalDateTime.now());
         categoryRepository.save(category);
         log.info("Đã tạo mới danh mục {}", name);
-        return Response.ok(name);
+        return Response.ok(CategoryCreateResponse.builder()
+                .name(category.getName())
+                .id(String.valueOf(category.getId()))
+                .build());
     }
 
     @Override

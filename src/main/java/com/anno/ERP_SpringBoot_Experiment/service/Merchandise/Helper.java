@@ -29,32 +29,44 @@ public class Helper {
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     UUID convertStringToUUID(String id) {
-        // Kiểm tra null đầu vào
+        // 1. Kiểm tra null/empty
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("ID không được để trống.");
         }
 
-        // Làm sạch chuỗi: Loại bỏ khoảng trắng ở 2 đầu và tất cả dấu gạch ngang (-) nếu có
-        String cleanId = id.trim().replace("-", "");
+        String text = id.trim();
 
-        // Sau khi loại bỏ dấu gạch ngang, chuỗi bắt buộc phải có đúng 32 ký tự hex
-        if (cleanId.length() != 32) {
-            throw new IllegalArgumentException("Định dạng ID không hợp lệ. Mong đợi 32 ký tự (không tính dấu gạch ngang), nhưng nhận được: " + cleanId.length());
+        // 2. Tối ưu: Nếu đúng chuẩn 36 ký tự (có dấu -), thử parse ngay lập tức
+        // Đỡ mất công xóa đi gộp lại
+        if (text.length() == 36) {
+            try {
+                return UUID.fromString(text);
+            } catch (IllegalArgumentException ignored) {
+                // Nếu lỗi format (ví dụ dấu - đặt sai chỗ), để code chạy xuống dưới xử lý lại
+            }
         }
 
-        // Chèn lại dấu gạch ngang vào các vị trí chuẩn của UUID (8-4-4-4-12)
-        // Cách dùng StringBuilder này nhanh và tiết kiệm bộ nhớ hơn String.format
-        StringBuilder formattedId = new StringBuilder(36);
-        formattedId.append(cleanId, 0, 8).append("-");
-        formattedId.append(cleanId, 8, 12).append("-");
-        formattedId.append(cleanId, 12, 16).append("-");
-        formattedId.append(cleanId, 16, 20).append("-");
-        formattedId.append(cleanId, 20, 32);
+        // 3. Xử lý trường hợp không có dấu - hoặc dấu - lung tung
+        // Xóa sạch dấu gạch ngang cũ
+        String raw = text.replace("-", "");
+
+        // Check độ dài bắt buộc phải là 32 ký tự hex
+        if (raw.length() != 32) {
+            throw new IllegalArgumentException("Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID, nhận được: " + raw.length());
+        }
+
+        // 4. Chèn dấu gạch ngang vào đúng vị trí 8-4-4-4-12
+        // Dùng insert của StringBuilder gọn hơn là append từng khúc
+        StringBuilder sb = new StringBuilder(raw);
+        sb.insert(8, "-");
+        sb.insert(13, "-");
+        sb.insert(18, "-");
+        sb.insert(23, "-");
 
         try {
-            return UUID.fromString(formattedId.toString());
+            return UUID.fromString(sb.toString());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("ID chứa ký tự không hợp lệ (chỉ chấp nhận a-f, A-F và 0-9).");
+            throw new IllegalArgumentException("ID chứa ký tự không hợp lệ (không phải Hex).");
         }
     }
 

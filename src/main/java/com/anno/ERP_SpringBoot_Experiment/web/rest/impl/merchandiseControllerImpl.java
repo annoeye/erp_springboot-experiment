@@ -123,7 +123,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
     @Override
     @Operation(summary = "Tạo danh mục mới", description = "Tạo một danh mục sản phẩm mới")
-    public Response<String> addCategory(@RequestParam String name) {
+    public Response<CategoryCreateResponse> addCategory(@RequestParam String name) {
         return categoryService.create(name);
     }
 
@@ -200,7 +200,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
     }
 
     @Operation(summary = "Upload file", description = "Upload file lên MinIO storage")
-    public ResponseEntity<String> upload(@RequestBody MultipartFile file) throws IOException {
+    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws IOException {
         return ResponseEntity.ok(minioService.uploadFile(file));
     }
 }

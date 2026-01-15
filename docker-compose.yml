@@ -100,8 +100,28 @@ services:
     command: minio server /data --console-address ":9001"
     networks:
       - app-network
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n_local
+    restart: always
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+    # Cấu hình cực kỳ quan trọng để gọi Spring Boot ở máy thật (Host)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  n8n_data:
 
