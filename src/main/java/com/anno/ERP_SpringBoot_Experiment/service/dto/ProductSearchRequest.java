@@ -2,7 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.ProductSpecification;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.FilterRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.utils.FilterRequest;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

@@ -7,7 +7,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import jakarta.mail.MessagingException;

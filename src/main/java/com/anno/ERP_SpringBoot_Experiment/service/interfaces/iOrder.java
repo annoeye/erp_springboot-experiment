@@ -6,7 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.OrderSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateOrderRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 
 import java.util.List;

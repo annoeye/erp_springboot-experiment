@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.service.dto.response;
+package com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

@@ -1,13 +1,13 @@
 
 package com.anno.ERP_SpringBoot_Experiment.service.dto.response;
 
-import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ApiError;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import org.apache.kafka.common.requests.ApiError;
 import org.springframework.http.HttpStatus;
 
 @Getter
@@ -15,7 +15,7 @@ import org.springframework.http.HttpStatus;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Response<T>  {
+public class Response<T> {
 
     ApiError status;
     T data;

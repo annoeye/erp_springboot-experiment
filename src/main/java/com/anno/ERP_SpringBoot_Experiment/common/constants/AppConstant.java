@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.common.constants;
 
-import com.anno.ERP_SpringBoot_Experiment.web.rest.error.MessageCode;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;

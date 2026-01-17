@@ -11,13 +11,13 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesBatchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @Slf4j
@@ -45,7 +46,7 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<List<AttributesDto>> create(@NonNull CreateAttributesRequest request) {
         if (request.getStockQuantity() < 0) {
-            throw new BusinessException("Số lượng tồn kho không thể là số âm.");
+            throw new BusinessException(ErrorCode.PRODUCT_OUT_OF_STOCK, "Số lượng tồn kho không thể là số âm.");
         }
 
         List<String> colorsList = request.getColors();
@@ -53,15 +54,13 @@ public class AttributesService implements iAttributes {
 
         Product product = productRepository
                 .findById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()))
-                .orElseThrow(
-                        () -> new BusinessException("Sản phẩm với ID " + request.getProductId() + " không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         String currentUser = securityUtil.getCurrentUsername();
         LocalDateTime now = LocalDateTime.now();
 
         List<Attributes> attributesList = new ArrayList<>();
 
-        // Tạo tổ hợp options × colors (1 item = 1 record, nhiều items = nhiều records)
         for (String option : optionsList) {
             for (String color : colorsList) {
                 AuditInfo audit = new AuditInfo();
@@ -95,7 +94,6 @@ public class AttributesService implements iAttributes {
             }
         }
 
-        // Save all at once
         List<Attributes> savedList = attributesRepository.saveAll(attributesList);
 
         log.info("Đã tạo {} attributes cho sản phẩm {} | options: {} | colors: {}",
@@ -116,11 +114,11 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<AttributesDto> update(@NonNull UpdateAttributesRequest request) {
         if (request.getSku() == null || request.getSku().isBlank()) {
-            throw new BusinessException("SKU của attributes không được để trống.");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh của thuộc tính sản phẩm không được để trống.");
         }
 
         Attributes attributes = attributesRepository.findAttributesBySku_SKU(request.getSku())
-                .orElseThrow(() -> new BusinessException("Attributes với SKU " + request.getSku() + " không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính sản phẩm không tồn tại."));
 
         if (request.getName() != null && !request.getName().isBlank()) {
             attributes.setName(request.getName());
@@ -128,31 +126,31 @@ public class AttributesService implements iAttributes {
 
         if (request.getPrice() != null) {
             if (request.getPrice() < 0) {
-                throw new BusinessException("Giá không thể là số âm.");
+                throw new BusinessException(ErrorCode.INVALID_PRICE, "Giá của sản phẩm thể là số âm.");
             }
             attributes.setPrice(request.getPrice());
         }
 
         if (request.getSalePrice() != null) {
             if (request.getSalePrice() < 0) {
-                throw new BusinessException("Giá khuyến mãi không thể là số âm.");
+                throw new BusinessException(ErrorCode.INVALID_PRICE, "Giá khuyến mãi không thể là số âm.");
             }
             double currentPrice = request.getPrice() != null ? request.getPrice() : attributes.getPrice();
             if (request.getSalePrice() > currentPrice) {
-                throw new BusinessException("Giá khuyến mãi không thể lớn hơn giá gốc.");
+                throw new BusinessException(ErrorCode.INVALID_PRICE, "Giá khuyến mãi không thể lớn hơn giá gốc.");
             }
             attributes.setSalePrice(request.getSalePrice());
         }
 
         if (request.getStockQuantity() != null) {
             if (request.getStockQuantity() < 0) {
-                throw new BusinessException("Số lượng tồn kho không thể là số âm.");
+                throw new BusinessException(ErrorCode.INVALID_QUANTITY, "Số lượng tồn kho không thể là số âm.");
             }
             attributes.setStockQuantity(request.getStockQuantity());
         }
 
         if (request.getKeywords() != null) {
-            attributes.setKeywords(new java.util.HashSet<>(request.getKeywords()));
+            attributes.setKeywords(new HashSet<>(request.getKeywords()));
         }
 
         if (request.getData() != null && !request.getData().isEmpty()) {
@@ -182,13 +180,13 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<?> delete(@NonNull List<String> skus) {
         if (skus.isEmpty()) {
-            throw new BusinessException("Danh sách SKU không được để trống.");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh không được để trống.");
         }
 
         List<Attributes> attributesToDelete = attributesRepository.findAttributesBySku_SKUIn(skus);
 
         if (attributesToDelete.isEmpty()) {
-            throw new BusinessException("Không tìm thấy attributes nào với các SKU đã cung cấp.");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Không tìm thấy Danh mục với mã định danh đã cung cấp.");
         }
 
         if (attributesToDelete.size() != skus.size()) {
@@ -219,12 +217,12 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<?> deleteByProduct(@NonNull String productId) {
         Product product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
-                .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + productId + " không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         List<Attributes> attributesList = attributesRepository.findAllByProduct(product);
 
         if (attributesList.isEmpty()) {
-            return Response.ok(null, "Sản phẩm không có attributes nào để xóa.");
+            return Response.ok(null, "Sản phẩm không có danh mục nào để xóa.");
         }
 
         String currentUser = securityUtil.getCurrentUsername();
@@ -244,20 +242,20 @@ public class AttributesService implements iAttributes {
 
         return Response.ok(
                 null,
-                String.format("Đã xóa thành công %d attributes của sản phẩm.", attributesList.size()));
+                String.format("Đã xóa thành công %d danh mục của sản phẩm.", attributesList.size()));
     }
 
     @Override
     @Transactional
     public Response<List<AttributesDto>> getByProduct(@NonNull String productId) {
         Product product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
-                .orElseThrow(() -> new BusinessException("Sản phẩm với ID " + productId + " không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         List<Attributes> attributesList = attributesRepository.findAllByProductAndAuditInfo_DeletedAtIsNull(product);
 
         if (attributesList.isEmpty()) {
             log.info("Sản phẩm {} không có attributes nào", product.getName());
-            return Response.ok(List.of(), "Sản phẩm không có attributes.");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Không có danh mục nào trong sản phẩm.");
         }
 
         log.info("Đã lấy {} attributes của sản phẩm {}", attributesList.size(), product.getName());
@@ -269,7 +267,7 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<AttributesDto> getBySku(@NonNull String sku) {
         Attributes attributes = attributesRepository.findAttributesBySku_SKUAndAuditInfo_DeletedAtIsNull(sku)
-                .orElseThrow(() -> new BusinessException("Attributes với SKU " + sku + " không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Danh mục sản phẩm mới mã này không tồn tại."));
 
         log.info("Đã lấy attributes với SKU {}", sku);
         return Response.ok(

@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
+import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentStatus;
 import lombok.*;
@@ -7,6 +8,9 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 
+/**
+ * Request DTO để tìm kiếm Orders với các điều kiện filter.
+ */
 @Data
 @Builder
 @AllArgsConstructor
@@ -15,61 +19,79 @@ import java.time.LocalDateTime;
 public class OrderSearchRequest {
 
     /**
-     * Tìm theo order number
+     * Mã đơn hàng (VD: ORD-2024-001).
      */
     String orderNumber;
 
     /**
-     * Tìm theo customer ID
+     * ID của khách hàng.
+     * Được normalize tự động: uppercase + remove dashes.
      */
+    @NormalizedId
     String customerId;
 
     /**
-     * Tìm theo customer name
+     * Tên khách hàng (tìm kiếm gần đúng).
      */
     String customerName;
 
     /**
-     * Tìm theo customer email
+     * Email khách hàng.
      */
     String customerEmail;
 
     /**
-     * Tìm theo customer phone
+     * Số điện thoại khách hàng.
      */
     String customerPhone;
 
     /**
-     * Tìm theo order status
+     * Trạng thái đơn hàng.
      */
     OrderStatus orderStatus;
 
     /**
-     * Tìm theo payment status
+     * Trạng thái thanh toán.
      */
     PaymentStatus paymentStatus;
 
     /**
-     * Tìm theo khoảng thời gian
+     * Ngày bắt đầu khoảng thời gian tìm kiếm.
      */
     LocalDateTime startDate;
+
+    /**
+     * Ngày kết thúc khoảng thời gian tìm kiếm.
+     */
     LocalDateTime endDate;
 
     /**
-     * Tìm theo khoảng giá
+     * Tổng tiền tối thiểu.
      */
     Double minAmount;
+
+    /**
+     * Tổng tiền tối đa.
+     */
     Double maxAmount;
 
     /**
-     * Pagination
+     * Số trang (bắt đầu từ 0).
      */
     Integer page;
+
+    /**
+     * Số lượng items mỗi trang.
+     */
     Integer size;
 
     /**
-     * Sorting
+     * Trường để sắp xếp (orderDate, totalAmount, status).
      */
-    String sortBy; // orderDate, totalAmount, status
-    String sortDirection; // ASC, DESC
+    String sortBy;
+
+    /**
+     * Hướng sắp xếp (ASC, DESC).
+     */
+    String sortDirection;
 }
