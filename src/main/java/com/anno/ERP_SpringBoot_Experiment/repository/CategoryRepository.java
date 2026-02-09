@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSpecificationExecutor<Category> {
-    Optional<Category> findCategoriesBySkuInfo_SKU(String skuInfoSKU);
+    Optional<Category> findCategoryById(UUID id);
 
     @Modifying(clearAutomatically = true)
     @Query(
@@ -55,5 +55,4 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSp
 
     Optional<Category> findCategoryByName(String name);
 
-    Optional<Category> findCategoryById(UUID id);
 }

@@ -10,12 +10,11 @@ import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @SpringBootApplication
-@EnableConfigurationProperties({SecurityProperties.class, MinioProperties.class, CacheProperties.class})
+@EnableConfigurationProperties({ SecurityProperties.class, MinioProperties.class, CacheProperties.class })
 public class ErpSpringBootExperimentApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ErpSpringBootExperimentApplication.class);
@@ -50,13 +49,13 @@ public class ErpSpringBootExperimentApplication {
 
         log.info("""
 
-                        ----------------------------------------------------------
-                        \tApplication '{}' is running! Access URLs:
-                        \tLocal: \t\t{}://localhost:{}{}
-                        \tSwagger UI: \t{}://localhost:{}{}{}
-                        \tExternal: \t{}://{}:{}{}
-                        \tProfile(s): \t{}
-                        ----------------------------------------------------------""",
+                ----------------------------------------------------------
+                \tApplication '{}' is running! Access URLs:
+                \tLocal: \t\t{}://localhost:{}{}
+                \tSwagger UI: \t{}://localhost:{}{}{}
+                \tExternal: \t{}://{}:{}{}
+                \tProfile(s): \t{}
+                ----------------------------------------------------------""",
                 env.getProperty("spring.application.name"),
                 protocol,
                 serverPort,

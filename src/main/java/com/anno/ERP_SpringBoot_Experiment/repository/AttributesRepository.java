@@ -17,11 +17,11 @@ import java.util.UUID;
 @Repository
 public interface AttributesRepository extends JpaRepository<Attributes, UUID>, JpaSpecificationExecutor<Attributes> {
 
-    Optional<Attributes> findAttributesBySku_SKU(String skuSKU);
+    Optional<Attributes> findAttributesBySku_sku(String skuSku);
 
-    Optional<Attributes> findAttributesBySku_SKUAndAuditInfo_DeletedAtIsNull(String sku);
+    Optional<Attributes> findAttributesBySku_skuAndAuditInfo_DeletedAtIsNull(String skuSku);
 
-    List<Attributes> findAttributesBySku_SKUIn(List<String> skus);
+    List<Attributes> findAllById(UUID id);
 
     List<Attributes> findAllByProduct(Product product);
 
@@ -31,7 +31,7 @@ public interface AttributesRepository extends JpaRepository<Attributes, UUID>, J
 
     List<Attributes> findAllByProduct_IdAndAuditInfo_DeletedAtIsNull(UUID productId);
 
-    boolean existsBySku_SKU(String sku);
+    boolean existsBySku_sku(String skuSku);
 
     long countByProduct(Product product);
 
@@ -57,20 +57,21 @@ public interface AttributesRepository extends JpaRepository<Attributes, UUID>, J
     void deleteAllExpiredAttributes();
 
     @Modifying
-    @Query("UPDATE Attributes a SET a.stockQuantity = :quantity, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.SKU = :sku")
+    @Query("UPDATE Attributes a SET a.stockQuantity = :quantity, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku")
     void updateStockQuantity(@Param("sku") String sku, @Param("quantity") Integer quantity);
 
     @Modifying
-    @Query("UPDATE Attributes a SET a.stockQuantity = a.stockQuantity + :amount, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.SKU = :sku")
+    @Query("UPDATE Attributes a SET a.stockQuantity = a.stockQuantity + :amount, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku")
     void increaseStockQuantity(@Param("sku") String sku, @Param("amount") Integer amount);
 
     @Modifying
-    @Query("UPDATE Attributes a SET a.stockQuantity = a.stockQuantity - :amount, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.SKU = :sku AND a.stockQuantity >= :amount")
+    @Query("UPDATE Attributes a SET a.stockQuantity = a.stockQuantity - :amount, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku AND a.stockQuantity >= :amount")
     int decreaseStockQuantity(@Param("sku") String sku, @Param("amount") Integer amount);
 
     @Modifying
-    @Query("UPDATE Attributes a SET a.salePrice = :salePrice, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.SKU = :sku")
+    @Query("UPDATE Attributes a SET a.salePrice = :salePrice, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku")
     void updateSalePrice(@Param("sku") String sku, @Param("salePrice") Double salePrice);
 
-    Attributes findAttributesById(UUID id);
+    Optional<Attributes> findAttributesById(UUID id);
+
 }

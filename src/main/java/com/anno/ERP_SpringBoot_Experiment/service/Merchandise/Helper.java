@@ -7,6 +7,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.ShoppingCart;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,49 +26,62 @@ import java.util.stream.Collectors;
 public class Helper {
 
     private final AttributesRepository attributesRepository;
-    private static final String ALPHANUMERIC_CHARACTERS =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final String ALPHANUMERIC_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     UUID convertStringToUUID(String id) {
-        // 1. Kiểm tra null/empty
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("ID không được để trống.");
         }
 
-        String text = id.trim();
+        // Loại bỏ các ký tự gây nhiễu thường gặp
+        String text = id.trim().replace("[", "").replace("]", "").replace("\"", "");
 
-        // 2. Tối ưu: Nếu đúng chuẩn 36 ký tự (có dấu -), thử parse ngay lập tức
-        // Đỡ mất công xóa đi gộp lại
-        if (text.length() == 36) {
+        // 1. Trường hợp UUID chuẩn có dấu "-" (36 ký tự)
+        if (text.length() == 36 && text.chars().filter(c -> c == '-').count() == 4) {
             try {
                 return UUID.fromString(text);
-            } catch (IllegalArgumentException ignored) {
-                // Nếu lỗi format (ví dụ dấu - đặt sai chỗ), để code chạy xuống dưới xử lý lại
+            } catch (IllegalArgumentException e) {
+                // Dấu "-" có thể đặt sai vị trí, sẽ xử lý bên dưới
             }
         }
 
-        // 3. Xử lý trường hợp không có dấu - hoặc dấu - lung tung
-        // Xóa sạch dấu gạch ngang cũ
+        // 2. Trường hợp UUID không có dấu "-" (32 ký tự hex)
+        if (text.length() == 32 && !text.contains("-")) {
+            return buildUUIDFromHex(text);
+        }
+
+        // 3. Trường hợp khác: xóa hết dấu "-" và rebuild
         String raw = text.replace("-", "");
 
-        // Check độ dài bắt buộc phải là 32 ký tự hex
         if (raw.length() != 32) {
-            throw new IllegalArgumentException("Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID, nhận được: " + raw.length());
+            throw new IllegalArgumentException(
+                    STR."Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID 36 ký tự, nhận được: \{text.length()} ký tự (sau khi xóa dấu '-': \{raw.length()} ký tự).");
         }
 
-        // 4. Chèn dấu gạch ngang vào đúng vị trí 8-4-4-4-12
-        // Dùng insert của StringBuilder gọn hơn là append từng khúc
-        StringBuilder sb = new StringBuilder(raw);
-        sb.insert(8, "-");
-        sb.insert(13, "-");
-        sb.insert(18, "-");
-        sb.insert(23, "-");
+        return buildUUIDFromHex(raw);
+    }
 
-        try {
-            return UUID.fromString(sb.toString());
-        } catch (IllegalArgumentException e) {
+    /**
+     * Build UUID từ chuỗi 32 ký tự hex
+     */
+    private UUID buildUUIDFromHex(String hex) {
+        if (hex.length() != 32) {
+            throw new IllegalArgumentException("Chuỗi hex phải có đúng 32 ký tự.");
+        }
+
+        // Validate hex characters
+        if (!hex.matches("[0-9a-fA-F]+")) {
             throw new IllegalArgumentException("ID chứa ký tự không hợp lệ (không phải Hex).");
         }
+
+        String formatted = String.format("%s-%s-%s-%s-%s",
+                hex.substring(0, 8),
+                hex.substring(8, 12),
+                hex.substring(12, 16),
+                hex.substring(16, 20),
+                hex.substring(20, 32));
+
+        return UUID.fromString(formatted);
     }
 
     public String generateKey() {
@@ -93,12 +107,11 @@ public class Helper {
         int newTotalQuantity = currentQuantity + quantityToAdd;
 
         if (newTotalQuantity > attributes.getStockQuantity()) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK,
                     String.format("Số lượng vượt quá tồn kho. Sản phẩm: %s, Tồn kho: %d, Trong giỏ: %d",
                             attributes.getName(),
                             attributes.getStockQuantity(),
-                            currentQuantity)
-            );
+                            currentQuantity));
         }
 
         if (existingItem.isPresent()) {
@@ -119,7 +132,8 @@ public class Helper {
                 .findFirst();
 
         if (existingItem.isEmpty()) {
-            throw new BusinessException("Sản phẩm " + attributesId + " không có trong giỏ hàng");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                    "Sản phẩm " + attributesId + " không có trong giỏ hàng");
         }
 
         int currentQuantity = existingItem.get().getQuantity();
@@ -151,8 +165,7 @@ public class Helper {
                 .stream()
                 .collect(Collectors.toMap(
                         a -> a.getId().toString(),
-                        a -> a
-                ));
+                        a -> a));
 
         int totalItems = cart.getItems().stream()
                 .mapToInt(ProductQuantity::getQuantity)
@@ -193,23 +206,10 @@ public class Helper {
         return cart;
     }
 
-    public String normalizeUUID(String uuid) {
-        if (uuid == null || uuid.isBlank()) {
-            throw new IllegalArgumentException("UUID không được để trống");
-        }
-
-        String cleanUuid = uuid.replaceAll("-", "");
-
-        if (cleanUuid.length() != 32) {
-            throw new IllegalArgumentException("UUID phải có 32 ký tự");
-        }
-
-        return String.format("%s-%s-%s-%s-%s",
-                cleanUuid.substring(0, 8),
-                cleanUuid.substring(8, 12),
-                cleanUuid.substring(12, 16),
-                cleanUuid.substring(16, 20),
-                cleanUuid.substring(20, 32)
-        ).toLowerCase();
+    List<String> filterBlank(List<String> list) {
+        if (list == null) return List.of();
+        return list.stream()
+                .filter(s -> s != null && !s.isBlank())
+                .toList();
     }
 }

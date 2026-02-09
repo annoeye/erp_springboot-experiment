@@ -7,18 +7,25 @@ import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.GetProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PageableData;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PageableData;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.MerchandiseController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -45,7 +52,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
     @Override
     @Operation(summary = "Cập nhật sản phẩm", description = "Cập nhật thông tin của một sản phẩm đã tồn tại")
-    public Response<ProductDto> updateProduct(@RequestBody UpdateProductRequest request) {
+    public Response<?> updateProduct(@Valid @RequestBody UpdateProductRequest request) {
         return productService.updateProduct(request);
     }
 
@@ -84,11 +91,13 @@ public class merchandiseControllerImpl implements MerchandiseController {
                 cleanUuid.substring(20, 32)).toLowerCase();
     }
 
-    @Override
-    @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
-    public Page<ProductDto> searchProduct(@RequestBody ProductSearchRequest request) {
-        return productService.search(request);
-    }
+    // @Override
+    // @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm
+    // theo các tiêu chí như tên, danh mục, giá, v.v.")
+    // public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request)
+    // {
+    // return productService.getProduct(request);
+    // }
 
     /************* Product Images Management *****************/
 
@@ -131,7 +140,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
     @Override
     @Operation(summary = "Cập nhật danh mục", description = "Cập nhật thông tin của một danh mục đã tồn tại")
-    public Response<CategoryDto> updateCategory(@RequestBody CategoryDto categoryDto) {
+    public Response<?> updateCategory(@RequestBody UpdateCategoryRequest categoryDto) {
         return categoryService.update(categoryDto);
     }
 
@@ -150,11 +159,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
         return Response.ok(
                 PagingResponse.<CategoryDto>builder()
                         .contents(categories.getContent())
-                        .paging(new PageableData()
-                                .setPageNumber(page.getPage() - 1)
-                                .setTotalPage(categories.getTotalPages())
-                                .setPageSize(page.getSize())
-                                .setTotalRecord(categories.getTotalElements()))
+                        .paging(PageableData.from(categories))
                         .build());
     }
 
@@ -173,14 +178,14 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
     @Override
     @Operation(summary = "Cập nhật thuộc tính sản phẩm", description = "Cập nhật thông tin của thuộc tính/biến thể sản phẩm")
-    public Response<AttributesDto> updateAttributes(@RequestBody UpdateAttributesRequest request) {
+    public Response<?> updateAttributes(@RequestBody UpdateAttributesRequest request) {
         return attributesService.update(request);
     }
 
     @Override
-    @Operation(summary = "Xóa thuộc tính theo SKU", description = "Xóa một hoặc nhiều thuộc tính sản phẩm theo danh sách SKUs")
-    public Response<?> deleteAttributes(@RequestParam List<String> skus) {
-        return attributesService.delete(skus);
+    @Operation(summary = "Xóa thuộc tính theo SKU", description = "Xóa một hoặc nhiều thuộc tính sản phẩm theo danh sách ids")
+    public Response<?> deleteAttributes(@RequestParam List<String> ids) {
+        return attributesService.delete(ids);
     }
 
     @Override

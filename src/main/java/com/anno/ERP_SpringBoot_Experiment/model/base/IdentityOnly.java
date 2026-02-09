@@ -1,15 +1,21 @@
 package com.anno.ERP_SpringBoot_Experiment.model.base;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.proxy.HibernateProxy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.Objects;
 import java.util.UUID;
 
 @MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @ToString
@@ -19,7 +25,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public abstract class IdentityOnly {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 

@@ -24,13 +24,11 @@ public class Category extends IdentityOnly {
     AuditInfo auditInfo = new AuditInfo();
 
     @Embedded
-    SkuInfo skuInfo = new SkuInfo();
+    @AttributeOverrides(
+            @AttributeOverride(name = "sku",column = @Column(name = "sku_name"))
+    )
+    SkuInfo skuInfo;
 
-    /**
-     * Danh sách Products thuộc Category này
-     * Khi xóa Category, tất cả Products liên quan sẽ bị xóa theo (CascadeType.ALL +
-     * orphanRemoval)
-     */
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     List<Product> products = new ArrayList<>();

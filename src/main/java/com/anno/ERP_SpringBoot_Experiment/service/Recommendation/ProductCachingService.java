@@ -9,6 +9,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductCachingDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProductCaching;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class ProductCachingService implements iProductCaching {
         List<Product> products = productRepository.findAllById(productIds);
 
         if (products.size() != productIds.size()) {
-            throw new BusinessException("Sản phẩm không tồn tại.");
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại.");
         }
 
         ProductCachingDto productCachingDto = ProductCachingDto.builder()

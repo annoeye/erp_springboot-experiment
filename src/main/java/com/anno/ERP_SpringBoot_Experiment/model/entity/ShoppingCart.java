@@ -53,7 +53,6 @@ public class ShoppingCart extends IdentityOnly {
     @Builder.Default
     Double totalDiscount = 0.0;
 
-
     public void addItems(List<ProductQuantity> itemsToAdd) {
         if (itemsToAdd == null || itemsToAdd.isEmpty()) {
             return;

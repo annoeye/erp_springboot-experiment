@@ -10,9 +10,10 @@ import com.anno.ERP_SpringBoot_Experiment.repository.OrderRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.PaymentRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.PaymentDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateBillRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iBill;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,12 +41,14 @@ public class BillService implements iBill {
         if (billRepository.existsByOrder_Id(orderId)) {
             log.warn("Bill already exists for Order ID: {}", orderId);
             Bill existingBill = billRepository.findByOrder_Id(orderId)
-                    .orElseThrow(() -> new BusinessException("Lỗi hệ thống: Bill tồn tại nhưng không tìm thấy"));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR,
+                            "Lỗi hệ thống: Bill tồn tại nhưng không tìm thấy"));
             return Response.ok(existingBill);
         }
 
         var order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException("Order không tồn tại với ID: " + orderId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND,
+                        "Order không tồn tại với ID: " + orderId));
 
         Payment payment = null;
         if (isOnlinePayment(request.getPaymentType())) {
@@ -91,12 +94,14 @@ public class BillService implements iBill {
         if (billRepository.existsByOrder_Id(orderUuid)) {
             log.warn("Bill already exists for COD Order ID: {}", orderId);
             return billRepository.findByOrder_Id(orderUuid)
-                    .orElseThrow(() -> new BusinessException("Lỗi hệ thống: Bill tồn tại nhưng không tìm thấy"));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR,
+                            "Lỗi hệ thống: Bill tồn tại nhưng không tìm thấy"));
         }
 
         // Fetch Order
         Order order = orderRepository.findById(orderUuid)
-                .orElseThrow(() -> new BusinessException("Order không tồn tại với ID: " + orderId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND,
+                        "Order không tồn tại với ID: " + orderId));
 
         // ✅ BUSINESS RULE: Chỉ tạo Bill cho COD và BUY_NOW_PAY_LATER
         PaymentType paymentType = order.getPaymentInfo() != null
@@ -104,7 +109,7 @@ public class BillService implements iBill {
                 : PaymentType.PAYMENT_UPON_DELIVERY;
 
         if (!isCODOrBNPL(paymentType)) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
                     "Chỉ tạo Bill cho COD/BNPL khi giao hàng. PaymentType hiện tại: " + paymentType);
         }
 

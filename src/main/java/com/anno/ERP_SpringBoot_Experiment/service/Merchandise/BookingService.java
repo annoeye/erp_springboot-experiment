@@ -10,10 +10,11 @@ import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.BookingRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.BookingDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.BookingRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iBooking;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,18 +45,21 @@ public class BookingService implements iBooking {
         List<String> attributesIds = request.getProducts().stream()
                 .map(ProductQuantity::getAttributesId).toList();
 
-        Map<String, Attributes> attributesMap = attributesRepository.findAllById(attributesIds.stream().map(UUID::fromString).toList())
+        Map<String, Attributes> attributesMap = attributesRepository
+                .findAllById(attributesIds.stream().map(UUID::fromString).toList())
                 .stream().collect(Collectors.toMap(a -> a.getId().toString(), Function.identity()));
 
         if (attributesMap.size() != attributesIds.size()) {
-            throw new BusinessException("Một hoặc nhiều thuộc tính sản phẩm không tồn tại.");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                    "Một hoặc nhiều thuộc tính sản phẩm không tồn tại.");
         }
 
         double totalPrice = request.getProducts().stream()
-                        .mapToDouble(p -> {
-                            Attributes attributes = attributesMap.get(p.getAttributesId());
-                            return attributes.getSalePrice() > 0 ? attributes.getSalePrice() : attributes.getPrice() * p.getQuantity();
-                        }).sum();
+                .mapToDouble(p -> {
+                    Attributes attributes = attributesMap.get(p.getAttributesId());
+                    return attributes.getSalePrice() > 0 ? attributes.getSalePrice()
+                            : attributes.getPrice() * p.getQuantity();
+                }).sum();
 
         audit.setCreatedAt(LocalDateTime.now());
         audit.setCreatedBy(securityUtil.getCurrentUsername());
@@ -72,9 +76,9 @@ public class BookingService implements iBooking {
 
         log.info("Đã tạo đơn hàng mới với ID: {}", booking.getId());
         return Response.ok(
-                bookingMapper.toDto(bookingRepository.save(booking))
-        );
+                bookingMapper.toDto(bookingRepository.save(booking)));
     }
 
-    // Test Create. Thiếu RUD. Sau đó làm phần thanh toán ngân hàng. Và cuối cùng ghép nó vào FE
+    // Test Create. Thiếu RUD. Sau đó làm phần thanh toán ngân hàng. Và cuối cùng
+    // ghép nó vào FE
 }

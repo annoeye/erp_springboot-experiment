@@ -6,7 +6,7 @@
 //import com.anno.ERP_SpringBoot_Experiment.repository.OrderItemRepository;
 //import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 //import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductAnalyticsDto;
-//import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+//import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 //import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 //import lombok.RequiredArgsConstructor;
 //import lombok.extern.slf4j.Slf4j;

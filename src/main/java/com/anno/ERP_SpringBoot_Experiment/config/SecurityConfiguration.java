@@ -1,6 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.config;
 
-import com.anno.ERP_SpringBoot_Experiment.authenticated.JwtAuthenticationFilter;
+import com.anno.ERP_SpringBoot_Experiment.component.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -9,6 +9,9 @@ spring:
     url: zalo.me/0971791373
     email: annoeye@gmail.com
 
+  main:
+    allow-bean-definition-overriding: true
+
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/XEPDB1
     username: Spring_app
@@ -20,7 +23,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     open-in-view: false
 
   mail:

@@ -9,20 +9,18 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -71,7 +69,7 @@ public class ProductService implements iProduct {
                     log.error("Không thể xóa file {} sau khi rollback: {}", url, deleteEx.getMessage());
                 }
             }
-            throw new BusinessException("Lỗi khi upload file: " + e.getMessage());
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Lỗi khi upload file: " + e.getMessage());
         }
     }
 
@@ -79,7 +77,7 @@ public class ProductService implements iProduct {
     public Response<?> addProduct(CreateProductRequest request) {
         Category category = categoryRepository
                 .findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
-                .orElseThrow(() -> new BusinessException("Danh mục không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
 
         AuditInfo audit = new AuditInfo();
         audit.setCreatedAt(LocalDateTime.now());
@@ -99,27 +97,24 @@ public class ProductService implements iProduct {
 
     @Override
     @Transactional
-    public Response<ProductDto> updateProduct(UpdateProductRequest request) {
+    public Response<?> updateProduct(UpdateProductRequest request) {
         if (request.getId() == null || request.getId().isBlank()) {
-            throw new BusinessException("Sản phẩm không không được để trống.");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Sản phẩm không không được để trống.");
         }
 
-        final var product = productRepository.findById(UUID.fromString(request.getId()))
-                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
+        final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(request.getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
-        if (request.getCategorySku() != null && !request.getCategorySku().isBlank()) {
-            Category category = categoryRepository.findCategoriesBySkuInfo_SKU(request.getCategorySku())
-                    .orElseThrow(() -> new BusinessException("Danh mục không tồn tại."));
+        if (request.getCategoryId() != null && !request.getCategoryId().isBlank()) {
+            Category category = categoryRepository.findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
             product.setCategory(category);
         }
-
-        product.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        product.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
-
         productMapper.updateFromRequest(request, product);
 
         log.info("Đã cập nhật sản phẩm '{}' với ID {}", request.getName(), request.getId());
-        return Response.ok(productMapper.toDto(productRepository.save(product)), "Cập nhập sản phẩm thành công.");
+        productRepository.save(product);
+        return Response.ok("Cập nhập sản phẩm thành công.");
     }
 
     @Override
@@ -129,13 +124,22 @@ public class ProductService implements iProduct {
         return Response.noContent();
     }
 
-    @Override
-    @Transactional
-    public Page<ProductDto> search(@NonNull ProductSearchRequest request) {
+//    @Override
+//    @Transactional
+//    public Page<ProductDto> getProduct(@NonNull GetProductRequest request) {
+//    List<SearchCriteria> criteriaList = new ArrayList<>();
+//
+//    if (request.getName() != null && !request.getName().isBlank()) {
+//        criteriaList.add(new SearchCriteria("name", ":" , request.getName()));
+//    } else if (request.getDescription() != null && !request.getDescription().isBlank()) {
+//        criteriaList.add(new SearchCriteria("description", ":", request.getDescription()));
+//    } else if (request)
+
+
         // productRepository.deleteAllExpiredCategories();
-        return productRepository.findAll(request.specification(), request.getPaging().pageable())
-                .map(productMapper::toDto);
-    }
+//        return productRepository.findAll(request.specification(), request.getPaging().pageable())
+//                .map(productMapper::toDto);
+//    }
 
     @Override
     public ProductIsExiting isExiting(String name) {
@@ -156,10 +160,10 @@ public class ProductService implements iProduct {
     @Transactional
     public Response<?> addProductImages(String productId, List<MultipartFile> images) {
         final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
-                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         if (images == null || images.isEmpty()) {
-            throw new BusinessException("Ảnh không được để trống.");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh không được để trống.");
         }
 
         List<MediaItem> newItems = uploadImages(images);
@@ -173,12 +177,13 @@ public class ProductService implements iProduct {
     @Transactional
     public Response<?> deleteProductImage(String productId, String imageKey) {
         final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
-                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         MediaItem itemToDelete = product.getMediaItems().stream()
                 .filter(mediaItem -> mediaItem.getKey().equals(imageKey))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException("Không tìm thấy ảnh với key: " + imageKey));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND,
+                        "Không tìm thấy ảnh với key: " + imageKey));
 
         try {
             minioService.deleteFile(itemToDelete.getUrl());
@@ -199,16 +204,16 @@ public class ProductService implements iProduct {
     public Response<?> replaceProductImages(String productId, List<MultipartFile> images) {
         UUID uuid;
         try {
-            uuid = UUID.fromString(featureMerchandiseHelper.normalizeUUID(productId));
+            uuid = featureMerchandiseHelper.convertStringToUUID(productId);
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("ID sản phẩm không hợp lệ.");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "ID sản phẩm không hợp lệ.");
         }
 
         final var product = productRepository.findById(uuid)
-                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         if (images == null || images.isEmpty()) {
-            throw new BusinessException("Ảnh không được để trống.");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh không được để trống.");
         }
 
         for (MediaItem oldItem : product.getMediaItems()) {

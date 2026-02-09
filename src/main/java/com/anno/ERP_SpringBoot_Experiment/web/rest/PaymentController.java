@@ -4,7 +4,7 @@
 //import com.anno.ERP_SpringBoot_Experiment.service.dto.PaymentVNPayDTO;
 //import com.anno.ERP_SpringBoot_Experiment.service.dto.PaymentQueryDTO;
 //import com.anno.ERP_SpringBoot_Experiment.service.dto.PaymentVNPayRefundDTO;
-//import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+//import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 //import com.anno.ERP_SpringBoot_Experiment.utils.HttpUtils;
 //import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 //import jakarta.servlet.http.HttpServletRequest;

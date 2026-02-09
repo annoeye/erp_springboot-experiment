@@ -1,7 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest.impl;
 
 import com.anno.ERP_SpringBoot_Experiment.config.SecurityConfiguration;
-import com.anno.ERP_SpringBoot_Experiment.authenticated.JwtAuthenticationFilter;
+import com.anno.ERP_SpringBoot_Experiment.component.JwtAuthenticationFilter;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.PaymentInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.ShippingInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
@@ -11,8 +11,8 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.OrderSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateOrderRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;

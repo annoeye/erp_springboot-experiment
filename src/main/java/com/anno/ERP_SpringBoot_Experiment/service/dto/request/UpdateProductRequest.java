@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +19,7 @@ public class UpdateProductRequest {
      * Được normalize tự động: uppercase + remove dashes.
      */
     @NormalizedId
+    @NotNull(message = "ID sản phẩm không được để trống")
     String id;
 
     /**
@@ -26,9 +28,10 @@ public class UpdateProductRequest {
     String name;
 
     /**
-     * SKU của Category mới (optional).
+     * Id của Category mới (optional).
      */
-    String categorySku;
+    @NormalizedId
+    String categoryId;
 
     /**
      * Trạng thái active của sản phẩm (optional).

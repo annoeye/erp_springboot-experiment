@@ -1,9 +1,9 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.mapper.AttributesMapper;
+import com.anno.ERP_SpringBoot_Experiment.mapper.PromotionMapper;
 import com.anno.ERP_SpringBoot_Experiment.mapper.SpecificationMapper;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.Promotion;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
@@ -13,7 +13,7 @@ import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +37,7 @@ public class AttributesService implements iAttributes {
     private final ProductRepository productRepository;
     private final Helper featureMerchandiseHelper;
     private final SpecificationMapper specificationMapper;
+    private final PromotionMapper promotionMapper;
     private final AttributesMapper attributesMapper;
     private final Helper merchandiseHelper;
     private final SecurityUtil securityUtil;
@@ -56,22 +56,13 @@ public class AttributesService implements iAttributes {
                 .findById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
-        String currentUser = securityUtil.getCurrentUsername();
-        LocalDateTime now = LocalDateTime.now();
-
         List<Attributes> attributesList = new ArrayList<>();
-
         for (String option : optionsList) {
             for (String color : colorsList) {
-                AuditInfo audit = new AuditInfo();
-                audit.setCreatedAt(now);
-                audit.setCreatedBy(currentUser);
-
                 Attributes attr = new Attributes();
                 attr.setProduct(product);
-                attr.setSku(new SkuInfo());
+                attr.getSku().createSku(product.getName());
                 attr.setName(request.getName());
-                attr.setAuditInfo(audit);
                 attr.setPrice(request.getPrice());
                 attr.setSalePrice(request.getSalePrice());
                 attr.setStockQuantity(request.getStockQuantity());
@@ -79,7 +70,13 @@ public class AttributesService implements iAttributes {
                 attr.setColor(color);
                 attr.setKeywords(request.getKeywords());
 
-                // Map specifications
+                if (request.getPromotions() != null && !request.getPromotions().isEmpty()) {
+                    List<Promotion> promo = request.getPromotions().stream()
+                            .map(promotionMapper::toEntity)
+                            .toList();
+                    attr.setPromotions(promo);
+                }
+
                 if (request.getSpecifications() != null && !request.getSpecifications().isEmpty()) {
                     List<Specification> specs = request.getSpecifications().stream()
                             .map(specificationMapper::toEntity)
@@ -93,6 +90,7 @@ public class AttributesService implements iAttributes {
                 attributesList.add(attr);
             }
         }
+
 
         List<Attributes> savedList = attributesRepository.saveAll(attributesList);
 
@@ -112,12 +110,9 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
-    public Response<AttributesDto> update(@NonNull UpdateAttributesRequest request) {
-        if (request.getSku() == null || request.getSku().isBlank()) {
-            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh của thuộc tính sản phẩm không được để trống.");
-        }
+    public Response<?> update(@NonNull UpdateAttributesRequest request) {
 
-        Attributes attributes = attributesRepository.findAttributesBySku_SKU(request.getSku())
+        Attributes attributes = attributesRepository.findAttributesById(featureMerchandiseHelper.convertStringToUUID(request.getId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính sản phẩm không tồn tại."));
 
         if (request.getName() != null && !request.getName().isBlank()) {
@@ -142,6 +137,14 @@ public class AttributesService implements iAttributes {
             attributes.setSalePrice(request.getSalePrice());
         }
 
+        if (request.getColor() != null && !request.getColor().isBlank()) {
+            attributes.setColor(request.getColor());
+        }
+
+        if (request.getOption() != null && !request.getOption().isBlank()) {
+            attributes.setOption(request.getOption());
+        }
+
         if (request.getStockQuantity() != null) {
             if (request.getStockQuantity() < 0) {
                 throw new BusinessException(ErrorCode.INVALID_QUANTITY, "Số lượng tồn kho không thể là số âm.");
@@ -153,64 +156,54 @@ public class AttributesService implements iAttributes {
             attributes.setKeywords(new HashSet<>(request.getKeywords()));
         }
 
-        if (request.getData() != null && !request.getData().isEmpty()) {
-            List<Specification> updatedSpecs = request.getData().stream()
-                    .map(data -> {
-                        String key = merchandiseHelper.generateKey();
-                        return new Specification(key, data);
-                    }).toList();
-            attributes.setSpecifications(updatedSpecs);
+        attributes.getSpecifications().clear();
+        attributes.getSpecifications().addAll(
+                specificationMapper.toEntity(request.getSpecifications())
+        );
+
+        attributes.getPromotions().clear();
+        attributes.getPromotions().addAll(
+                promotionMapper.toEntity(request.getPromotions())
+        );
+
+        if (request.getStatus() != null) {
+            attributes.setStatusProduct(request.getStatus());
         }
 
-        attributes.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        attributes.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
-
-        Attributes updatedAttributes = attributesRepository.save(attributes);
-
-        log.info("Đã cập nhật attributes '{}' với SKU {}",
-                updatedAttributes.getName(),
-                updatedAttributes.getSku().getSku());
-
-        return Response.ok(
-                attributesMapper.toDto(updatedAttributes),
-                "Cập nhật attributes thành công.");
+        attributesRepository.save(attributes);
+        return Response.ok("Đã cập nhật thành công.");
     }
 
     @Override
     @Transactional
-    public Response<?> delete(@NonNull List<String> skus) {
-        if (skus.isEmpty()) {
+    public Response<?> delete(@NonNull List<String> ids) {
+        if (ids.isEmpty()) {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh không được để trống.");
         }
 
-        List<Attributes> attributesToDelete = attributesRepository.findAttributesBySku_SKUIn(skus);
+        List<Attributes> attributesToDelete = attributesRepository.findAllById(featureMerchandiseHelper.convertStringToUUID(String.valueOf(ids)));
 
         if (attributesToDelete.isEmpty()) {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Không tìm thấy Danh mục với mã định danh đã cung cấp.");
         }
 
-        if (attributesToDelete.size() != skus.size()) {
+        if (attributesToDelete.size() != ids.size()) {
             log.warn("Một số SKU không tồn tại. Yêu cầu: {}, Tìm thấy: {}",
-                    skus.size(),
+                    ids.size(),
                     attributesToDelete.size());
         }
 
         String currentUser = securityUtil.getCurrentUsername();
-        LocalDateTime now = LocalDateTime.now();
 
         // Soft delete
         attributesToDelete.forEach(attr -> {
-            attr.getAuditInfo().setDeletedAt(now);
-            attr.getAuditInfo().setDeletedBy(currentUser);
+            attr.getAuditInfo().markDeleted(currentUser);
         });
 
         attributesRepository.saveAll(attributesToDelete);
 
-        log.info("Đã xóa {} attributes bởi user {}", attributesToDelete.size(), currentUser);
-
-        return Response.ok(
-                null,
-                String.format("Đã xóa thành công %d attributes.", attributesToDelete.size()));
+        log.info("Đã xóa {} attributes", attributesToDelete.size());
+        return Response.noContent();
     }
 
     @Override
@@ -226,11 +219,9 @@ public class AttributesService implements iAttributes {
         }
 
         String currentUser = securityUtil.getCurrentUsername();
-        LocalDateTime now = LocalDateTime.now();
 
         attributesList.forEach(attr -> {
-            attr.getAuditInfo().setDeletedAt(now);
-            attr.getAuditInfo().setDeletedBy(currentUser);
+            attr.getAuditInfo().markDeleted(currentUser);
         });
 
         attributesRepository.saveAll(attributesList);
@@ -266,7 +257,7 @@ public class AttributesService implements iAttributes {
     @Override
     @Transactional
     public Response<AttributesDto> getBySku(@NonNull String sku) {
-        Attributes attributes = attributesRepository.findAttributesBySku_SKUAndAuditInfo_DeletedAtIsNull(sku)
+        Attributes attributes = attributesRepository.findAttributesBySku_skuAndAuditInfo_DeletedAtIsNull(sku)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Danh mục sản phẩm mới mã này không tồn tại."));
 
         log.info("Đã lấy attributes với SKU {}", sku);

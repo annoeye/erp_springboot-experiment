@@ -5,8 +5,9 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PageableData;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PageableData;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.AuthController;
 import jakarta.mail.MessagingException;
@@ -49,22 +50,22 @@ public class authControllerImpl implements AuthController {
         return Response.ok(userService.sendCodeResetPassword(email));
     }
 
-    @Override
-    public Response<PagingResponse<UserDto>> search(UserSearchRequest request) {
-        final Page<UserDto> users = userService.search(request);
-        final PagingRequest page = request.getPaging();
-        return Response.ok(
-                PagingResponse.<UserDto>builder()
-                        .contents(users.getContent())
-                        .paging(new PageableData()
-                                .setPageNumber(page.getPage() - 1)
-                                .setTotalPage(users.getTotalPages())
-                                .setPageSize(page.getSize())
-                                .setTotalRecord(users.getTotalElements())
-                        )
-                        .build()
-        );
-    }
+//    @Override
+//    public Response<PagingResponse<UserDto>> search(UserSearchRequest request) {
+//        final Page<UserDto> users = userService.search(request);
+//        final PagingRequest page = request.getPaging();
+//        return Response.ok(
+//                PagingResponse.<UserDto>builder()
+//                        .contents(users.getContent())
+//                        .paging(new PageableData()
+//                                .setPageNumber(page.getPage() - 1)
+//                                .setTotalPage(users.getTotalPages())
+//                                .setPageSize(page.getSize())
+//                                .setTotalRecord(users.getTotalElements())
+//                        )
+//                        .build()
+//        );
+//    }
 
     @Override
     public ResponseEntity<?> logout(HttpServletRequest request) {

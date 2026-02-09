@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.Promotion;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
@@ -9,11 +10,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -26,10 +27,13 @@ import java.util.Set;
 public class Attributes extends IdentityOnly {
     @Embedded
     @AttributeOverrides({
-            @AttributeOverride(name = "name", column = @Column(name = "sku_name"))
+            @AttributeOverride(
+                    name = "sku",
+                    column = @Column(name = "sku_name")
+            )
     })
     @JsonIgnore
-    SkuInfo sku;
+    SkuInfo sku = new SkuInfo();
 
     @Column(name = "price")
     double price;
@@ -50,7 +54,11 @@ public class Attributes extends IdentityOnly {
     StockStatus statusProduct;
 
     @ElementCollection
-    @CollectionTable(name = "attributes_specifications", joinColumns = @JoinColumn(name = "attributes_id"))
+    @CollectionTable(
+            name = "attributes_specifications",
+            joinColumns = @JoinColumn(name = "attributes_id")
+    )
+    @OrderColumn(name ="specification_order")
     List<Specification> specifications = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -58,45 +66,28 @@ public class Attributes extends IdentityOnly {
     Set<String> keywords;
 
     @Embedded
-    AuditInfo auditInfo;
+    AuditInfo auditInfo = new AuditInfo();
+
+    @ElementCollection
+    @CollectionTable(
+            name = "attributes_promotion",
+            joinColumns = @JoinColumn(name = "attributes_id")
+    )
+    @OrderColumn(name = "promotion_order")
+    List<Promotion> promotions = new ArrayList<>();
 
     /*
      * ============================ 📊 Analytics Fields ============================
      */
 
     @Column(name = "cost_price")
-    Double costPrice = 0.0; // Giá vốn (để tính biên lợi nhuận)
+    Double costPrice = 0.0;
 
     @Column(name = "sold_quantity")
-    Integer soldQuantity = 0; // Số lượng đã bán của variant này
+    Integer soldQuantity = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
-    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     Product product;
-
-    @Override
-    public final boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null)
-            return false;
-        Class<?> oEffectiveClass = o instanceof HibernateProxy
-                ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass()
-                : o.getClass();
-        Class<?> thisEffectiveClass = this instanceof HibernateProxy
-                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass()
-                : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass)
-            return false;
-        Attributes that = (Attributes) o;
-        return getId() != null && Objects.equals(getId(), that.getId());
-    }
-
-    @Override
-    public final int hashCode() {
-        return this instanceof HibernateProxy
-                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode()
-                : getClass().hashCode();
-    }
 }

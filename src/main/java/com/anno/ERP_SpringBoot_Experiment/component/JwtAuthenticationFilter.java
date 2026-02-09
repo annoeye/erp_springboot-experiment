@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.authenticated;
+package com.anno.ERP_SpringBoot_Experiment.component;
 
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
@@ -40,8 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String jwt;
@@ -63,7 +62,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 boolean isTokenActiveInRedis = redisService.hasKey(accessToken);
 
                 if (jwtService.isTokenValid(jwt, userDetails) && isTokenActiveInRedis) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
+                            null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     logger.debug("Người dùng '{}' đã xác thực thành công qua JWT và Redis.", userName);
@@ -71,7 +71,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String errorMessage;
                     if (!isTokenActiveInRedis) {
                         errorMessage = "Mã thông báo không tìm thấy trong Redis (có thể đã đăng xuất).";
-                        logger.warn("Mã thông báo JWT hợp lệ nhưng không tìm thấy trong Redis (đã đăng xuất): {}. Yêu cầu bị chặn.", userName);
+                        logger.warn(
+                                "Mã thông báo JWT hợp lệ nhưng không tìm thấy trong Redis (đã đăng xuất): {}. Yêu cầu bị chặn.",
+                                userName);
                     } else {
                         errorMessage = "Mã thông báo không hợp lệ.";
                         logger.warn("Mã thông báo JWT không hợp lệ đối với người dùng: {}. Yêu cầu bị chặn.", userName);
@@ -82,21 +84,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             filterChain.doFilter(request, response);
 
-        } catch (ExpiredJwtException e) {
-            logger.warn("Mã thông báo JWT đã hết hạn: {}", e.getMessage());
-            handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Mã thông báo đã hết hạn: " + e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            logger.warn("Mã thông báo JWT không được hỗ trợ: {}", e.getMessage());
-            handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Mã thông báo JWT không được hỗ trợ: " + e.getMessage());
-        } catch (MalformedJwtException e) {
-            logger.warn("Mã thông báo JWT không hợp lệ (bị lỗi): {}", e.getMessage());
-            handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Mã thông báo JWT không đúng định dạng: " + e.getMessage());
-        } catch (SignatureException e) {
-            logger.warn("Chữ ký JWT không hợp lệ: {}", e.getMessage());
-            handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Chữ ký JWT không hợp lệ: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            logger.warn("JWT tuyên bố chuỗi trống hoặc đối số không hợp lệ: {}", e.getMessage());
-            handleJwtException(response, HttpServletResponse.SC_BAD_REQUEST, "JWT không hợp lệ (khiếu nại hoặc lập luận): " + e.getMessage());
+        } catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | SignatureException
+                | IllegalArgumentException e) {
+
+            int status = (e instanceof IllegalArgumentException)
+                    ? HttpServletResponse.SC_BAD_REQUEST
+                    : HttpServletResponse.SC_UNAUTHORIZED;
+
+            String message = mapJwtExceptionToMessage(e);
+            logger.warn("JWT authentication error: {}", message);
+            handleJwtException(response, status, message);
         }
     }
 
@@ -105,11 +102,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
             response.setStatus(status);
             response.setContentType("application/json;charset=UTF-8");
-            String jsonErrorResponse = String.format("{\"timestamp\": %d, \"status\": %d, \"error\": \"%s\", \"message\": \"%s\"}", System.currentTimeMillis(), status, HttpStatus.valueOf(status).getReasonPhrase().replace("\"", "\\\""), message.replace("\"", "\\\""));
+            String jsonErrorResponse = String.format(
+                    "{\"timestamp\": %d, \"status\": %d, \"error\": \"%s\", \"message\": \"%s\"}",
+                    System.currentTimeMillis(), status,
+                    HttpStatus.valueOf(status).getReasonPhrase().replace("\"", "\\\""), message.replace("\"", "\\\""));
             response.getWriter().write(jsonErrorResponse);
             response.getWriter().flush();
         } else {
             logger.warn("Phản hồi đã được cam kết. Không thể gửi lỗi JWT: {}", message);
         }
+    }
+
+    private String mapJwtExceptionToMessage(Exception e) {
+        return switch (e) {
+            case ExpiredJwtException _ -> "Token đã hết hạn";
+            case UnsupportedJwtException _ -> "Token không được hỗ trợ";
+            case MalformedJwtException _ -> "Token không đúng định dạng";
+            case SignatureException _ -> "Chữ ký JWT không hợp lệ";
+            case IllegalArgumentException _ -> "Token không hợp lệ hoặc rỗng";
+            default -> "Lỗi xác thực JWT: " + e.getMessage();
+        };
     }
 }

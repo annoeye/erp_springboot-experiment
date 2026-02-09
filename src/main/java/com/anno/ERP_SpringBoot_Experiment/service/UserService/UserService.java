@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.service.UserService;
 
-import com.anno.ERP_SpringBoot_Experiment.common.constants.AppConstant;
 import com.anno.ERP_SpringBoot_Experiment.domainevents.SaveDeviceInfo;
 import com.anno.ERP_SpringBoot_Experiment.domainevents.SendCodeResetPassword;
 import com.anno.ERP_SpringBoot_Experiment.domainevents.VerificationEmailEvent;
@@ -19,10 +18,11 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.DeviceInfoResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.event.device.SaveDeviceInfoListener;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -61,25 +61,25 @@ public class UserService implements iUser {
     private final ActiveLogService activeLogService;
     private final RedisService redisService;
 
-
     @Override
     @Transactional
     public Response<RegisterResponse> createUser(UserRegisterRequest body) {
 
         if (!helper.isEmailFormat(body.getEmail())) {
-            throw new BusinessException("Email không đúng định dạng");
+            throw new BusinessException(ErrorCode.INVALID_FORMAT, "Email không đúng định dạng");
         }
         if (!body.getPassword().equals(body.getConfirmPassword())) {
-            throw new BusinessException("Mật khẩu không khớp");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mật khẩu không khớp");
         }
 
         userRepository.findByEmail(body.getEmail()).filter(u -> u.getStatus() == ActiveStatus.ACTIVE).ifPresent(u -> {
-            throw new BusinessException("Email đã tồn tại.");
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email đã tồn tại.");
         });
 
         userRepository.findByName(body.getName()).ifPresent(existingUser -> {
             if (!existingUser.getEmail().equals(body.getEmail())) {
-                throw new BusinessException("Tên đăng nhập đã tồn tại với email khác. Hãy kiểm tra " + helper.maskEmail(existingUser.getEmail()) + " nếu là bạn.");
+                throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Tên đăng nhập đã tồn tại với email khác.")
+                        .with("email", helper.maskEmail(existingUser.getEmail()));
             }
         });
 
@@ -122,8 +122,9 @@ public class UserService implements iUser {
                         .build());
         return Response.ok(RegisterResponse.builder()
                 .message(someCondition
-                        ? ("Email đã tồn tại nhưng chưa xác thực. Một email xác thực mới đã được gửi đến " + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
-                        : ("Một email xác thực đã được gửi đến " + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")).build());
+                        ? (STR."Email đã tồn tại nhưng chưa xác thực. Một email xác thực mới đã được gửi đến \{helper.maskEmail(user.getEmail())}. Vui lòng kiểm tra.")
+                        : (STR."Một email xác thực đã được gửi đến \{helper.maskEmail(user.getEmail())}. Vui lòng kiểm tra."))
+                .build());
     }
 
     @Override
@@ -134,7 +135,8 @@ public class UserService implements iUser {
         String usernameOrEmail = body.getUsernameOrEmail();
 
         user = userRepository.findByNameOrEmail(usernameOrEmail)
-                .orElseThrow(() -> new BusinessException(AppConstant.NOT_FOUND.getCode(), "Tên đăng nhập hoặc Email không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
+                        "Tên đăng nhập hoặc Email không tồn tại."));
 
         if (user.getStatus().equals(ActiveStatus.INACTIVE)) {
             if (user.getAuthCode().getCode() != null || user.getAuthCode().getExpiryDate() != null) {
@@ -151,21 +153,23 @@ public class UserService implements iUser {
                     .build());
 
             return Response.ok(AuthResponse.builder()
-                    .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến " + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
+                    .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến "
+                            + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
                     .email(user.getEmail())
                     .build());
         }
 
         if (!passwordEncoder.matches(body.getPassword(), user.getPassword())) {
-            throw new BusinessException(AppConstant.BAD_REQUEST.getCode(), "Mật khẩu không đúng.");
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Mật khẩu không đúng.");
         }
-        DeviceInfoResponse result = deviceInfoEventListener.handleDeviceInfo(new SaveDeviceInfo(user, body.getDeviceInfo(), ActiveStatus.LOGIN_VERIFICATION));
+        DeviceInfoResponse result = deviceInfoEventListener
+                .handleDeviceInfo(new SaveDeviceInfo(user, body.getDeviceInfo(), ActiveStatus.LOGIN_VERIFICATION));
 
-//        ActiveLogDto dto = ActiveLogDto.builder()
-//                .performedBy(String.valueOf(user.getId()))
-//                .status(ActiveStatus.LOGIN)
-//                .build();
-//        activeLogService.sendMessage(dto);
+        // ActiveLogDto dto = ActiveLogDto.builder()
+        // .performedBy(String.valueOf(user.getId()))
+        // .status(ActiveStatus.LOGIN)
+        // .build();
+        // activeLogService.sendMessage(dto);
 
         return Response.ok(AuthResponse.builder()
                 .message("Đăng nhập thành công.")
@@ -185,11 +189,11 @@ public class UserService implements iUser {
     public Response<?> verifyAccount(
             @NonNull final String code,
             @NonNull final ActiveStatus type,
-            final AccountVerificationRequest request)
-    {
+            final AccountVerificationRequest request) {
 
         User user = userRepository.findByAuthCode(code)
-                .orElseThrow(() -> new BusinessException(AppConstant.NOT_FOUND.getCode(), "Người dùng không tồn tại để xác thực."));
+                .orElseThrow(
+                        () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
 
         return switch (type) {
 
@@ -211,7 +215,8 @@ public class UserService implements iUser {
 
                     yield Response.found(local);
                 } else {
-                    throw new BusinessException(AppConstant.BAD_REQUEST.getCode(), "Mã xác thực email không hợp lệ hoặc đã hết hạn.");
+                    throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                            "Mã xác thực email không hợp lệ hoặc đã hết hạn.");
                 }
             }
 
@@ -223,10 +228,11 @@ public class UserService implements iUser {
 
                 if (isCodeValid) {
                     if (request == null || request.getNewPassword() == null || request.getConfirmPassword() == null) {
-                        throw new BusinessException(AppConstant.BAD_REQUEST.getCode(), "Dữ liệu mật khẩu mới bị thiếu.");
+                        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Dữ liệu mật khẩu mới bị thiếu.");
                     }
                     if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-                        throw new BusinessException(AppConstant.BAD_REQUEST.getCode(), "Mật khẩu xác nhận không trùng khớp.");
+                        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                                "Mật khẩu xác nhận không trùng khớp.");
                     }
 
                     user.getAuthCode().setCode(null);
@@ -239,20 +245,21 @@ public class UserService implements iUser {
                     log.info("Đổi mật khẩu thành công cho user: {}", user.getUsername());
                     yield Response.found(local);
                 } else {
-                    throw new BusinessException(AppConstant.BAD_REQUEST.getCode(), "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
+                    throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                            "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
                 }
             }
 
-            default -> throw new BusinessException(AppConstant.BAD_REQUEST.getCode(), "Loại xác thực không hợp lệ: " + type);
+            default -> throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Loại xác thực không hợp lệ.")
+                    .with("type", type);
         };
     }
-
 
     @Override
     @Transactional
     public Response<?> sendCodeResetPassword(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException(AppConstant.NOT_FOUND.getCode(), "Người dùng không tồn tại"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại"));
 
         String code = String.format(OTP_FORMAT_PATTERN, SECURE_RANDOM.nextInt(OTP_UPPER_BOUND));
         user.getAuthCode().setCode(code);
@@ -264,15 +271,15 @@ public class UserService implements iUser {
 
         log.info("Đã gửi mã xác thực đổi mật khẩu cho người dùng: {}", user.getUsername());
 
-        return Response.ok("Mã xác thực đổi mật khẩu đã được gửi đến " + helper.maskEmail(email) + ". Vui lòng kiểm tra.");
+        return Response
+                .ok("Mã xác thực đổi mật khẩu đã được gửi đến " + helper.maskEmail(email) + ". Vui lòng kiểm tra.");
     }
 
-    @Override
-    public Page<UserDto> search(@NonNull final UserSearchRequest request) {
-        return userRepository.findAll(request.specification(), request.getPaging()
-                .pageable()).map(userMapper::toDto);
-    }
-
+//    @Override
+//    public Page<UserDto> search(@NonNull final UserSearchRequest request) {
+//        return userRepository.findAll(request.specification(), request.getPaging()
+//                .pageable()).map(userMapper::toDto);
+//    }
 
     @Override
     public void logoutUser(HttpServletRequest request) {

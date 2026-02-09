@@ -6,7 +6,7 @@
 //import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
 //import com.anno.ERP_SpringBoot_Experiment.service.dto.*;
 //import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-//import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+//import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 //import com.fasterxml.jackson.databind.ObjectMapper;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.DisplayName;

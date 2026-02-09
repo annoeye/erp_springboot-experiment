@@ -2,7 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.ProductQuantity;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ShoppingCartDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 
 import java.util.List;
 

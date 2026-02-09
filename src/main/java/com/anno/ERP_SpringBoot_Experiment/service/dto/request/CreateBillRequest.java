@@ -4,7 +4,10 @@ import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentType;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -26,67 +29,68 @@ public class CreateBillRequest {
     @NormalizedId
     @JsonProperty("id")
     @JsonAlias({ "orderId", "order_id" })
-    @NotNull(message = "Order ID cannot be null")
+    @NotNull(message = "Mã đơn hàng không được để trống")
     String orderId;
 
     /**
      * Mã hóa đơn (bắt buộc).
      */
-    @NotNull(message = "Invoice Code cannot be null")
+    @NotBlank(message = "Mã hóa đơn không được để trống")
     String invoiceCode;
 
     /**
      * Ngày xuất hóa đơn (bắt buộc).
      */
-    @NotNull(message = "Invoice Date cannot be null")
+    @NotNull(message = "Ngày xuất hóa đơn không được để trống")
     LocalDateTime invoiceDate;
 
     /**
      * Tên khách hàng (bắt buộc).
      */
-    @NotNull(message = "Customer Name cannot be null")
+    @NotBlank(message = "Tên khách hàng không được để trống")
     String customerName;
 
     /**
      * Số điện thoại khách hàng (bắt buộc).
      */
-    @NotNull(message = "Customer Phone cannot be null")
+    @NotBlank(message = "Số điện thoại khách hàng không được để trống")
+    @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không đúng định dạng")
     String customerPhone;
 
     /**
      * Email khách hàng (bắt buộc).
      */
-    @NotNull(message = "Customer Email cannot be null")
+    @NotBlank(message = "Email khách hàng không được để trống")
+    @Email(message = "Email không đúng định dạng")
     String customerEmail;
 
     /**
      * Địa chỉ giao hàng (bắt buộc).
      */
-    @NotNull(message = "Address cannot be null")
+    @NotBlank(message = "Địa chỉ giao hàng không được để trống")
     String address;
 
     /**
      * Loại thanh toán (bắt buộc).
      */
-    @NotNull(message = "Payment Type cannot be null")
+    @NotNull(message = "Hình thức thanh toán không được để trống")
     PaymentType paymentType;
 
     /**
      * Phí vận chuyển.
      */
-    @NotNull(message = "Shipping Fee cannot be null")
+    @NotNull(message = "Phí vận chuyển không được để trống")
     Double shippingFee = 0.0;
 
     /**
      * Tổng tiền đơn hàng.
      */
-    @NotNull(message = "Grand Total cannot be null")
+    @NotNull(message = "Tổng tiền đơn hàng không được để trống")
     Double grandTotal = 0.0;
 
     /**
-     * Ghi chú hóa đơn (bắt buộc).
+     * Ghi chú hóa đơn.
      */
-    @NotNull(message = "Note cannot be null")
     String note;
 
     /**
@@ -94,7 +98,7 @@ public class CreateBillRequest {
      * Được normalize tự động: uppercase + remove dashes.
      */
     @NormalizedId
-    @NotNull()
+    @NotNull(message = "ID địa chỉ không được để trống")
     String idAddress;
 
     /**

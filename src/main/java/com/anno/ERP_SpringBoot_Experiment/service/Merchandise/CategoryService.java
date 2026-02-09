@@ -1,17 +1,21 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.mapper.CategoryMapper;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CategorySearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateCategoryRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,7 +40,7 @@ public class CategoryService implements iCategory {
     @Override
     public Response<CategoryCreateResponse> create(@NonNull final String name) {
         if (categoryRepository.existsAllByName(name)) {
-            throw new BusinessException("Danh mục đã tồn tại.");
+            throw new BusinessException(ErrorCode.CATEGORY_ALREADY_EXISTS, "Danh mục đã tồn tại.");
         }
         Category category = new Category();
         SkuInfo skuInfo = new SkuInfo();
@@ -57,18 +59,19 @@ public class CategoryService implements iCategory {
 
     @Override
     @Transactional
-    public Response<CategoryDto> update(final CategoryDto request) { // sửa tên thôi
-        Optional<Category> optionalCategory = categoryRepository.findCategoriesBySkuInfo_SKU(request.getSkuInfo().getSKU());
-        Category category = optionalCategory.orElseThrow(() -> new BusinessException("Danh mục không tồn tại."));
+    public Response<?> update(final UpdateCategoryRequest request) {
+        Optional<Category> optionalCategory = categoryRepository
+                .findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getId()));
+        Category category = optionalCategory
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
         category.setName(request.getName());
-        category.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        category.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
-        log.info("Đã sửa danh mục thành {} với mã {}", category.getName(), category.getSkuInfo().getSku());
-        return Response.ok(categoryMapper.toDto(categoryRepository.save(category)), "Sửa danh mục thành công.");
+        log.info("Đã sửa danh mục thành {} với mã id {}", category.getName(), category.getId());
+        categoryMapper.toDto(categoryRepository.save(category));
+        return Response.ok("Sửa danh mục thành công.");
     }
 
     @Override
-    public Response<?> delete(@NonNull final List<String> ids) { // thêm deleteBy
+    public Response<?> delete(@NonNull final List<String> ids) {
         List<UUID> uuidList = ids.stream()
                 .map(featureMerchandiseHelper::convertStringToUUID)
                 .collect(Collectors.toList());
@@ -80,9 +83,31 @@ public class CategoryService implements iCategory {
     @Override
     @Transactional
     public Page<CategoryDto> search(@NonNull final CategorySearchRequest request) {
-        categoryRepository.deleteAllExpiredCategories(); // Xóa tất cả cái quá hạn
-        return categoryRepository.findAll(request.specification(), request.getPaging().pageable())
-                .map(categoryMapper::toDto);
+        categoryRepository.deleteAllExpiredCategories();
+
+        List<SearchCriteria> list = new ArrayList<>();
+
+        var names = featureMerchandiseHelper.filterBlank(request.getNames());
+        var skus = featureMerchandiseHelper.filterBlank(request.getSkus());
+        var ids = featureMerchandiseHelper.filterBlank(request.getIds()).stream()
+                .map(featureMerchandiseHelper::convertStringToUUID)
+                .toList();
+
+        if (!names.isEmpty()) {
+            list.add(new SearchCriteria("name", ":", names));
+        }
+        if (!skus.isEmpty()) {
+            list.add(new SearchCriteria("skuInfo.sku", ":", skus));
+        }
+        if (!ids.isEmpty()) {
+            list.add(new SearchCriteria("id", "~", ids));
+        }
+
+        log.info("Search criteria list: {}", list);
+
+        return categoryRepository.findAll(
+                new SpecificationBuilder<Category>(list).build(),
+                request.getPaging().pageable()).map(categoryMapper::toDto);
     }
 
     @Override

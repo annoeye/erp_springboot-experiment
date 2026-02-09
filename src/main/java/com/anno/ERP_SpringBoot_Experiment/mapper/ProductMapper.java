@@ -17,8 +17,6 @@ public interface ProductMapper extends EntityMapper<ProductDto, Product> {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "skuInfo", ignore = true)
-    @Mapping(target = "auditInfo", ignore = true)
     @Mapping(target = "category", ignore = true)
-    @Mapping(target = "attributes", ignore = true)
     void updateFromRequest(UpdateProductRequest request, @MappingTarget Product product);
 }

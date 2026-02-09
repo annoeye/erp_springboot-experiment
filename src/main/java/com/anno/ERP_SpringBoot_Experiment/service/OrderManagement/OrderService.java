@@ -14,12 +14,13 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.OrderSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateOrderRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PageableData;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PageableData;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iOrder;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +51,7 @@ public class OrderService implements iOrder {
     private final BookingRepository bookingRepository;
     private final OrderMapper orderMapper;
     private final SecurityUtil securityUtil;
-    private final BillService billService; // ✅ INJECT BillService
+    private final BillService billService;
 
     @Override
     @Transactional
@@ -59,7 +60,7 @@ public class OrderService implements iOrder {
 
         // Lấy thông tin customer hiện tại
         User customer = securityUtil.getCurrentUser()
-                .orElseThrow(() -> new BusinessException("Vui lòng đăng nhập để đặt hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập để đặt hàng"));
 
         // Tạo order
         Order order = buildOrderFromRequest(request, customer);
@@ -84,13 +85,13 @@ public class OrderService implements iOrder {
         log.info("Creating order from cart: {}", cartId);
 
         User customer = securityUtil.getCurrentUser()
-                .orElseThrow(() -> new BusinessException("Vui lòng đăng nhập"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập"));
 
         ShoppingCart cart = shoppingCartRepository.findById(convertStringToUUID(cartId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy giỏ hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy giỏ hàng"));
 
         if (!cart.getUser().getId().equals(customer.getId())) {
-            throw new BusinessException("Bạn không có quyền truy cập giỏ hàng này");
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền truy cập giỏ hàng này");
         }
 
         // Tạo order từ cart items
@@ -101,10 +102,11 @@ public class OrderService implements iOrder {
         List<OrderItem> orderItems = cart.getItems().stream()
                 .map(item -> {
                     Attributes attributes = attributesRepository.findById(convertStringToUUID(item.getAttributesId()))
-                            .orElseThrow(() -> new BusinessException("Không tìm thấy sản phẩm"));
+                            .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                                    "Không tìm thấy sản phẩm"));
                     return buildOrderItem(attributes, item.getQuantity(), order, null);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         order.getOrderItems().addAll(orderItems);
         order.calculateTotals();
@@ -126,10 +128,10 @@ public class OrderService implements iOrder {
         log.info("Creating order from booking: {}", bookingId);
 
         User customer = securityUtil.getCurrentUser()
-                .orElseThrow(() -> new BusinessException("Vui lòng đăng nhập"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập"));
 
         Booking booking = bookingRepository.findById(convertStringToUUID(bookingId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy booking"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy booking"));
 
         Order order = buildOrderFromRequest(request, customer);
         order.setBookingId(bookingId);
@@ -138,10 +140,11 @@ public class OrderService implements iOrder {
         List<OrderItem> orderItems = booking.getProducts().stream()
                 .map(item -> {
                     Attributes attributes = attributesRepository.findById(convertStringToUUID(item.getAttributesId()))
-                            .orElseThrow(() -> new BusinessException("Không tìm thấy sản phẩm"));
+                            .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                                    "Không tìm thấy sản phẩm"));
                     return buildOrderItem(attributes, item.getQuantity(), order, null);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         order.getOrderItems().addAll(orderItems);
         order.calculateTotals();
@@ -155,14 +158,14 @@ public class OrderService implements iOrder {
     @Override
     public Response<OrderDto> getOrderById(String orderId) {
         Order order = orderRepository.findById(convertStringToUUID(orderId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         // Kiểm tra quyền truy cập
         User currentUser = securityUtil.getCurrentUser().orElse(null);
         if (currentUser != null && !order.getCustomer().getId().equals(currentUser.getId())) {
             // Chỉ admin mới được xem order của người khác
             if (!securityUtil.hasRole("ADMIN")) {
-                throw new BusinessException("Bạn không có quyền xem đơn hàng này");
+                throw new BusinessException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền xem đơn hàng này");
             }
         }
 
@@ -172,12 +175,12 @@ public class OrderService implements iOrder {
     @Override
     public Response<OrderDto> getOrderByOrderNumber(String orderNumber) {
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         User currentUser = securityUtil.getCurrentUser().orElse(null);
         if (currentUser != null && !order.getCustomer().getId().equals(currentUser.getId())) {
             if (!securityUtil.hasRole("ADMIN")) {
-                throw new BusinessException("Bạn không có quyền xem đơn hàng này");
+                throw new BusinessException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền xem đơn hàng này");
             }
         }
 
@@ -187,7 +190,7 @@ public class OrderService implements iOrder {
     @Override
     public Response<PagingResponse<OrderDto>> getMyOrders(OrderSearchRequest request) {
         User customer = securityUtil.getCurrentUser()
-                .orElseThrow(() -> new BusinessException("Vui lòng đăng nhập"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập"));
 
         Pageable pageable = createPageable(request);
         Page<Order> orderPage = orderRepository.findByCustomerId(customer.getId(), pageable);
@@ -208,7 +211,7 @@ public class OrderService implements iOrder {
     @Transactional
     public Response<OrderDto> updateOrder(UpdateOrderRequest request) {
         Order order = orderRepository.findById(convertStringToUUID(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (request.getStatus() != null) {
             validateStatusTransition(order.getStatus(), request.getStatus());
@@ -235,7 +238,7 @@ public class OrderService implements iOrder {
     @Transactional
     public Response<OrderDto> updateOrderStatus(String orderId, OrderStatus newStatus) {
         Order order = orderRepository.findById(convertStringToUUID(orderId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         validateStatusTransition(order.getStatus(), newStatus);
         order.setStatus(newStatus);
@@ -252,10 +255,11 @@ public class OrderService implements iOrder {
     @Transactional
     public Response<OrderDto> confirmOrder(String orderId) {
         Order order = orderRepository.findById(convertStringToUUID(orderId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != OrderStatus.PENDING) {
-            throw new BusinessException("Chỉ có thể xác nhận đơn hàng ở trạng thái PENDING");
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Chỉ có thể xác nhận đơn hàng ở trạng thái PENDING");
         }
 
         order.setStatus(OrderStatus.CONFIRMED);
@@ -271,10 +275,11 @@ public class OrderService implements iOrder {
     @Transactional
     public Response<OrderDto> cancelOrder(CancelOrderRequest request) {
         Order order = orderRepository.findById(convertStringToUUID(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (!order.canBeCancelled()) {
-            throw new BusinessException("Không thể hủy đơn hàng ở trạng thái " + order.getStatus());
+            throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_MODIFIED,
+                    "Không thể hủy đơn hàng ở trạng thái " + order.getStatus());
         }
 
         order.setStatus(OrderStatus.CANCELLED);
@@ -296,10 +301,11 @@ public class OrderService implements iOrder {
     @Transactional
     public Response<OrderDto> markAsDelivered(String orderId) {
         Order order = orderRepository.findById(convertStringToUUID(orderId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != OrderStatus.SHIPPED) {
-            throw new BusinessException("Chỉ có thể đánh dấu đã giao cho đơn hàng đang giao");
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Chỉ có thể đánh dấu đã giao cho đơn hàng đang giao");
         }
 
         order.setStatus(OrderStatus.DELIVERED);
@@ -339,10 +345,10 @@ public class OrderService implements iOrder {
     @Transactional
     public Response<OrderDto> completeOrder(String orderId) {
         Order order = orderRepository.findById(convertStringToUUID(orderId))
-                .orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != OrderStatus.DELIVERED) {
-            throw new BusinessException("Chỉ có thể hoàn thành đơn hàng đã giao");
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "Chỉ có thể hoàn thành đơn hàng đã giao");
         }
 
         order.setStatus(OrderStatus.COMPLETED);
@@ -465,7 +471,8 @@ public class OrderService implements iOrder {
 
                     // Kiểm tra tồn kho
                     if (attributes.getStockQuantity() < itemRequest.getQuantity()) {
-                        throw new BusinessException("Sản phẩm " + attributes.getSku().getSku() + " không đủ số lượng");
+                        throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK,
+                                "Sản phẩm " + attributes.getSku().getSku() + " không đủ số lượng");
                     }
 
                     return buildOrderItem(attributes, itemRequest.getQuantity(), order, itemRequest.getNotes());
@@ -532,7 +539,8 @@ public class OrderService implements iOrder {
         };
 
         if (!isValid) {
-            throw new BusinessException("Không thể chuyển trạng thái từ " + currentStatus + " sang " + newStatus);
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Không thể chuyển trạng thái từ " + currentStatus + " sang " + newStatus);
         }
     }
 
@@ -613,7 +621,7 @@ public class OrderService implements iOrder {
                 .collect(Collectors.toList());
 
         PageableData pageableData = PageableData.builder()
-                .currentPage(orderPage.getNumber())
+                .pageNumber(orderPage.getNumber())
                 .totalPages(orderPage.getTotalPages())
                 .totalElements(orderPage.getTotalElements())
                 .pageSize(orderPage.getSize())

@@ -9,10 +9,11 @@ import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ShoppingCartRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ShoppingCartDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iShoppingCart;
 import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class ShoppingCartService implements iShoppingCart {
-    
+
     private final ShoppingCartRepository shoppingCartRepository;
     private final AttributesRepository attributesRepository;
     private final UserRepository userRepository;
@@ -40,12 +41,12 @@ public class ShoppingCartService implements iShoppingCart {
     @Transactional
     public Response<ShoppingCartDto> add(final List<ProductQuantity> items) {
         if (items == null || items.isEmpty()) {
-            throw new BusinessException("Danh sách sản phẩm không được rỗng");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Danh sách sản phẩm không được rỗng");
         }
 
         String username = securityUtil.getCurrentUsername();
         User user = userRepository.findByName(username)
-                .orElseThrow(() -> new BusinessException("User không tồn tại"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "User không tồn tại"));
 
         ShoppingCart cart = shoppingCartRepository.findByUser(user)
                 .orElseGet(() -> helper.createNewCart(user));
@@ -60,8 +61,7 @@ public class ShoppingCartService implements iShoppingCart {
                 .stream()
                 .collect(Collectors.toMap(
                         a -> a.getId().toString(),
-                        a -> a
-                ));
+                        a -> a));
 
         for (ProductQuantity item : items) {
             String attributesId = item.getAttributesId();
@@ -69,16 +69,17 @@ public class ShoppingCartService implements iShoppingCart {
 
             Attributes attributes = attributesMap.get(attributesId);
             if (attributes == null) {
-                throw new BusinessException("Sản phẩm " + attributesId + " không tồn tại");
+                throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                        "Sản phẩm " + attributesId + " không tồn tại");
             }
 
             if (quantity == 0) {
                 cart.getItems().removeIf(i -> i.getAttributesId().equals(attributesId));
                 log.info("Đã xóa sản phẩm {} khỏi giỏ hàng của user {}", attributesId, username);
-                
+
             } else if (quantity > 0) {
                 helper.handleAddItem(cart, item, attributes);
-                
+
             } else {
                 helper.handleDecreaseItem(cart, item, attributesId);
             }
@@ -94,36 +95,34 @@ public class ShoppingCartService implements iShoppingCart {
 
         return Response.ok(
                 shoppingCartMapper.toDto(savedCart),
-                "Cập nhật giỏ hàng thành công"
-        );
+                "Cập nhật giỏ hàng thành công");
     }
 
     @Override
     @Transactional
     public Response<ShoppingCartDto> remove(final List<String> attributesIds) {
         if (attributesIds == null || attributesIds.isEmpty()) {
-            throw new BusinessException("Danh sách sản phẩm cần xóa không được rỗng");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Danh sách sản phẩm cần xóa không được rỗng");
         }
 
         String username = securityUtil.getCurrentUsername();
         User user = userRepository.findByName(username)
-                .orElseThrow(() -> new BusinessException("User không tồn tại"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "User không tồn tại"));
 
         ShoppingCart cart = shoppingCartRepository.findByUser(user)
-                .orElseThrow(() -> new BusinessException("Giỏ hàng không tồn tại"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Giỏ hàng không tồn tại"));
 
         int removedCount = 0;
         for (String attributesId : attributesIds) {
             boolean removed = cart.getItems().removeIf(
-                    item -> item.getAttributesId().equals(attributesId)
-            );
+                    item -> item.getAttributesId().equals(attributesId));
             if (removed) {
                 removedCount++;
             }
         }
 
         if (removedCount == 0) {
-            throw new BusinessException("Không tìm thấy sản phẩm nào để xóa");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Không tìm thấy sản phẩm nào để xóa");
         }
 
         helper.recalculateAndUpdateTotals(cart);
@@ -136,7 +135,6 @@ public class ShoppingCartService implements iShoppingCart {
 
         return Response.ok(
                 shoppingCartMapper.toDto(savedCart),
-                String.format("Đã xóa %d sản phẩm khỏi giỏ hàng", removedCount)
-        );
+                String.format("Đã xóa %d sản phẩm khỏi giỏ hàng", removedCount));
     }
 }

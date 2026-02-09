@@ -3,13 +3,13 @@ package com.anno.ERP_SpringBoot_Experiment.web.rest;
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -28,15 +28,15 @@ public interface MerchandiseController {
 
         @PutMapping("/update-Product")
         @ResponseStatus(HttpStatus.OK)
-        Response<ProductDto> updateProduct(@Valid @RequestBody UpdateProductRequest request);
+        Response<?> updateProduct(@Valid @RequestBody UpdateProductRequest request);
 
         @DeleteMapping("/delete-Product")
         @ResponseStatus(HttpStatus.NO_CONTENT)
         Response<?> deleteProduct(@RequestParam List<String> ids);
 
-        @PostMapping("/search-Product")
-        @ResponseStatus(HttpStatus.OK)
-        Page<ProductDto> searchProduct(@Valid @RequestBody ProductSearchRequest request);
+//        @PostMapping("/search-Product")
+//        @ResponseStatus(HttpStatus.OK)
+//        Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
 
         /************* Product Images Management *****************/
 
@@ -69,7 +69,7 @@ public interface MerchandiseController {
 
         @PutMapping("/update-Category")
         @ResponseStatus(HttpStatus.OK)
-        Response<CategoryDto> updateCategory(@Valid @RequestBody CategoryDto categoryDto);
+        Response<?> updateCategory(@Valid @RequestBody UpdateCategoryRequest categoryDto);
 
         @DeleteMapping("/delete-Category")
         @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -90,11 +90,11 @@ public interface MerchandiseController {
 
         @PutMapping("/update-Attributes")
         @ResponseStatus(HttpStatus.OK)
-        Response<AttributesDto> updateAttributes(@Valid @RequestBody UpdateAttributesRequest request);
+        Response<?> updateAttributes(@Valid @RequestBody UpdateAttributesRequest request);
 
         @DeleteMapping("/delete-Attributes")
         @ResponseStatus(HttpStatus.NO_CONTENT)
-        Response<?> deleteAttributes(@RequestParam @Valid List<String> skus);
+        Response<?> deleteAttributes(@RequestParam @Valid List<String> ids);
 
         @DeleteMapping("/delete-Attributes-by-Product/{productId}")
         @ResponseStatus(HttpStatus.NO_CONTENT)

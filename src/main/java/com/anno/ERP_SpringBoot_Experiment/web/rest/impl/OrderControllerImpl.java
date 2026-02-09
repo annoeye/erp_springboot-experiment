@@ -6,8 +6,8 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.OrderSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateOrderRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Page.PagingResponse;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iOrder;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.OrderController;
 import io.swagger.v3.oas.annotations.Operation;

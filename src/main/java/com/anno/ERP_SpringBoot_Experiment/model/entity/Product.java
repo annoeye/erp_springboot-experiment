@@ -27,7 +27,8 @@ import java.util.List;
 public class Product extends IdentityOnly {
 
         @Embedded
-        AuditInfo auditInfo;
+        @Builder.Default
+        AuditInfo auditInfo = new AuditInfo();
 
         @Embedded
         @Column(nullable = false)

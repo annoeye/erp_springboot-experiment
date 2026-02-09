@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +18,8 @@ import java.util.Map;
 public class PagingRequest {
     private int page = 1;
     private int size = 10;
+
+    @Schema(example = "{}")
     private Map<String, String> orders = new HashMap<>();
 
     public Pageable pageable() {
@@ -30,11 +33,19 @@ public class PagingRequest {
     public Sort sortable(Map<String, String> orders) {
         List<Sort.Order> sortableList = new ArrayList<>();
         orders.forEach((key, value) -> {
-            Sort.Direction direction = Sort.Direction.DESC.name().equals(value) ? Sort.Direction.DESC : Sort.Direction.ASC;
+            if (key == null || key.isBlank() || key.startsWith("additionalProp")) {
+                return;
+            }
+            Sort.Direction direction = Sort.Direction.DESC.name().equalsIgnoreCase(value)
+                    ? Sort.Direction.DESC
+                    : Sort.Direction.ASC;
             Sort.Order order = new Sort.Order(direction, key);
             sortableList.add(order);
         });
-        return Sort.by(sortableList);
 
+        if (sortableList.isEmpty()) {
+            return Sort.unsorted();
+        }
+        return Sort.by(sortableList);
     }
 }

@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.PromotionDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationDto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -72,6 +73,11 @@ public class CreateAttributesRequest {
      * Thông số kỹ thuật (optional).
      */
     List<SpecificationDto> specifications;
+
+    /**
+     * Ưu đãi (promotion).
+     */
+    List<PromotionDto> promotions;
 
     /**
      * Danh sách màu sắc để tạo tổ hợp (bắt buộc, ít nhất 1).
