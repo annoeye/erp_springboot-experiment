@@ -114,9 +114,20 @@ services:
       - N8N_PROTOCOL=http
       - NODE_ENV=production
       - WEBHOOK_URL=http://localhost:5678/
-    # Cấu hình cực kỳ quan trọng để gọi Spring Boot ở máy thật (Host)
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8888:8080"
+    networks:
+      - app-network
+    environment:
+      - DOZZLE_LEVEL=info
 
 networks:
   app-network:

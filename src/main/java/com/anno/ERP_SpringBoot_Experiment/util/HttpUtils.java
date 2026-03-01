@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.utils;
+package com.anno.ERP_SpringBoot_Experiment.util;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;

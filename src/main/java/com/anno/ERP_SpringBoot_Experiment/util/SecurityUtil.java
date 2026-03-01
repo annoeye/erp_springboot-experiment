@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.utils;
+package com.anno.ERP_SpringBoot_Experiment.util;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;

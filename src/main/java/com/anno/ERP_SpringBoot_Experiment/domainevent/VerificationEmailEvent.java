@@ -1,4 +1,4 @@
-package com.anno.ERP_SpringBoot_Experiment.domainevents;
+package com.anno.ERP_SpringBoot_Experiment.domainevent;
 
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import lombok.Builder;

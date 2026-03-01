@@ -14,7 +14,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.Helper;
 import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.ShoppingCartService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ShoppingCartDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
-import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
+import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

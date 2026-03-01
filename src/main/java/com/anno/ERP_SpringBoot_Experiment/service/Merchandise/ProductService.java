@@ -14,7 +14,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductReque
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
-import com.anno.ERP_SpringBoot_Experiment.utils.SecurityUtil;
+import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import jakarta.transaction.Transactional;

@@ -19,7 +19,7 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
 
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: localhost:9093
 
   jpa:
     hibernate:

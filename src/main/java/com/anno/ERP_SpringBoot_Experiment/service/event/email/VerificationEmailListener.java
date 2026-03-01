@@ -1,6 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.event.email;
 
-import com.anno.ERP_SpringBoot_Experiment.domainevents.VerificationEmailEvent;
+import com.anno.ERP_SpringBoot_Experiment.domainevent.VerificationEmailEvent;
 import com.anno.ERP_SpringBoot_Experiment.service.EmailService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.UserDetails.UserDetailsServiceImpl;

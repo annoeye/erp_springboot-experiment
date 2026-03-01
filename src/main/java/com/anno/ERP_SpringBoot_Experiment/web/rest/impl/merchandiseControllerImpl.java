@@ -6,8 +6,6 @@ import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.ProductService;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.GetProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
