@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,11 +31,8 @@ public class ShoppingCart extends IdentityOnly {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     User user;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-            name = "cart_items",
-            joinColumns = @JoinColumn(name = "cart_id")
-    )
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "items", columnDefinition = "CLOB")
     @Builder.Default
     List<ProductQuantity> items = new ArrayList<>();
 

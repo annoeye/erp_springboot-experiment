@@ -7,6 +7,8 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -24,11 +26,8 @@ public class Booking extends IdentityOnly {
     @Embedded
     AuditInfo auditInfo = new AuditInfo();
 
-    @ElementCollection
-    @CollectionTable(
-            name = "booking_specifications",
-            joinColumns = @JoinColumn(name = "booking_id")
-    )
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "products", columnDefinition = "CLOB")
     List<ProductQuantity> products = new ArrayList<>();
 
     String customerName;

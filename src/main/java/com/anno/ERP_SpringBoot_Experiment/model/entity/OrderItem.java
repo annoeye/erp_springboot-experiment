@@ -1,11 +1,17 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.VariantOption;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.type.SqlTypes;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "order_items")
@@ -43,11 +49,10 @@ public class OrderItem extends IdentityOnly {
     @Column(name = "attributes_sku", length = 100)
     String attributesSku; // SKU của attributes
 
-    @Column(name = "color", length = 100)
-    String color;
-
-    @Column(name = "option_name", length = 100)
-    String option; // Size, version, etc.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "variant_options", columnDefinition = "CLOB")
+    @Builder.Default
+    List<VariantOption> variantOptions = new ArrayList<>(); // Snapshot variant options tại thời điểm đặt hàng
 
     @Column(name = "quantity", nullable = false)
     Integer quantity;

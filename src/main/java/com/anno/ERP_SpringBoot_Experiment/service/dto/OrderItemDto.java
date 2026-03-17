@@ -3,6 +3,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -18,8 +19,7 @@ public class OrderItemDto {
     String productName;
     String productSku;
     String attributesSku;
-    String color;
-    String option;
+    List<VariantOptionDto> variantOptions;
     Integer quantity;
     Double unitPrice;
     Double salePrice;

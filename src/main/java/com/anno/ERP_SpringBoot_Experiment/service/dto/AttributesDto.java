@@ -24,10 +24,9 @@ public class AttributesDto implements Serializable {
     double price;
     double salePrice;
     int stockQuantity;
-    String color;
-    String option;
+    List<VariantOptionDto> variantOptions;
     StockStatus statusProduct;
-    List<SpecificationDto> specifications;
+    List<SpecificationGroupDto> specifications;
     List<PromotionDto> promotions;
     Set<String> keywords;
     AuditInfoDto auditInfo;

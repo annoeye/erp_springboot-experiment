@@ -2,9 +2,10 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +18,7 @@ import java.util.Set;
 
 /**
  * Request DTO để tạo batch Attributes (variants) cho Product.
- * Tự động tạo tổ hợp từ danh sách colors × options.
+ * Tự động tạo tổ hợp từ danh sách variantGroups.
  */
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -64,21 +65,17 @@ public class CreateAttributesBatchRequest {
     String productId;
 
     /**
-     * Danh sách option (size, dung lượng...) để tạo tổ hợp (bắt buộc).
+     * Các nhóm variant option để tạo tổ hợp (bắt buộc).
+     * VD: [ {key:"Color", values:["Đen","Trắng"]}, {key:"Size", values:["S","M"]} ]
      */
-    @NotEmpty(message = "Danh sách options không được rỗng")
-    List<String> options;
-
-    /**
-     * Danh sách màu sắc để tạo tổ hợp (bắt buộc).
-     */
-    @NotEmpty(message = "Danh sách colors không được rỗng")
-    List<String> colors;
+    @NotEmpty(message = "Phải có ít nhất 1 variant group")
+    @Valid
+    List<VariantGroupInput> variantGroups;
 
     /**
      * Thông số kỹ thuật (optional).
      */
-    List<SpecificationDto> specifications;
+    List<SpecificationGroupDto> specifications;
 
     /**
      * Từ khóa SEO (optional).

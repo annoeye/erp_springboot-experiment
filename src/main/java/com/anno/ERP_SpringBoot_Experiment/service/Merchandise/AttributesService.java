@@ -5,6 +5,8 @@ import com.anno.ERP_SpringBoot_Experiment.mapper.PromotionMapper;
 import com.anno.ERP_SpringBoot_Experiment.mapper.SpecificationMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.Promotion;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.SpecificationGroup;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.VariantOption;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
@@ -13,6 +15,7 @@ import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantGroupInput;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
@@ -49,61 +52,54 @@ public class AttributesService implements iAttributes {
             throw new BusinessException(ErrorCode.PRODUCT_OUT_OF_STOCK, "Số lượng tồn kho không thể là số âm.");
         }
 
-        List<String> colorsList = request.getColors();
-        List<String> optionsList = request.getOptions();
-
         Product product = productRepository
                 .findById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
+        // Tạo tổ hợp Cartesian product N chiều từ variantGroups
+        List<List<VariantOption>> combinations = generateCartesianProduct(request.getVariantGroups());
+
         List<Attributes> attributesList = new ArrayList<>();
-        for (String option : optionsList) {
-            for (String color : colorsList) {
-                Attributes attr = new Attributes();
-                attr.setProduct(product);
-                attr.getSku().createSku(product.getName());
-                attr.setName(request.getName());
-                attr.setPrice(request.getPrice());
-                attr.setSalePrice(request.getSalePrice());
-                attr.setStockQuantity(request.getStockQuantity());
-                attr.setOption(option);
-                attr.setColor(color);
-                attr.setKeywords(request.getKeywords());
+        for (List<VariantOption> combination : combinations) {
+            Attributes attr = new Attributes();
+            attr.setProduct(product);
+            attr.getSku().createSku(product.getName());
+            attr.setName(request.getName());
+            attr.setPrice(request.getPrice());
+            attr.setSalePrice(request.getSalePrice());
+            attr.setStockQuantity(request.getStockQuantity());
+            attr.setVariantOptions(combination);
+            attr.setKeywords(request.getKeywords());
 
-                if (request.getPromotions() != null && !request.getPromotions().isEmpty()) {
-                    List<Promotion> promo = request.getPromotions().stream()
-                            .map(promotionMapper::toEntity)
-                            .toList();
-                    attr.setPromotions(promo);
-                }
-
-                if (request.getSpecifications() != null && !request.getSpecifications().isEmpty()) {
-                    List<Specification> specs = request.getSpecifications().stream()
-                            .map(specificationMapper::toEntity)
-                            .toList();
-                    attr.setSpecifications(specs);
-                    attr.setStatusProduct(request.getStatusProduct());
-                } else {
-                    attr.setStatusProduct(StockStatus.NOT_ACTIVE);
-                }
-
-                attributesList.add(attr);
+            if (request.getPromotions() != null && !request.getPromotions().isEmpty()) {
+                List<Promotion> promo = request.getPromotions().stream()
+                        .map(promotionMapper::toEntity)
+                        .toList();
+                attr.setPromotions(promo);
             }
-        }
 
+            if (request.getSpecifications() != null && !request.getSpecifications().isEmpty()) {
+                List<SpecificationGroup> specGroups = mapSpecificationGroups(request.getSpecifications());
+                attr.setSpecifications(specGroups);
+                attr.setStatusProduct(request.getStatusProduct());
+            } else {
+                attr.setStatusProduct(StockStatus.NOT_ACTIVE);
+            }
+
+            attributesList.add(attr);
+        }
 
         List<Attributes> savedList = attributesRepository.saveAll(attributesList);
 
-        log.info("Đã tạo {} attributes cho sản phẩm {} | options: {} | colors: {}",
+        log.info("Đã tạo {} attributes cho sản phẩm {} | variant groups: {}",
                 savedList.size(),
                 product.getName(),
-                optionsList.size(),
-                colorsList.size());
+                request.getVariantGroups().size());
 
         String message = savedList.size() == 1
                 ? "Tạo attributes thành công."
-                : String.format("Đã tạo thành công %d variants từ %d options × %d colors.",
-                        savedList.size(), optionsList.size(), colorsList.size());
+                : String.format("Đã tạo thành công %d variants từ %d variant groups.",
+                        savedList.size(), request.getVariantGroups().size());
 
         return Response.ok(attributesMapper.toDto(savedList), message);
     }
@@ -112,8 +108,10 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<?> update(@NonNull UpdateAttributesRequest request) {
 
-        Attributes attributes = attributesRepository.findAttributesById(featureMerchandiseHelper.convertStringToUUID(request.getId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính sản phẩm không tồn tại."));
+        Attributes attributes = attributesRepository
+                .findAttributesById(featureMerchandiseHelper.convertStringToUUID(request.getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                        "Thuộc tính sản phẩm không tồn tại."));
 
         if (request.getName() != null && !request.getName().isBlank()) {
             attributes.setName(request.getName());
@@ -137,12 +135,11 @@ public class AttributesService implements iAttributes {
             attributes.setSalePrice(request.getSalePrice());
         }
 
-        if (request.getColor() != null && !request.getColor().isBlank()) {
-            attributes.setColor(request.getColor());
-        }
-
-        if (request.getOption() != null && !request.getOption().isBlank()) {
-            attributes.setOption(request.getOption());
+        if (request.getVariantOptions() != null && !request.getVariantOptions().isEmpty()) {
+            List<VariantOption> variantOptions = request.getVariantOptions().stream()
+                    .map(dto -> new VariantOption(dto.getKey(), dto.getValue()))
+                    .toList();
+            attributes.setVariantOptions(variantOptions);
         }
 
         if (request.getStockQuantity() != null) {
@@ -156,15 +153,13 @@ public class AttributesService implements iAttributes {
             attributes.setKeywords(new HashSet<>(request.getKeywords()));
         }
 
-        attributes.getSpecifications().clear();
-        attributes.getSpecifications().addAll(
-                specificationMapper.toEntity(request.getSpecifications())
-        );
+        if (request.getSpecifications() != null) {
+            attributes.setSpecifications(mapSpecificationGroups(request.getSpecifications()));
+        }
 
         attributes.getPromotions().clear();
         attributes.getPromotions().addAll(
-                promotionMapper.toEntity(request.getPromotions())
-        );
+                promotionMapper.toEntity(request.getPromotions()));
 
         if (request.getStatus() != null) {
             attributes.setStatusProduct(request.getStatus());
@@ -181,10 +176,12 @@ public class AttributesService implements iAttributes {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh không được để trống.");
         }
 
-        List<Attributes> attributesToDelete = attributesRepository.findAllById(featureMerchandiseHelper.convertStringToUUID(String.valueOf(ids)));
+        List<Attributes> attributesToDelete = attributesRepository
+                .findAllById(featureMerchandiseHelper.convertStringToUUID(String.valueOf(ids)));
 
         if (attributesToDelete.isEmpty()) {
-            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Không tìm thấy Danh mục với mã định danh đã cung cấp.");
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                    "Không tìm thấy Danh mục với mã định danh đã cung cấp.");
         }
 
         if (attributesToDelete.size() != ids.size()) {
@@ -258,12 +255,58 @@ public class AttributesService implements iAttributes {
     @Transactional
     public Response<AttributesDto> getBySku(@NonNull String sku) {
         Attributes attributes = attributesRepository.findAttributesBySku_skuAndAuditInfo_DeletedAtIsNull(sku)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Danh mục sản phẩm mới mã này không tồn tại."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
+                        "Danh mục sản phẩm mới mã này không tồn tại."));
 
         log.info("Đã lấy attributes với SKU {}", sku);
         return Response.ok(
                 attributesMapper.toDto(attributes),
                 "Lấy attributes thành công.");
+    }
+
+    /**
+     * Tạo Cartesian product N chiều từ danh sách VariantGroupInput.
+     *
+     * VD: [{key:"Color", values:["Đen","Trắng"]}, {key:"Size", values:["S","M"]}]
+     * → [[{Color:Đen, Size:S}, {Color:Đen, Size:M}], [{Color:Trắng, Size:S},
+     * {Color:Trắng, Size:M}]]
+     */
+    private List<List<VariantOption>> generateCartesianProduct(List<VariantGroupInput> groups) {
+        List<List<VariantOption>> result = new ArrayList<>();
+        result.add(new ArrayList<>());
+
+        for (VariantGroupInput group : groups) {
+            List<List<VariantOption>> newResult = new ArrayList<>();
+            for (List<VariantOption> existing : result) {
+                for (String value : group.getValues()) {
+                    List<VariantOption> combination = new ArrayList<>(existing);
+                    combination.add(new VariantOption(group.getKey(), value));
+                    newResult.add(combination);
+                }
+            }
+            result = newResult;
+        }
+
+        return result;
+    }
+
+    /**
+     * Map List<SpecificationGroupDto> → List<SpecificationGroup>
+     */
+    private List<SpecificationGroup> mapSpecificationGroups(
+            List<com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto> dtos) {
+        if (dtos == null) return new ArrayList<>();
+        return dtos.stream().map(dto -> {
+            SpecificationGroup group = new SpecificationGroup();
+            group.setTitle(dto.getTitle());
+            if (dto.getItems() != null) {
+                List<Specification> items = dto.getItems().stream()
+                        .map(item -> new Specification(item.getKey(), item.getData()))
+                        .toList();
+                group.setItems(items);
+            }
+            return group;
+        }).toList();
     }
 
 }

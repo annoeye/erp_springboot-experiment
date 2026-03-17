@@ -10,8 +10,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +37,8 @@ public class Product extends IdentityOnly {
         @Builder.Default
         SkuInfo skuInfo = new SkuInfo();
 
-        @ElementCollection
-        @CollectionTable(name = "media_items", joinColumns = @JoinColumn(name = "product_uuid"))
+        @JdbcTypeCode(SqlTypes.JSON)
+        @Column(name = "media_items", columnDefinition = "CLOB")
         @Builder.Default
         List<MediaItem> mediaItems = new ArrayList<>();
 

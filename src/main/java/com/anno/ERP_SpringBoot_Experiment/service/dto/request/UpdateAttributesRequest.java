@@ -3,7 +3,8 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.PromotionDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.VariantOptionDto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -51,18 +52,12 @@ public class UpdateAttributesRequest {
     Double salePrice;
 
     /**
-     * Màu sắc mới (bắt buộc, tối đa 100 ký tự).
+     * Variant options mới (optional).
+     * VD: [{key:"Color", value:"Đen"}, {key:"Size", value:"L"}]
      */
-    @NotBlank(message = "Màu sắc không được để trống")
-    @Size(max = 100, message = "Màu sắc không được vượt quá 100 ký tự")
-    String color;
-
-    /**
-     * Option mới như size, dung lượng (bắt buộc, tối đa 100 ký tự).
-     */
-    @NotBlank(message = "Option không được để trống")
-    @Size(max = 100, message = "Option không được vượt quá 100 ký tự")
-    String option;
+    @JsonProperty("variantOptions")
+    @Valid
+    List<VariantOptionDto> variantOptions;
 
     /**
      * Số lượng tồn kho mới (optional, không được âm).
@@ -90,7 +85,7 @@ public class UpdateAttributesRequest {
     @JsonProperty("specifications")
     @Size(max = 50, message = "Số lượng specifications không được vượt quá 50")
     @Valid
-    List<SpecificationDto> specifications;
+    List<SpecificationGroupDto> specifications;
 
     /**
      * Dữ liệu promotions mới (optional, tối đa 10 promotions).
