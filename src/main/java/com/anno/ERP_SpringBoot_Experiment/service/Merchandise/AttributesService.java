@@ -14,8 +14,16 @@ import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantGroupInput;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import java.util.UUID;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
@@ -235,33 +243,94 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
-    public Response<List<AttributesDto>> getByProduct(@NonNull String productId) {
-        Product product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
+    public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
+        List<SearchCriteria> criteriaList = new ArrayList<>();
 
-        List<Attributes> attributesList = attributesRepository.findAllByProductAndAuditInfo_DeletedAtIsNull(product);
-
-        if (attributesList.isEmpty()) {
-            log.info("Sản phẩm {} không có attributes nào", product.getName());
-            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Không có danh mục nào trong sản phẩm.");
+        if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
+            criteriaList.add(new SearchCriteria("name", ":", request.getKeyword()));
         }
 
-        log.info("Đã lấy {} attributes của sản phẩm {}", attributesList.size(), product.getName());
-        return Response.ok(
-                attributesMapper.toDto(attributesList));
-    }
+        if (request.getAttributesIds() != null && !request.getAttributesIds().isEmpty()) {
+            List<UUID> attrIds = request.getAttributesIds().stream()
+                    .map(featureMerchandiseHelper::convertStringToUUID)
+                    .toList();
+            criteriaList.add(new SearchCriteria("id", "~", attrIds));
+        }
 
-    @Override
-    @Transactional
-    public Response<AttributesDto> getBySku(@NonNull String sku) {
-        Attributes attributes = attributesRepository.findAttributesBySku_skuAndAuditInfo_DeletedAtIsNull(sku)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
-                        "Danh mục sản phẩm mới mã này không tồn tại."));
+        if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
+            List<UUID> prodIds = request.getProductIds().stream()
+                    .map(featureMerchandiseHelper::convertStringToUUID)
+                    .toList();
+            criteriaList.add(new SearchCriteria("product.id", "~", prodIds));
+        }
 
-        log.info("Đã lấy attributes với SKU {}", sku);
-        return Response.ok(
-                attributesMapper.toDto(attributes),
-                "Lấy attributes thành công.");
+        if (request.getSkus() != null && !request.getSkus().isEmpty()) {
+            criteriaList.add(new SearchCriteria("sku.sku", "~", request.getSkus()));
+        }
+
+        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+            criteriaList.add(new SearchCriteria("statusProduct", "~", request.getStatuses()));
+        }
+
+        if (request.getMinPrice() != null) {
+            criteriaList.add(new SearchCriteria("price", ">", request.getMinPrice()));
+        }
+        if (request.getMaxPrice() != null) {
+            criteriaList.add(new SearchCriteria("price", "<", request.getMaxPrice()));
+        }
+
+        if (request.getMinSalePrice() != null) {
+            criteriaList.add(new SearchCriteria("salePrice", ">", request.getMinSalePrice()));
+        }
+        if (request.getMaxSalePrice() != null) {
+            criteriaList.add(new SearchCriteria("salePrice", "<", request.getMaxSalePrice()));
+        }
+
+        if (request.getMinStockQuantity() != null) {
+            criteriaList.add(new SearchCriteria("stockQuantity", ">", request.getMinStockQuantity()));
+        }
+        if (request.getMaxStockQuantity() != null) {
+            criteriaList.add(new SearchCriteria("stockQuantity", "<", request.getMaxStockQuantity()));
+        }
+
+        if (request.getMinSoldQuantity() != null) {
+            criteriaList.add(new SearchCriteria("soldQuantity", ">", request.getMinSoldQuantity()));
+        }
+        if (request.getMaxSoldQuantity() != null) {
+            criteriaList.add(new SearchCriteria("soldQuantity", "<", request.getMaxSoldQuantity()));
+        }
+
+        if (request.getMinCostPrice() != null) {
+            criteriaList.add(new SearchCriteria("costPrice", ">", request.getMinCostPrice()));
+        }
+        if (request.getMaxCostPrice() != null) {
+            criteriaList.add(new SearchCriteria("costPrice", "<", request.getMaxCostPrice()));
+        }
+        
+        if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
+            criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
+        }
+
+        if (request.getCreatedFrom() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.createdAt", ">", request.getCreatedFrom()));
+        }
+        if (request.getCreatedTo() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.createdAt", "<", request.getCreatedTo()));
+        }
+        if (request.getUpdatedFrom() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", ">", request.getUpdatedFrom()));
+        }
+        if (request.getUpdatedTo() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
+        }
+
+        SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
+        org.springframework.data.jpa.domain.Specification<Attributes> spec = builder.build();
+
+        Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
+
+        return attributesRepository.findAll(spec, pageable)
+                .map(attributesMapper::toDto);
     }
 
     /**

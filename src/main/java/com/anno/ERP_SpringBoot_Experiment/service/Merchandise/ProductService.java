@@ -8,7 +8,11 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.GetProductRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
@@ -21,6 +25,10 @@ import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -124,22 +132,90 @@ public class ProductService implements iProduct {
         return Response.noContent();
     }
 
-//    @Override
-//    @Transactional
-//    public Page<ProductDto> getProduct(@NonNull GetProductRequest request) {
-//    List<SearchCriteria> criteriaList = new ArrayList<>();
-//
-//    if (request.getName() != null && !request.getName().isBlank()) {
-//        criteriaList.add(new SearchCriteria("name", ":" , request.getName()));
-//    } else if (request.getDescription() != null && !request.getDescription().isBlank()) {
-//        criteriaList.add(new SearchCriteria("description", ":", request.getDescription()));
-//    } else if (request)
+    @Override
+    @Transactional
+    public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
+        List<SearchCriteria> criteriaList = new ArrayList<>();
 
+        if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
+            // Default "keyword" to search within name
+            criteriaList.add(new SearchCriteria("name", ":", request.getKeyword()));
+        }
 
-        // productRepository.deleteAllExpiredCategories();
-//        return productRepository.findAll(request.specification(), request.getPaging().pageable())
-//                .map(productMapper::toDto);
-//    }
+        if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
+            criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
+        }
+
+        if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
+            List<UUID> uuidList = request.getProductIds().stream()
+                    .map(featureMerchandiseHelper::convertStringToUUID)
+                    .toList();
+            criteriaList.add(new SearchCriteria("id", "~", uuidList));
+        }
+
+        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+            criteriaList.add(new SearchCriteria("status", "~", request.getStatuses()));
+        }
+
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            List<UUID> uuidList = request.getCategoryIds().stream()
+                    .map(featureMerchandiseHelper::convertStringToUUID)
+                    .toList();
+            criteriaList.add(new SearchCriteria("category.id", "~", uuidList));
+        }
+        
+        if (request.getMinSoldQuantity() != null) {
+            criteriaList.add(new SearchCriteria("totalSoldQuantity", ">", request.getMinSoldQuantity()));
+        }
+        if (request.getMaxSoldQuantity() != null) {
+            criteriaList.add(new SearchCriteria("totalSoldQuantity", "<", request.getMaxSoldQuantity()));
+        }
+
+        if (request.getMinRevenue() != null) {
+            criteriaList.add(new SearchCriteria("totalRevenue", ">", request.getMinRevenue()));
+        }
+        if (request.getMaxRevenue() != null) {
+            criteriaList.add(new SearchCriteria("totalRevenue", "<", request.getMaxRevenue()));
+        }
+
+        if (request.getMinOrders() != null) {
+            criteriaList.add(new SearchCriteria("totalOrders", ">", request.getMinOrders()));
+        }
+        if (request.getMaxOrders() != null) {
+            criteriaList.add(new SearchCriteria("totalOrders", "<", request.getMaxOrders()));
+        }
+
+        if (request.getMinView() != null) {
+            criteriaList.add(new SearchCriteria("viewCount", ">", request.getMinView()));
+        }
+        if (request.getMinRating() != null) {
+            criteriaList.add(new SearchCriteria("averageRating", ">", request.getMinRating()));
+        }
+        if (request.getMinReviews() != null) {
+            criteriaList.add(new SearchCriteria("reviewCount", ">", request.getMinReviews()));
+        }
+
+        if (request.getCreatedFrom() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.createdAt", ">", request.getCreatedFrom()));
+        }
+        if (request.getCreatedTo() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.createdAt", "<", request.getCreatedTo()));
+        }
+        if (request.getUpdatedFrom() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", ">", request.getUpdatedFrom()));
+        }
+        if (request.getUpdatedTo() != null) {
+            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
+        }
+
+        SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
+        Specification<Product> spec = builder.build();
+
+        Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
+
+        return productRepository.findAll(spec, pageable)
+                .map(productMapper::toDto);
+    }
 
     @Override
     public ProductIsExiting isExiting(String name) {

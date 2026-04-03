@@ -13,6 +13,6 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductQuantity {
-    String AttributesId;
+    String attributesId;
     int quantity;
 }

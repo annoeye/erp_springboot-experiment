@@ -16,7 +16,7 @@ import org.jspecify.annotations.NonNull;
 public class SkuInfo {
     String sku;
 
-    public SkuInfo createSku(@NonNull String name) {
-        return new SkuInfo(this.sku = name.replaceAll("\\d", "").toUpperCase());
+    public void createSku(@NonNull String name) {
+        new SkuInfo(this.sku = name.replaceAll("\\d", "").toUpperCase());
     }
 }

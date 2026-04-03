@@ -31,13 +31,17 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    @SafeVarargs
-    public final String generateToken(UserDetails userDetails, long expirationTimeMillis, Map<String, Object>... extraClaims) {
+    @SuppressWarnings("unchecked")
+    public String generateToken(UserDetails userDetails, long expirationTimeMillis,
+            Map<String, Object>... extraClaims) {
         Map<String, Object> allClaims = new HashMap<>();
         for (Map<String, Object> claimMap : extraClaims) {
             allClaims.putAll(claimMap);
         }
-        return Jwts.builder().claims(allClaims).subject(userDetails.getUsername()).issuedAt(new Date(System.currentTimeMillis())).expiration(new Date(System.currentTimeMillis() + expirationTimeMillis)).signWith(getSignInKey()).compact();
+        return Jwts.builder().claims(allClaims).subject(userDetails.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expirationTimeMillis)).signWith(getSignInKey())
+                .compact();
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -59,6 +63,7 @@ public class JwtService {
 
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        log.info(this.getClass().getName());
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

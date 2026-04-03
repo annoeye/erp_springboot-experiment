@@ -7,6 +7,8 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Re
 import lombok.NonNull;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
 
 public interface iAttributes {
 
@@ -19,7 +21,5 @@ public interface iAttributes {
 
     Response<?> deleteByProduct(@NonNull String productId);
 
-    Response<List<AttributesDto>> getByProduct(@NonNull String productId);
-
-    Response<AttributesDto> getBySku(@NonNull String sku);
+    Page<AttributesDto> search(@NonNull AttributesSearchRequest request);
 }

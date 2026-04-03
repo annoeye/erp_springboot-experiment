@@ -1,8 +1,8 @@
 spring:
   application:
     name: ERP_SpringBoot-Experiment
-  profiles:
-    active: dev
+#  profiles:
+#    active: dev
 
   contact:
     name: ANNOEYE
@@ -99,9 +99,9 @@ springdoc:
     path: /v3/api-docs
     enabled: true
   swagger-ui:
-    path: /swagger-ui.html
     enabled: true
     operations-sorter: method
+    display-request-duration: true
     tags-sorter: alpha
   show-actuator: false
 #  default-consumes-media-type: multipart/form-data
@@ -110,7 +110,7 @@ springdoc:
 application:
   security:
     jwt:
-      secret-key: N0pwM0VjcmV0S2V5Rm9ySlBUSXNzdWVyQW5kVmVyaWZpY2F0aW9uUHVycG9zZXM=
+      secret-key: "N0pwM0VjcmV0S2V5Rm9ySlBUSXNzdWVyQW5kVmVyaWZpY2F0aW9uUHVycG9zZXM="
 
 logging:
   level:

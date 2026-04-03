@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -19,7 +20,7 @@ public class ErpSpringBootExperimentApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ErpSpringBootExperimentApplication.class);
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         final var app = new SpringApplication(ErpSpringBootExperimentApplication.class);
         final var env = app.run(args).getEnvironment();
         logApplicationStartup(env);

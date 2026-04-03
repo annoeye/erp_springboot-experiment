@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -148,8 +149,10 @@ public class UserService implements iUser {
                     .username(user.getUsername())
                     .purpose(ActiveStatus.EMAIL_VERIFICATION)
                     .build());
+            ;
 
-            return Response.ok(AuthResponse.builder()
+            return Response.loginResponse(HttpStatus.UNAUTHORIZED,
+                    AuthResponse.builder()
                     .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến "
                             + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
                     .email(user.getEmail())

@@ -9,6 +9,4 @@ import lombok.experimental.FieldDefaults;
 public class GetProductRequest {
     String name;
     String description;
-
-
 }

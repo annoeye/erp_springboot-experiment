@@ -44,7 +44,7 @@ public class SecurityConfiguration {
             "/api/notifications/**",
             "/api/orders/**",
             "/api/payment/result**",
-            "http://localhost:5678/**"
+//            "http://localhost:3000/**"
     };
 
     @Bean
@@ -70,7 +70,7 @@ public class SecurityConfiguration {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("http://localhost:4200"));
+        corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
 

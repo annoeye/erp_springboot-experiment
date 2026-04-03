@@ -78,6 +78,13 @@ public class Response<T> {
                 .build();
     }
 
+    public static <T> Response<T> loginResponse(HttpStatus status, T data) {
+        return Response.<T>builder()
+                .data(data)
+                .status(new ApiStatus(status.value()))
+                .build();
+    }
+
     @JsonIgnore
     public String getMessage() {
         return status != null ? status.getMessage() : null;

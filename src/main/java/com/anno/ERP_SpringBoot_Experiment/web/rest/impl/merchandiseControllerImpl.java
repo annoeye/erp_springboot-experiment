@@ -6,6 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.ProductService;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
@@ -89,13 +90,10 @@ public class merchandiseControllerImpl implements MerchandiseController {
                 cleanUuid.substring(20, 32)).toLowerCase();
     }
 
-    // @Override
-    // @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm
-    // theo các tiêu chí như tên, danh mục, giá, v.v.")
-    // public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request)
-    // {
-    // return productService.getProduct(request);
-    // }
+     @Override
+     @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
+     public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request)
+     { return productService.searchProducts(request); }
 
     /************* Product Images Management *****************/
 
@@ -193,15 +191,14 @@ public class merchandiseControllerImpl implements MerchandiseController {
     }
 
     @Override
-    @Operation(summary = "Lấy thuộc tính theo sản phẩm", description = "Lấy danh sách tất cả thuộc tính/biến thể của một sản phẩm")
-    public Response<List<AttributesDto>> getAttributesByProduct(@PathVariable String productId) {
-        return attributesService.getByProduct(productId);
-    }
-
-    @Override
-    @Operation(summary = "Lấy thuộc tính theo SKU", description = "Lấy thông tin chi tiết của một thuộc tính/biến thể theo SKU")
-    public Response<AttributesDto> getAttributesBySku(@PathVariable String sku) {
-        return attributesService.getBySku(sku);
+    @Operation(summary = "Tìm kiếm thuộc tính sản phẩm", description = "Tìm kiếm thuộc tính/biến thể theo các tiêu chí với phân trang")
+    public Response<PagingResponse<AttributesDto>> searchAttributes(@RequestBody AttributesSearchRequest request) {
+        final Page<AttributesDto> attributes = attributesService.search(request);
+        return Response.ok(
+                PagingResponse.<AttributesDto>builder()
+                        .contents(attributes.getContent())
+                        .paging(PageableData.from(attributes))
+                        .build());
     }
 
     @Operation(summary = "Upload file", description = "Upload file lên MinIO storage")

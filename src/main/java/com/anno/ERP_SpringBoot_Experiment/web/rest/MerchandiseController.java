@@ -3,6 +3,7 @@ package com.anno.ERP_SpringBoot_Experiment.web.rest;
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
@@ -10,6 +11,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -34,9 +36,9 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.NO_CONTENT)
         Response<?> deleteProduct(@RequestParam List<String> ids);
 
-//        @PostMapping("/search-Product")
-//        @ResponseStatus(HttpStatus.OK)
-//        Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
+        @PostMapping("/search-Product")
+        @ResponseStatus(HttpStatus.OK)
+        Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
 
         /************* Product Images Management *****************/
 
@@ -100,13 +102,7 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.NO_CONTENT)
         Response<?> deleteAttributesByProduct(@PathVariable String productId);
 
-        @GetMapping("/get-Attributes-by-Product/{productId}")
+        @PostMapping("/search-Attributes")
         @ResponseStatus(HttpStatus.OK)
-        Response<List<AttributesDto>> getAttributesByProduct(@PathVariable String productId);
-
-        @GetMapping("/get-Attributes-by-Sku/{sku}a")
-        @ResponseStatus(HttpStatus.OK)
-        Response<AttributesDto> getAttributesBySku(@PathVariable String sku);
-
-        // ở đây
+        Response<PagingResponse<AttributesDto>> searchAttributes(@Valid @RequestBody AttributesSearchRequest request);
 }

@@ -94,13 +94,34 @@ public class CategoryService implements iCategory {
                 .toList();
 
         if (!names.isEmpty()) {
-            list.add(new SearchCriteria("name", ":", names));
+            list.add(new SearchCriteria("name", "~", names));
         }
         if (!skus.isEmpty()) {
-            list.add(new SearchCriteria("skuInfo.sku", ":", skus));
+            list.add(new SearchCriteria("skuInfo.sku", "~", skus));
         }
         if (!ids.isEmpty()) {
             list.add(new SearchCriteria("id", "~", ids));
+        }
+        
+        if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
+            list.add(new SearchCriteria("name", ":", request.getKeyword()));
+        }
+
+        if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
+            list.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
+        }
+        
+        if (request.getCreatedFrom() != null) {
+            list.add(new SearchCriteria("auditInfo.createdAt", ">", request.getCreatedFrom()));
+        }
+        if (request.getCreatedTo() != null) {
+            list.add(new SearchCriteria("auditInfo.createdAt", "<", request.getCreatedTo()));
+        }
+        if (request.getUpdatedFrom() != null) {
+            list.add(new SearchCriteria("auditInfo.updatedAt", ">", request.getUpdatedFrom()));
+        }
+        if (request.getUpdatedTo() != null) {
+            list.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
         }
 
         log.info("Search criteria list: {}", list);

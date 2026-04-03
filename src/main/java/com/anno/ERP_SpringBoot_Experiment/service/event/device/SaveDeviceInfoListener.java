@@ -30,7 +30,7 @@ public class SaveDeviceInfoListener extends BaseEventListener {
     private final ObjectMapper objectMapper;
 
     private static final long REFRESH_TOKEN_EXPIRATION_DAYS = 30;
-    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 15;
+    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 4320; // 3 day
 
     public SaveDeviceInfoListener(EmailService emailService, JwtService jwtService, UserDetailsServiceImpl userDetailsService, RedisService redisService, ObjectMapper objectMapper, @Value("${server.port}") String serverPort) {
         super(emailService, jwtService, userDetailsService);

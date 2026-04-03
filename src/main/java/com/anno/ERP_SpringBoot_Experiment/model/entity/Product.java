@@ -37,7 +37,7 @@ public class Product extends IdentityOnly {
         @Builder.Default
         SkuInfo skuInfo = new SkuInfo();
 
-        @JdbcTypeCode(SqlTypes.JSON)
+        @Convert(converter = com.anno.ERP_SpringBoot_Experiment.config.converter.MediaItemListConverter.class)
         @Column(name = "media_items", columnDefinition = "CLOB")
         @Builder.Default
         List<MediaItem> mediaItems = new ArrayList<>();
