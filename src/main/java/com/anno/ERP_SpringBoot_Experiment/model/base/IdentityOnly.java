@@ -7,6 +7,7 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -19,19 +20,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public abstract class IdentityOnly {
+public abstract class IdentityOnly<T extends Serializable> {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", updatable = false, nullable = false)
-    UUID id;
-
-    String name;
-
-    @PrePersist
-    public void prePersist() {
-        if (this.id == null) {
-            this.id = UUID.randomUUID();
-        }
-    }
+    T id;
 
     @Override
     protected Object clone() throws CloneNotSupportedException {
@@ -52,7 +45,7 @@ public abstract class IdentityOnly {
                 : this.getClass();
         if (thisEffectiveClass != oEffectiveClass)
             return false;
-        IdentityOnly that = (IdentityOnly) o;
+        IdentityOnly<?> that = (IdentityOnly<?>) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

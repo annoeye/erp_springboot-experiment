@@ -1,22 +1,22 @@
 package com.anno.ERP_SpringBoot_Experiment.model.embedded;
 
 import jakarta.persistence.Embeddable;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.NonNull;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 @Embeddable
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class SkuInfo {
     String sku;
 
-    public void createSku(@NonNull String name) {
-        new SkuInfo(this.sku = name.replaceAll("\\d", "").toUpperCase());
+    public SkuInfo createSku(@NonNull String name) {
+        return new SkuInfo(this.sku = name.toLowerCase() + (ThreadLocalRandom.current().nextInt(1000, 10000) ));
     }
 }

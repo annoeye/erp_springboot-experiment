@@ -35,7 +35,7 @@ public class ProductCachingService implements iProductCaching {
 
         String key = "rec:" + recommendationId;
 
-        Set<UUID> productIds = items.stream()
+        Set<Long> productIds = items.stream()
                 .map(ProductDto::getId)
                 .collect(Collectors.toSet());
 

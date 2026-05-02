@@ -1,8 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
-import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ShippingInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentMethod;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -29,38 +27,27 @@ public class CreateOrderRequest {
     /**
      * Thông tin giao hàng (bắt buộc).
      */
+    @JsonProperty("address_id")
     @NotNull(message = "Thông tin giao hàng không được để trống")
-    ShippingInfo shippingInfo;
-
-    /**
-     * Phương thức thanh toán (bắt buộc).
-     */
-    @NotNull(message = "Phương thức thanh toán không được để trống")
-    PaymentMethod paymentMethod;
+    String addressId;
 
     /**
      * Mã giảm giá (optional).
      */
+    @JsonProperty("discount_code")
     String discountCode;
 
     /**
      * Ghi chú của khách hàng (optional).
      */
+    @JsonProperty("customer_notes")
     String customerNotes;
 
     /**
-     * ID của Booking nếu tạo từ booking (optional).
-     * Được normalize tự động: uppercase + remove dashes.
+     * Thông tin thanh toán.
      */
-    @NormalizedId
-    String bookingId;
-
-    /**
-     * ID của Shopping Cart nếu tạo từ giỏ hàng (optional).
-     * Được normalize tự động: uppercase + remove dashes.
-     */
-    @NormalizedId
-    String shoppingCartId;
+    @JsonProperty("shipping_method")
+    String shippingMethod;
 
     /**
      * Chi tiết một sản phẩm trong Order.
@@ -76,19 +63,13 @@ public class CreateOrderRequest {
          * ID của Attributes (variant sản phẩm) - bắt buộc.
          * Được normalize tự động: uppercase + remove dashes.
          */
-        @NormalizedId
-        @NotNull(message = "Attributes ID không được để trống")
-        String attributesId;
+        @NotNull(message = "Attributes sku không được để trống")
+        String attributesSku;
 
         /**
          * Số lượng đặt mua (bắt buộc).
          */
         @NotNull(message = "Số lượng không được để trống")
         Integer quantity;
-
-        /**
-         * Ghi chú cho item (optional).
-         */
-        String notes;
     }
 }

@@ -10,7 +10,7 @@ public enum PaymentMethod {
     BANK_TRANSFER("Chuyển khoản ngân hàng"),
     CREDIT_CARD("Thẻ tín dụng"),
     DEBIT_CARD("Thẻ ghi nợ"),
-    VNPAY("VNPay"),
+
     MOMO("MoMo"),
     ZALOPAY("ZaloPay"),
     COD("Thanh toán khi nhận hàng");

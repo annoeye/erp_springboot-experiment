@@ -25,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Order Management", description = "APIs quản lý đơn hàng")
 @SecurityRequirement(name = "bearerAuth")
-public class OrderControllerImpl implements OrderController {
+public class orderControllerImpl implements OrderController {
 
     private final iOrder orderService;
 
@@ -101,13 +101,13 @@ public class OrderControllerImpl implements OrderController {
         return orderService.updateOrder(request);
     }
 
-    @Override
-    @Operation(summary = "Cập nhật trạng thái đơn hàng", description = "Admin cập nhật trạng thái đơn hàng")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Response<OrderDto> updateOrderStatus(String orderId, OrderStatus status) {
-        log.info("REST request to update order status: {} to {}", orderId, status);
-        return orderService.updateOrderStatus(orderId, status);
-    }
+//    @Override
+//    @Operation(summary = "Cập nhật trạng thái đơn hàng", description = "Admin cập nhật trạng thái đơn hàng")
+//    @PreAuthorize("hasRole('ADMIN')")
+//    public Response<OrderDto> updateOrderStatus(String orderId, OrderStatus status) {
+//        log.info("REST request to update order status: {} to {}", orderId, status);
+//        return orderService.updateOrderStatus(orderId, status);
+//    }
 
     @Override
     @Operation(summary = "Xác nhận đơn hàng", description = "Admin xác nhận đơn hàng")
@@ -117,13 +117,13 @@ public class OrderControllerImpl implements OrderController {
         return orderService.confirmOrder(orderId);
     }
 
-    @Override
-    @Operation(summary = "Đánh dấu đã giao hàng", description = "Admin/Shipper đánh dấu đơn hàng đã giao")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SHIPPER')")
-    public Response<OrderDto> markAsDelivered(String orderId) {
-        log.info("REST request to mark order as delivered: {}", orderId);
-        return orderService.markAsDelivered(orderId);
-    }
+//    @Override
+//    @Operation(summary = "Đánh dấu đã giao hàng", description = "Admin/Shipper đánh dấu đơn hàng đã giao")
+//    @PreAuthorize("hasAnyRole('ADMIN', 'SHIPPER')")
+//    public Response<OrderDto> markAsDelivered(String orderId) {
+//        log.info("REST request to mark order as delivered: {}", orderId);
+//        return orderService.markAsDelivered(orderId);
+//    }
 
     @Override
     @Operation(summary = "Hoàn thành đơn hàng", description = "Admin hoàn thành đơn hàng")

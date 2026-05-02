@@ -161,7 +161,7 @@ public class Helper {
                 .toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
-                .findAllById(attributesIds.stream().map(UUID::fromString).toList())
+                .findAllById(attributesIds.stream().map(Long::valueOf).toList())
                 .stream()
                 .collect(Collectors.toMap(
                         a -> a.getId().toString(),
@@ -207,7 +207,8 @@ public class Helper {
     }
 
     List<String> filterBlank(List<String> list) {
-        if (list == null) return List.of();
+        if (list == null)
+            return List.of();
         return list.stream()
                 .filter(s -> s != null && !s.isBlank())
                 .toList();

@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
-import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.PromotionDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto;
@@ -60,15 +59,12 @@ public class CreateAttributesRequest {
     Set<String> keywords;
 
     /**
-     * ID của Product chứa variant này (bắt buộc).
-     * Hỗ trợ nhiều format: id, productId, product_id.
-     * Được normalize tự động: uppercase + remove dashes.
+     * Sku của Product chứa variant này (bắt buộc).
      */
-    @NormalizedId
-    @JsonProperty("id")
-    @JsonAlias({ "productId", "product_id" })
-    @NotNull(message = "Không được để trống nguồn sản phẩm")
-    String productId;
+    @JsonProperty("product_sku")
+    @JsonAlias({ "productSku", "product_sku" })
+    @NotNull(message = "Không được để trống nguồn mã sản phẩm")
+    String productSku;
 
     /**
      * Thông số kỹ thuật (optional).

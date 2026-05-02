@@ -5,7 +5,6 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
@@ -60,14 +59,22 @@ public interface MerchandiseController {
                         @PathVariable String productId,
                         @RequestParam("images") List<MultipartFile> images);
 
+        @GetMapping(value = "/view-image/{imageName}", produces = MediaType.IMAGE_JPEG_VALUE)
+        @ResponseStatus(HttpStatus.OK)
+        byte[] viewProductImage(@PathVariable String imageName);
+
         @GetMapping("/checkProduct/{name}")
         ProductIsExiting checkProduct(@RequestParam String name);
+
+        @PostMapping("/view-Product/{productId}")
+        @ResponseStatus(HttpStatus.OK)
+        Response<?> incrementViewCount(@PathVariable String productId);
 
         /************* Category CRUD *****************/
 
         @PostMapping("/add-Category")
         @ResponseStatus(HttpStatus.CREATED)
-        Response<CategoryCreateResponse> addCategory(@Valid @RequestParam String name);
+        Response<?> addCategory(@Valid @RequestParam String name);
 
         @PutMapping("/update-Category")
         @ResponseStatus(HttpStatus.OK)

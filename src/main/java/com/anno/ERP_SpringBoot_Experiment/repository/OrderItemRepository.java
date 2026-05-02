@@ -9,10 +9,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
+
 
 @Repository
-public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
+public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
        /**
         * Tìm tất cả items của một order
@@ -23,7 +23,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
         * Tìm tất cả items của một order theo order ID
         */
        @Query("SELECT oi FROM OrderItem oi WHERE oi.order.id = :orderId")
-       List<OrderItem> findByOrderId(@Param("orderId") UUID orderId);
+       List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 
        /**
         * Tìm tất cả orders có chứa product
@@ -34,7 +34,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
         * Tìm tất cả orders có chứa product theo product ID
         */
        @Query("SELECT oi FROM OrderItem oi WHERE oi.product.id = :productId")
-       List<OrderItem> findByProductId(@Param("productId") UUID productId);
+       List<OrderItem> findByProductId(@Param("productId") Long productId);
 
        /**
         * Thống kê sản phẩm bán chạy nhất
@@ -53,7 +53,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
        @Query("SELECT SUM(oi.quantity) FROM OrderItem oi " +
                      "JOIN oi.order o " +
                      "WHERE oi.product.id = :productId AND o.status = 'COMPLETED'")
-       Long sumQuantitySoldByProductId(@Param("productId") UUID productId);
+       Long sumQuantitySoldByProductId(@Param("productId") Long productId);
 
        /**
         * Tính tổng doanh thu của một product
@@ -61,7 +61,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
        @Query("SELECT SUM(oi.subtotal) FROM OrderItem oi " +
                      "JOIN oi.order o " +
                      "WHERE oi.product.id = :productId AND o.status = 'COMPLETED'")
-       Double sumRevenueByProductId(@Param("productId") UUID productId);
+       Double sumRevenueByProductId(@Param("productId") Long productId);
 
        /*
         * ============================ 📊 Analytics Queries
@@ -74,7 +74,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
        @Query("SELECT COUNT(DISTINCT oi.order.id) FROM OrderItem oi " +
                      "JOIN oi.order o " +
                      "WHERE oi.product.id = :productId AND o.status = 'COMPLETED'")
-       Integer countOrdersByProductId(@Param("productId") UUID productId);
+       Integer countOrdersByProductId(@Param("productId") Long productId);
 
        /**
         * Tính doanh thu theo khoảng thời gian
@@ -85,7 +85,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
                      "AND o.status = 'COMPLETED' " +
                      "AND o.completedAt BETWEEN :startDate AND :endDate")
        Double sumRevenueByProductIdAndPeriod(
-                     @Param("productId") UUID productId,
+                     @Param("productId") Long productId,
                      @Param("startDate") java.time.LocalDateTime startDate,
                      @Param("endDate") java.time.LocalDateTime endDate);
 
@@ -95,7 +95,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
        @Query("SELECT COUNT(DISTINCT oi.order.id) FROM OrderItem oi " +
                      "JOIN oi.order o " +
                      "WHERE oi.product.id = :productId AND o.status = 'CANCELLED'")
-       Integer countCancelledOrdersByProductId(@Param("productId") UUID productId);
+       Integer countCancelledOrdersByProductId(@Param("productId") Long productId);
 
        /**
         * Đếm số đơn hàng bị RETURNED chứa product
@@ -103,7 +103,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
        @Query("SELECT COUNT(DISTINCT oi.order.id) FROM OrderItem oi " +
                      "JOIN oi.order o " +
                      "WHERE oi.product.id = :productId AND o.status = 'RETURNED'")
-       Integer countReturnedOrdersByProductId(@Param("productId") UUID productId);
+       Integer countReturnedOrdersByProductId(@Param("productId") Long productId);
 
        /**
         * Tổng số lượng đã bán của một Attributes (variant)
@@ -111,5 +111,5 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
        @Query("SELECT COALESCE(SUM(oi.quantity), 0) FROM OrderItem oi " +
                      "JOIN oi.order o " +
                      "WHERE oi.attributes.id = :attributesId AND o.status = 'COMPLETED'")
-       Integer sumQuantitySoldByAttributesId(@Param("attributesId") UUID attributesId);
+       Integer sumQuantitySoldByAttributesId(@Param("attributesId") Long attributesId);
 }

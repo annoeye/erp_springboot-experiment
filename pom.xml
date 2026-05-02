@@ -78,7 +78,7 @@
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
-            <version>8.5.12</version>
+            <version>8.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -214,6 +214,11 @@
             <artifactId>jspecify</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.anno</groupId>
+            <artifactId>ERP_SpringBoot-Experiment</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

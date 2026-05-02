@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
+
 
 /**
  * DTO for {@link Attributes}
@@ -18,7 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AttributesDto implements Serializable {
-    UUID id;
+    Long id;
     String name;
     SkuInfoDto sku;
     double price;

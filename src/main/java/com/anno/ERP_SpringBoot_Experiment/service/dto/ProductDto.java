@@ -7,7 +7,7 @@ import lombok.Value;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.UUID;
+
 
 /**
  * DTO for {@link Product}
@@ -15,9 +15,12 @@ import java.util.UUID;
 @Value
 @Builder
 public class ProductDto implements Serializable {
-    UUID id;
+    Long id;
     String name;
     SkuInfoDto skuInfo;
     List<MediaItemDto> mediaItems;
     ActiveStatus status;
+    Integer viewCount;
+    Integer totalSoldQuantity;
+    java.math.BigDecimal totalRevenue;
 }

@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.io.Serializable;
-import java.util.UUID;
+
 
 /**
  * DTO for Product Analytics Dashboard
@@ -15,7 +15,7 @@ import java.util.UUID;
 public class ProductAnalyticsDto implements Serializable {
 
     /* ============================ Basic Info ============================ */
-    UUID productId;
+    Long productId;
     String productSku;
     String productName;
 

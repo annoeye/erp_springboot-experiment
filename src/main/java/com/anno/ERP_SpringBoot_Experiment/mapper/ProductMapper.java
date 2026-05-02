@@ -19,4 +19,5 @@ public interface ProductMapper extends EntityMapper<ProductDto, Product> {
     @Mapping(target = "skuInfo", ignore = true)
     @Mapping(target = "category", ignore = true)
     void updateFromRequest(UpdateProductRequest request, @MappingTarget Product product);
+    //sda
 }

@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
-import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentType;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
@@ -69,12 +68,6 @@ public class CreateBillRequest {
      */
     @NotBlank(message = "Địa chỉ giao hàng không được để trống")
     String address;
-
-    /**
-     * Loại thanh toán (bắt buộc).
-     */
-    @NotNull(message = "Hình thức thanh toán không được để trống")
-    PaymentType paymentType;
 
     /**
      * Phí vận chuyển.

@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
-import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
@@ -56,7 +55,7 @@ public interface iOrder {
     /**
      * Cập nhật status của order
      */
-    Response<OrderDto> updateOrderStatus(String orderId, OrderStatus newStatus);
+//    Response<OrderDto> updateOrderStatus(String orderId, OrderStatus newStatus);
 
     /**
      * Xác nhận order
@@ -71,7 +70,7 @@ public interface iOrder {
     /**
      * Đánh dấu order đã giao hàng
      */
-    Response<OrderDto> markAsDelivered(String orderId);
+//    Response<OrderDto> markAsDelivered(String orderId);
 
     /**
      * Hoàn thành order

@@ -11,6 +11,12 @@ spring:
 
   main:
     allow-bean-definition-overriding: true
+    lazy-initialization: true
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
 
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/XEPDB1
@@ -23,7 +29,7 @@ spring:
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: all
       retries: 3
       properties:
@@ -119,7 +125,13 @@ logging:
       anno:
         ERP_SpringBoot_Experiment:
           service: DEBUG
+
     org:
+      springframework:
+        data:
+          repository:
+            config:
+              RepositoryConfigurationExtensionSupport: WARN
       apache:
         kafka:
           clients:
@@ -147,9 +159,3 @@ logging:
   pattern:
     console: "%boldYellow(%d{HH:mm:ss.SSS}) %boldCyan(%d{yyyy-MM-dd}) %green([%thread]) %highlight(%-5level) %cyan(%logger{36}) %magenta([%file:%line]) %yellow(-) %msg%n%clr(%wEx){red}"
 
-vnpay:
-  pay-url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-  return-url: "http://localhost:8080/api/payment/result"
-  tmn-code: "3YOBGQWB"
-  secret-key: "PJXUSCL77T7YKVEJ2O884B1OG6NG3INW"
-  api-url: "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"

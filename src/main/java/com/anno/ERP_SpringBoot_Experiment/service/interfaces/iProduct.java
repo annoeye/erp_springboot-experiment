@@ -11,16 +11,19 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
+
 
 public interface iProduct {
     Response<?> addProduct(CreateProductRequest request);
     Response<?> updateProduct(UpdateProductRequest request);
-    Response<?> deleteProduct(@NonNull final List<UUID> ids);
+    Response<?> deleteProduct(@NonNull final List<Long> ids);
     Page<ProductDto> searchProducts(@NonNull final GetProductRequest request);
     ProductIsExiting isExiting(String name);
-
+    void viewCount(String productId);
+    void totalSoldQuantity(String productId);
+    void totalRevenue(String productId, double price);
     Response<?> addProductImages(String productId, List<MultipartFile> images);
     Response<?> deleteProductImage(String productId, String imageKey);
     Response<?> replaceProductImages(String productId, List<MultipartFile> images);
+    byte[] getProductImage(String imageName);
 }

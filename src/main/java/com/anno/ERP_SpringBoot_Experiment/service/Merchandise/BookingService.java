@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,7 +46,7 @@ public class BookingService implements iBooking {
                 .map(ProductQuantity::getAttributesId).toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
-                .findAllById(attributesIds.stream().map(UUID::fromString).toList())
+                .findAllById(attributesIds.stream().map(Long::valueOf).toList())
                 .stream().collect(Collectors.toMap(a -> a.getId().toString(), Function.identity()));
 
         if (attributesMap.size() != attributesIds.size()) {

@@ -1,6 +1,7 @@
 
 package com.anno.ERP_SpringBoot_Experiment.service;
 
+import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.NotificationDto;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iNotification;
@@ -80,7 +81,7 @@ public class NotificationService implements iNotification {
         @Override
         public void sendToMultipleUsers(NotificationDto notification, List<String> targetUserIds,
                         String senderUsername) {
-                final var sender = userRepository.findByName(senderUsername)
+                User sender = userRepository.findByName(senderUsername)
                                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
                                                 "Không tìm thấy người gửi"));
 

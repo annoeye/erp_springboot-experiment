@@ -2,8 +2,6 @@ package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.PaymentInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ShippingInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -18,7 +16,8 @@ import java.util.List;
         @Index(name = "idx_order_number", columnList = "order_number"),
         @Index(name = "idx_order_status", columnList = "order_status"),
         @Index(name = "idx_order_date", columnList = "order_date"),
-        @Index(name = "idx_customer_id", columnList = "customer_id")
+        @Index(name = "idx_customer_id", columnList = "customer_id"),
+        @Index(name = "idx_tracking_number", columnList = "tracking_number")
 })
 @Getter
 @Setter
@@ -26,192 +25,339 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Order extends IdentityOnly {
+public class Order extends IdentityOnly<Long> {
 
-    /* ============================ 🔢 Order Information ============================ */
+        /*
+         * ============================ 🔢 Order Information
+         * ============================
+         */
 
-    @Column(name = "order_number", unique = true, nullable = false, length = 50)
-    String orderNumber;
+        /**
+         * Số đơn hàng
+         * 
+         * @en Order number
+         */
+        @Column(name = "order_number", unique = true, nullable = false, length = 50)
+        String orderNumber;
 
-    @Column(name = "order_date", nullable = false)
-    LocalDateTime orderDate;
+        /**
+         * Ngày đặt hàng
+         * 
+         * @en Order date
+         */
+        @Column(name = "order_date", nullable = false)
+        LocalDateTime orderDate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", nullable = false)
-    OrderStatus status;
+        /**
+         * Trạng thái đơn hàng
+         * 
+         * @en Order status
+         */
+        @Enumerated(EnumType.STRING)
+        @Column(name = "order_status", nullable = false)
+        OrderStatus status;
 
-    /* ============================ 👤 Customer Information ============================ */
+        @Column(name = "tracking_number", length = 100)
+        String trackingNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "customer_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_order_customer")
-    )
-    @ToString.Exclude
-    User customer;
+        /*
+         * ============================ 👤 Customer Information
+         * ============================
+         */
 
-    @Column(name = "customer_name", nullable = false, length = 200)
-    String customerName; // Lưu tên khách hàng tại thời điểm đặt hàng
+        /**
+         * Khách hàng
+         * 
+         * @en Customer
+         */
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "customer_id", nullable = false, foreignKey = @ForeignKey(name = "FK_order_customer"))
+        @ToString.Exclude
+        User customer;
 
-    @Column(name = "customer_email", length = 200)
-    String customerEmail;
+        /**
+         * Tên khách hàng (Lưu tại thời điểm đặt hàng)
+         * 
+         * @en Customer name (Saved at the time of ordering)
+         */
+        @Column(name = "customer_name", nullable = false, length = 200)
+        String customerName;
 
-    @Column(name = "customer_phone", length = 20)
-    String customerPhone;
+        /**
+         * Email khách hàng
+         * 
+         * @en Customer email
+         */
+        @Column(name = "customer_email", length = 200)
+        String customerEmail;
 
-    /* ============================ 📦 Order Items ============================ */
+        /**
+         * Số điện thoại khách hàng
+         * 
+         * @en Customer phone
+         */
+        @Column(name = "customer_phone", length = 20)
+        String customerPhone;
 
-    @OneToMany(
-            mappedBy = "order",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
-    )
-    @Builder.Default
-    List<OrderItem> orderItems = new ArrayList<>();
+        /* ============================ 📦 Order Items ============================ */
 
-    /* ============================ 💰 Pricing Information ============================ */
+        /**
+         * Danh sách sản phẩm trong đơn hàng
+         * 
+         * @en Order items list
+         */
+        @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+        @Builder.Default
+        List<OrderItem> orderItems = new ArrayList<>();
 
-    @Column(name = "subtotal", nullable = false)
-    @Builder.Default
-    Double subtotal = 0.0; // Tổng tiền hàng (chưa bao gồm phí ship, thuế)
+        /*
+         * ============================ 💰 Pricing Information
+         * ============================
+         */
 
-    @Column(name = "discount_amount")
-    @Builder.Default
-    Double discountAmount = 0.0; // Tổng giảm giá
+        /**
+         * Tổng tiền hàng
+         * 
+         * @en Subtotal
+         */
+        @Column(name = "subtotal", nullable = false)
+        @Builder.Default
+        Double subtotal = 0.0;
 
-    @Column(name = "discount_code", length = 100)
-    String discountCode; // Mã giảm giá đã áp dụng
+        /**
+         * Số tiền giảm giá
+         * 
+         * @en Discount amount
+         */
+        @Column(name = "discount_amount")
+        @Builder.Default
+        Double discountAmount = 0.0;
 
-    @Column(name = "tax_amount")
-    @Builder.Default
-    Double taxAmount = 0.0; // Thuế
+        /**
+         * Mã giảm giá
+         * 
+         * @en Discount code
+         */
+        @Column(name = "discount_code", length = 100)
+        String discountCode;
 
-    @Column(name = "shipping_fee")
-    @Builder.Default
-    Double shippingFee = 0.0; // Phí vận chuyển
+        /**
+         * Số tiền thuế
+         * 
+         * @en Tax amount
+         */
+        @Column(name = "tax_amount")
+        @Builder.Default
+        Double taxAmount = 0.0;
 
-    @Column(name = "total_amount", nullable = false)
-    @Builder.Default
-    Double totalAmount = 0.0; // Tổng tiền phải trả
+        /**
+         * Phí vận chuyển
+         * 
+         * @en Shipping fee
+         */
+        @Column(name = "shipping_fee")
+        @Builder.Default
+        Double shippingFee = 0.0;
 
-    /* ============================ 🚚 Shipping Information ============================ */
+        /**
+         * Tổng số tiền
+         * 
+         * @en Total amount
+         */
+        @Column(name = "total_amount", nullable = false)
+        @Builder.Default
+        Double totalAmount = 0.0;
 
-    /* ======================= 🚚 Shipping Information ======================= */
+        /* ======================= 🚚 Shipping Information ======================= */
 
-    @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "shippingFee", column = @Column(name = "info_shipping_fee"))
-    })
-    @Builder.Default
-    ShippingInfo shippingInfo = new ShippingInfo();
+        /**
+         * Thông tin vận chuyển
+         * 
+         * @en Shipping info
+         */
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "shipping_address_id", foreignKey = @ForeignKey(name = "FK_order_shipping_address"))
+        Address shippingInfo;
 
-    /* ============================ 💳 Payment Information ============================ */
+        /*
+         * ============================ 💳 Payment Information
+         * ============================
+         */
 
-    @Embedded
-    @Builder.Default
-    PaymentInfo paymentInfo = new PaymentInfo();
+        /**
+         * Phung thức vận chuyển
+         * 
+         * @en Shipping method
+         */
+        @Column(name = "shipping_method", length = 100)
+        String shippingMethod;
 
-    /* ============================ 📝 Additional Information ============================ */
+        /* ============================ 🚛 Delivery ============================ */
 
-    @Column(name = "customer_notes", length = 2000)
-    String customerNotes; // Ghi chú của khách hàng
+        /**
+         * Ngày giao dự kiến
+         * 
+         * @en Estimated Delivery Date
+         */
+        @Column(name = "estimated_delivery_date")
+        LocalDateTime estimatedDeliveryDate;
 
-    @Column(name = "admin_notes", length = 2000)
-    String adminNotes; // Ghi chú nội bộ
+        /**
+         * Ngày giao thực tế
+         * 
+         * @en Actual Delivery Date
+         */
+        @Column(name = "actual_delivery_date")
+        LocalDateTime actualDeliveryDate;
 
-    @Column(name = "cancellation_reason", length = 1000)
-    String cancellationReason; // Lý do hủy đơn
+        /*
+         * ============================ 📝 Additional Information
+         * ============================
+         */
 
-    @Column(name = "cancelled_at")
-    LocalDateTime cancelledAt;
+        /**
+         * Ghi chú của khách hàng
+         * 
+         * @en Customer notes
+         */
+        @Column(name = "customer_notes", length = 2000)
+        String customerNotes;
 
-    @Column(name = "cancelled_by")
-    String cancelledBy; // User ID người hủy
+        /**
+         * Ghi chú nội bộ
+         * 
+         * @en Admin notes
+         */
+        @Column(name = "admin_notes", length = 2000)
+        String adminNotes;
 
-    @Column(name = "confirmed_at")
-    LocalDateTime confirmedAt;
+        /**
+         * Lý do hủy đơn
+         * 
+         * @en Cancellation reason
+         */
+        @Column(name = "cancellation_reason", length = 1000)
+        String cancellationReason;
 
-    @Column(name = "confirmed_by")
-    String confirmedBy; // User ID người xác nhận
+        /**
+         * Thời gian hủy
+         * 
+         * @en Cancelled at
+         */
+        @Column(name = "cancelled_at")
+        LocalDateTime cancelledAt;
 
-    @Column(name = "completed_at")
-    LocalDateTime completedAt;
+        /**
+         * Người hủy (User ID)
+         * 
+         * @en Cancelled by (User ID)
+         */
+        @Column(name = "cancelled_by")
+        String cancelledBy;
 
-    /* ============================ 🔗 Related Entities ============================ */
+        /**
+         * Thời gian xác nhận
+         * 
+         * @en Confirmed at
+         */
+        @Column(name = "confirmed_at")
+        LocalDateTime confirmedAt;
 
-    @Column(name = "booking_id")
-    String bookingId; // Liên kết với Booking nếu order được tạo từ booking
+        /**
+         * Người xác nhận (User ID)
+         * 
+         * @en Confirmed by (User ID)
+         */
+        @Column(name = "confirmed_by")
+        String confirmedBy;
 
-    @Column(name = "shopping_cart_id")
-    String shoppingCartId; // Liên kết với ShoppingCart nếu order được tạo từ cart
+        /**
+         * Thời gian hoàn thành
+         * 
+         * @en Completed at
+         */
+        @Column(name = "completed_at")
+        LocalDateTime completedAt;
 
-    /* ============================ 🧩 Embedded Fields ============================ */
+        /*
+         * ============================ 🔗 Related Entities ============================
+         */
 
-    @Embedded
-    @Builder.Default
-    AuditInfo auditInfo = new AuditInfo();
+        /**
+         * Liên kết với Booking nếu order được tạo từ booking
+         * 
+         * @en Linked to Booking if order is created from booking
+         */
+        @Column(name = "booking_id")
+        String bookingId;
 
-    /* ============================ 🔧 Helper Methods ============================ */
+        /*
+         * ============================ 🧩 Embedded Fields ============================
+         */
 
-    /**
-     * Thêm order item vào đơn hàng
-     */
-    public void addOrderItem(OrderItem item) {
-        orderItems.add(item);
-        item.setOrder(this);
-    }
+        /**
+         * Thông tin kiểm toán
+         * 
+         * @en Audit info
+         */
+        @Embedded
+        @Builder.Default
+        AuditInfo auditInfo = new AuditInfo();
 
-    /**
-     * Xóa order item khỏi đơn hàng
-     */
-    public void removeOrderItem(OrderItem item) {
-        orderItems.remove(item);
-        item.setOrder(null);
-    }
+        /*
+         * ============================ 🔧 Helper Methods ============================
+         */
 
-    /**
-     * Tính toán lại tổng tiền đơn hàng
-     */
-    public void calculateTotals() {
-        // Tính subtotal từ các order items
-        this.subtotal = orderItems.stream()
-                .mapToDouble(item -> item.getSubtotal() != null ? item.getSubtotal() : 0.0)
-                .sum();
+        /**
+         * Thêm order item vào đơn hàng
+         */
+        public void addOrderItem(OrderItem item) {
+                orderItems.add(item);
+                item.setOrder(this);
+        }
 
-        // Tính tổng thuế
-        this.taxAmount = orderItems.stream()
-                .mapToDouble(item -> item.getTaxAmount() != null ? item.getTaxAmount() : 0.0)
-                .sum();
+        /**
+         * Xóa order item khỏi đơn hàng
+         */
+        public void removeOrderItem(OrderItem item) {
+                orderItems.remove(item);
+                item.setOrder(null);
+        }
 
-        // Tính tổng tiền = subtotal - discount + shipping + tax
-        this.totalAmount = this.subtotal - this.discountAmount + this.shippingFee + this.taxAmount;
-        this.totalAmount = Math.max(0, this.totalAmount); // Đảm bảo không âm
-    }
+        /**
+         * Tính toán lại tổng tiền đơn hàng
+         */
+        public void calculateTotals() {
+                // Tính subtotal từ các order items
+                this.subtotal = orderItems.stream()
+                                .mapToDouble(item -> item.getSubtotal() != null ? item.getSubtotal() : 0.0)
+                                .sum();
 
-    /**
-     * Kiểm tra xem đơn hàng có thể hủy không
-     */
-    public boolean canBeCancelled() {
-        return status == OrderStatus.PENDING ||
-               status == OrderStatus.CONFIRMED ||
-               status == OrderStatus.PROCESSING;
-    }
+                // Tính tổng thuế
+                this.taxAmount = orderItems.stream()
+                                .mapToDouble(item -> item.getTaxAmount() != null ? item.getTaxAmount() : 0.0)
+                                .sum();
 
-    /**
-     * Kiểm tra xem đơn hàng có thể hoàn trả không
-     */
-    public boolean canBeReturned() {
-        return status == OrderStatus.DELIVERED ||
-               status == OrderStatus.COMPLETED;
-    }
+                // Tính tổng tiền = subtotal - discount + shipping + tax
+                this.totalAmount = this.subtotal - this.discountAmount + this.shippingFee + this.taxAmount;
+                this.totalAmount = Math.max(0, this.totalAmount); // Đảm bảo không âm
+        }
 
-    /**
-     * Kiểm tra xem đơn hàng đã được thanh toán chưa
-     */
-    public boolean isPaid() {
-        return paymentInfo != null &&
-               paymentInfo.getPaymentStatus() == com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentStatus.PAID;
-    }
+        /**
+         * Kiểm tra xem đơn hàng có thể hủy không
+         */
+        public boolean canBeCancelled() {
+                return status == OrderStatus.PENDING ||
+                                status == OrderStatus.CONFIRMED ||
+                                status == OrderStatus.PROCESSING;
+        }
+
+        /**
+         * Kiểm tra xem đơn hàng có thể hoàn trả không
+         */
+        public boolean canBeReturned() {
+                return status == OrderStatus.DELIVERED ||
+                                status == OrderStatus.COMPLETED;
+        }
+
 }

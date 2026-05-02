@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.UUID;
+
 
 /**
  * DTO for {@link Category}
@@ -15,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CategoryDto implements Serializable {
-    UUID id;
+    Long id;
     String name;
     SkuInfoDto skuInfo;
 }

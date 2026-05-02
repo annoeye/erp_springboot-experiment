@@ -4,7 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
-import java.util.UUID;
+
 
 @Data
 @Builder
@@ -12,10 +12,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderItemDto {
-    UUID id;
-    UUID orderId;
-    UUID productId;
-    UUID attributesId;
+    Long id;
+    Long orderId;
+    Long productId;
+    Long attributesId;
     String productName;
     String productSku;
     String attributesSku;

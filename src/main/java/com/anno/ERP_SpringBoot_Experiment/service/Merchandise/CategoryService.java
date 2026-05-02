@@ -1,15 +1,15 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.mapper.CategoryMapper;
-import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
+import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CategorySearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateCategoryRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
@@ -24,7 +24,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,30 +40,31 @@ public class CategoryService implements iCategory {
     private final Helper featureMerchandiseHelper;
 
     @Override
-    public Response<CategoryCreateResponse> create(@NonNull final String name) {
+    public Response<?> create(@NonNull final String name) {
         if (categoryRepository.existsAllByName(name)) {
             throw new BusinessException(ErrorCode.CATEGORY_ALREADY_EXISTS, "Danh mục đã tồn tại.");
         }
-        Category category = new Category();
-        SkuInfo skuInfo = new SkuInfo();
-        skuInfo.setSku(name.toUpperCase());
-        category.setName(name);
-        category.setSkuInfo(skuInfo);
-        category.getAuditInfo().setCreatedBy(securityUtil.getCurrentUsername());
-        category.getAuditInfo().setCreatedAt(LocalDateTime.now());
-        categoryRepository.save(category);
+        
+        Category category = categoryRepository.save(
+                Category.builder()
+                        .name(name)
+                        .skuInfo(new SkuInfo().createSku("ctgr-"))
+                        .auditInfo(AuditInfo.builder()
+                                .createdBy(securityUtil.getCurrentUsername())
+                                .createdAt(LocalDateTime.now())
+                                .build())
+                        .build()
+        );
         log.info("Đã tạo mới danh mục {}", name);
-        return Response.ok(CategoryCreateResponse.builder()
-                .name(category.getName())
-                .id(String.valueOf(category.getId()))
-                .build());
+        
+        return Response.ok("Tạo danh mục thành công.");
     }
 
     @Override
     @Transactional
     public Response<?> update(final UpdateCategoryRequest request) {
         Optional<Category> optionalCategory = categoryRepository
-                .findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getId()));
+                .findCategoryById(Long.valueOf(request.getId()));
         Category category = optionalCategory
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
         category.setName(request.getName());
@@ -72,10 +75,10 @@ public class CategoryService implements iCategory {
 
     @Override
     public Response<?> delete(@NonNull final List<String> ids) {
-        List<UUID> uuidList = ids.stream()
-                .map(featureMerchandiseHelper::convertStringToUUID)
+        List<Long> idList = ids.stream()
+                .map(Long::valueOf)
                 .collect(Collectors.toList());
-        categoryRepository.softDeleteAllByIds(uuidList, securityUtil.getCurrentUsername());
+        categoryRepository.softDeleteAllByIds(idList, securityUtil.getCurrentUsername());
         // phần get Category sẽ check và tự động xóa nếu quá 30 ngày có yêu cầu xóa
         return Response.noContent();
     }
@@ -90,7 +93,7 @@ public class CategoryService implements iCategory {
         var names = featureMerchandiseHelper.filterBlank(request.getNames());
         var skus = featureMerchandiseHelper.filterBlank(request.getSkus());
         var ids = featureMerchandiseHelper.filterBlank(request.getIds()).stream()
-                .map(featureMerchandiseHelper::convertStringToUUID)
+                .map(Long::valueOf)
                 .toList();
 
         if (!names.isEmpty()) {

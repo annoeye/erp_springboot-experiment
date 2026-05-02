@@ -12,4 +12,14 @@ public class KafkaTopicConfig {
     public NewTopic activeLogTopic() {
         return new NewTopic(KafkaTopics.ACTIVE_LOG_TOPIC, 2, (short) 1);
     }
+
+    @Bean
+    public NewTopic orderCreatedTopic() {
+        return new NewTopic(KafkaTopics.ORDER_CREATED_TOPIC, 2, (short) 1);
+    }
+
+    @Bean
+    public NewTopic paymentResultTopic() {
+        return new NewTopic("payment-result", 3, (short) 1);
+    }
 }

@@ -25,57 +25,56 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    private static final String[] SWAGGER_WHITELIST = {
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-    };
+        private static final String[] SWAGGER_WHITELIST = {
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+        };
 
-    private static final String[] REQUEST_PERMIT_ALL = {
-            "/api/auth/register",
-            "/api/auth/login",
-            "/api/auth/verify**",
-            "/api/auth/test-response",
-            "/api/auth/logout",
-            "/api/merchandise/**",
-            "/api/images/**",
-            "/api/notifications/**",
-            "/api/orders/**",
-            "/api/payment/result**",
-//            "http://localhost:3000/**"
-    };
+        private static final String[] REQUEST_PERMIT_ALL = {
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/verify**",
+                        "/api/auth/test-response",
+                        "/api/auth/logout",
+                        "/api/merchandise/**",
+                        "/api/images/**",
+                        "/api/notifications/**",
+                        "/api/payment/result**",
+        };
 
-    @Bean
-    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher("/api/**")
-                .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(SWAGGER_WHITELIST)
-                        .permitAll().requestMatchers(REQUEST_PERMIT_ALL)
-//                        .permitAll().requestMatchers("/api/merchandise/**").hasRole("ADMIN")
-                        .permitAll().requestMatchers("/api/auth/search").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/get-user/**").hasRole("USER")
-                        .anyRequest().authenticated())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        @Bean
+        public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+                http
+                        .securityMatcher("/api/**")
+                        .cors(Customizer.withDefaults())
+                        .csrf(AbstractHttpConfigurer::disable)
+                        .authorizeHttpRequests(auth ->
+                                auth.requestMatchers(SWAGGER_WHITELIST).permitAll()
+                                        .requestMatchers(REQUEST_PERMIT_ALL).permitAll()
+                                        .requestMatchers("/api/auth/search").hasRole("ADMIN")
+                                        .requestMatchers("/api/address/**").authenticated()
+                                        .requestMatchers("/api/orders/**").authenticated()
+                                        .requestMatchers("/api/auth/get-user/**").hasRole("USER")
+                                        .anyRequest().authenticated())
+                        .sessionManagement(session -> session
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
-        corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        corsConfiguration.setAllowedHeaders(List.of("*"));
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration corsConfiguration = new CorsConfiguration();
+                corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
+                corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                corsConfiguration.setAllowedHeaders(List.of("*"));
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", corsConfiguration);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/api/**", corsConfiguration);
+                return source;
+        }
 }

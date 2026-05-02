@@ -11,10 +11,12 @@ import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSpecificationExecutor<Category> {
-    Optional<Category> findCategoryById(UUID id);
+
+public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category> {
+    Optional<Category> findCategoryById(Long id);
+
+    Optional<Category> findCategoryBySkuInfo_Sku(String skuInfoSku);
 
     @Modifying(clearAutomatically = true)
     @Query(
@@ -39,13 +41,13 @@ public interface CategoryRepository extends JpaRepository<Category, UUID>, JpaSp
     @Modifying
     @Query("UPDATE Category c SET c.auditInfo.deletedAt = :deletedAt, c.auditInfo.deletedBy = :deletedBy WHERE c.id IN :ids")
     void softDeleteAllByIds(
-            @Param("ids") List<UUID> ids,
+            @Param("ids") List<Long> ids,
             @Param("deletedBy") String deletedBy,
             @Param("deletedAt") LocalDateTime deletedAt
     );
 
     @Transactional
-    default void softDeleteAllByIds(List<UUID> ids, String deletedBy) {
+    default void softDeleteAllByIds(List<Long> ids, String deletedBy) {
         if (ids == null || ids.isEmpty()) {
             return;
         }

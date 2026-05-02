@@ -1,14 +1,13 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.PaymentInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ShippingInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.Address;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+
 
 @Data
 @Builder
@@ -16,13 +15,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderDto {
-    UUID id;
+    Long id;
     String orderNumber;
     LocalDateTime orderDate;
     OrderStatus status;
 
     // Customer info
-    UUID customerId;
+    Long customerId;
     String customerName;
     String customerEmail;
     String customerPhone;
@@ -38,9 +37,8 @@ public class OrderDto {
     Double shippingFee;
     Double totalAmount;
 
-    // Shipping & Payment
-    ShippingInfo shippingInfo;
-    PaymentInfo paymentInfo;
+    // Shipping
+    Address shippingInfo;
 
     // Notes
     String customerNotes;

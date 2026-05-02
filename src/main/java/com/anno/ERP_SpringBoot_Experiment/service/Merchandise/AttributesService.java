@@ -3,27 +3,22 @@ package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 import com.anno.ERP_SpringBoot_Experiment.mapper.AttributesMapper;
 import com.anno.ERP_SpringBoot_Experiment.mapper.PromotionMapper;
 import com.anno.ERP_SpringBoot_Experiment.mapper.SpecificationMapper;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.Promotion;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SpecificationGroup;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specificationa;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.VariantOption;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantGroupInput;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import java.util.UUID;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantGroupInput;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
@@ -33,11 +28,16 @@ import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+
 
 @Slf4j
 @Service
@@ -50,7 +50,6 @@ public class AttributesService implements iAttributes {
     private final SpecificationMapper specificationMapper;
     private final PromotionMapper promotionMapper;
     private final AttributesMapper attributesMapper;
-    private final Helper merchandiseHelper;
     private final SecurityUtil securityUtil;
 
     @Override
@@ -61,7 +60,7 @@ public class AttributesService implements iAttributes {
         }
 
         Product product = productRepository
-                .findById(featureMerchandiseHelper.convertStringToUUID(request.getProductId()))
+                .findProductBySkuInfo_Sku(request.getProductSku())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         // Tạo tổ hợp Cartesian product N chiều từ variantGroups
@@ -69,30 +68,28 @@ public class AttributesService implements iAttributes {
 
         List<Attributes> attributesList = new ArrayList<>();
         for (List<VariantOption> combination : combinations) {
-            Attributes attr = new Attributes();
-            attr.setProduct(product);
-            attr.getSku().createSku(product.getName());
-            attr.setName(request.getName());
-            attr.setPrice(request.getPrice());
-            attr.setSalePrice(request.getSalePrice());
-            attr.setStockQuantity(request.getStockQuantity());
-            attr.setVariantOptions(combination);
-            attr.setKeywords(request.getKeywords());
-
-            if (request.getPromotions() != null && !request.getPromotions().isEmpty()) {
-                List<Promotion> promo = request.getPromotions().stream()
-                        .map(promotionMapper::toEntity)
-                        .toList();
-                attr.setPromotions(promo);
-            }
-
-            if (request.getSpecifications() != null && !request.getSpecifications().isEmpty()) {
-                List<SpecificationGroup> specGroups = mapSpecificationGroups(request.getSpecifications());
-                attr.setSpecifications(specGroups);
-                attr.setStatusProduct(request.getStatusProduct());
-            } else {
-                attr.setStatusProduct(StockStatus.NOT_ACTIVE);
-            }
+            Attributes attr = Attributes.builder()
+                    .product(product)
+                    .sku(SkuInfo.builder()
+                            .sku(new SkuInfo().createSku("attr-").getSku()
+                                    .replaceFirst("-", "-" + request.getProductSku().substring(request.getProductSku().length() - 3)))
+                            .build())
+                    .name(request.getName())
+                    .price(request.getPrice())
+                    .salePrice(request.getSalePrice())
+                    .stockQuantity(request.getStockQuantity())
+                    .variantOptions(combination)
+                    .keywords(request.getKeywords())
+                    .promotions((request.getPromotions() != null && !request.getPromotions().isEmpty())
+                            ? request.getPromotions().stream().map(promotionMapper::toEntity).toList()
+                            : new ArrayList<>())
+                    .specifications((request.getSpecifications() != null && !request.getSpecifications().isEmpty())
+                            ? mapSpecificationGroups(request.getSpecifications())
+                            : new ArrayList<>())
+                    .statusProduct((request.getSpecifications() != null && !request.getSpecifications().isEmpty())
+                            ? request.getStatusProduct()
+                            : StockStatus.NOT_ACTIVE)
+                    .build();
 
             attributesList.add(attr);
         }
@@ -105,11 +102,12 @@ public class AttributesService implements iAttributes {
                 request.getVariantGroups().size());
 
         String message = savedList.size() == 1
-                ? "Tạo attributes thành công."
+                ? "Tạo attributes '"+ savedList.getFirst().getName() + "' thành công."
                 : String.format("Đã tạo thành công %d variants từ %d variant groups.",
                         savedList.size(), request.getVariantGroups().size());
 
-        return Response.ok(attributesMapper.toDto(savedList), message);
+        attributesMapper.toDto(savedList);
+        return Response.ok(message);
     }
 
     @Override
@@ -117,7 +115,7 @@ public class AttributesService implements iAttributes {
     public Response<?> update(@NonNull UpdateAttributesRequest request) {
 
         Attributes attributes = attributesRepository
-                .findAttributesById(featureMerchandiseHelper.convertStringToUUID(request.getId()))
+                .findById(Long.valueOf(request.getId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
                         "Thuộc tính sản phẩm không tồn tại."));
 
@@ -184,8 +182,11 @@ public class AttributesService implements iAttributes {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh không được để trống.");
         }
 
-        List<Attributes> attributesToDelete = attributesRepository
-                .findAllById(featureMerchandiseHelper.convertStringToUUID(String.valueOf(ids)));
+        List<Long> attrUuids = ids.stream()
+                .map(Long::valueOf)
+                .toList();
+
+        List<Attributes> attributesToDelete = attributesRepository.findAllById(attrUuids);
 
         if (attributesToDelete.isEmpty()) {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
@@ -214,7 +215,7 @@ public class AttributesService implements iAttributes {
     @Override
     @Transactional
     public Response<?> deleteByProduct(@NonNull String productId) {
-        Product product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
+        Product product = productRepository.findById(Long.valueOf(productId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         List<Attributes> attributesList = attributesRepository.findAllByProduct(product);
@@ -251,15 +252,15 @@ public class AttributesService implements iAttributes {
         }
 
         if (request.getAttributesIds() != null && !request.getAttributesIds().isEmpty()) {
-            List<UUID> attrIds = request.getAttributesIds().stream()
-                    .map(featureMerchandiseHelper::convertStringToUUID)
+            List<Long> attrIds = request.getAttributesIds().stream()
+                    .map(Long::valueOf)
                     .toList();
             criteriaList.add(new SearchCriteria("id", "~", attrIds));
         }
 
         if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
-            List<UUID> prodIds = request.getProductIds().stream()
-                    .map(featureMerchandiseHelper::convertStringToUUID)
+            List<Long> prodIds = request.getProductIds().stream()
+                    .map(Long::valueOf)
                     .toList();
             criteriaList.add(new SearchCriteria("product.id", "~", prodIds));
         }
@@ -306,7 +307,7 @@ public class AttributesService implements iAttributes {
         if (request.getMaxCostPrice() != null) {
             criteriaList.add(new SearchCriteria("costPrice", "<", request.getMaxCostPrice()));
         }
-        
+
         if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
             criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
         }
@@ -325,7 +326,7 @@ public class AttributesService implements iAttributes {
         }
 
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
-        org.springframework.data.jpa.domain.Specification<Attributes> spec = builder.build();
+        Specification<Attributes> spec = builder.build();
 
         Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
 
@@ -333,13 +334,6 @@ public class AttributesService implements iAttributes {
                 .map(attributesMapper::toDto);
     }
 
-    /**
-     * Tạo Cartesian product N chiều từ danh sách VariantGroupInput.
-     *
-     * VD: [{key:"Color", values:["Đen","Trắng"]}, {key:"Size", values:["S","M"]}]
-     * → [[{Color:Đen, Size:S}, {Color:Đen, Size:M}], [{Color:Trắng, Size:S},
-     * {Color:Trắng, Size:M}]]
-     */
     private List<List<VariantOption>> generateCartesianProduct(List<VariantGroupInput> groups) {
         List<List<VariantOption>> result = new ArrayList<>();
         result.add(new ArrayList<>());
@@ -364,18 +358,19 @@ public class AttributesService implements iAttributes {
      */
     private List<SpecificationGroup> mapSpecificationGroups(
             List<com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto> dtos) {
-        if (dtos == null) return new ArrayList<>();
-        return dtos.stream().map(dto -> {
-            SpecificationGroup group = new SpecificationGroup();
-            group.setTitle(dto.getTitle());
-            if (dto.getItems() != null) {
-                List<Specification> items = dto.getItems().stream()
-                        .map(item -> new Specification(item.getKey(), item.getData()))
-                        .toList();
-                group.setItems(items);
-            }
-            return group;
-        }).toList();
+        if (dtos == null)
+            return new ArrayList<>();
+        return dtos.stream().map(dto -> SpecificationGroup.builder()
+                .title(dto.getTitle())
+                .items(dto.getItems() != null
+                        ? dto.getItems().stream()
+                                .map(item -> Specificationa.builder()
+                                        .key(item.getKey())
+                                        .data(item.getData())
+                                        .build())
+                                .toList()
+                        : new ArrayList<>())
+                .build()).toList();
     }
 
 }

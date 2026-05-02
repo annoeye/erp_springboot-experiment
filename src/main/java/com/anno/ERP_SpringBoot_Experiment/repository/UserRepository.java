@@ -9,9 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
-import java.util.UUID;
 
-public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
+
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
     @Query("SELECT u FROM User u WHERE u.authCode.code = :code")
     Optional<User> findByAuthCode(@Param("code") String code);

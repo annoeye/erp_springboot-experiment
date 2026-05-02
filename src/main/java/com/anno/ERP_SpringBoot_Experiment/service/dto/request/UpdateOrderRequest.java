@@ -1,7 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ShippingInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.Address;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -33,7 +33,7 @@ public class UpdateOrderRequest {
     /**
      * Thông tin giao hàng mới (optional).
      */
-    ShippingInfo shippingInfo;
+    Address shippingInfo;
 
     /**
      * Ghi chú của admin (optional).

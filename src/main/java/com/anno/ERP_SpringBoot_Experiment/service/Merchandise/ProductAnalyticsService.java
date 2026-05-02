@@ -15,7 +15,7 @@
 //import java.time.LocalDateTime;
 //import java.time.LocalTime;
 //import java.util.List;
-//import java.util.UUID;
+//
 //
 ///**
 // * Service để tính toán và lấy analytics cho Product
@@ -35,7 +35,7 @@
 //     * Lấy analytics tổng hợp cho một sản phẩm
 //     */
 //    public Response<ProductAnalyticsDto> getProductAnalytics(String productId) {
-//        UUID uuid = merchandiseHelper.convertStringToUUID(productId);
+//        Long uuid = Long.valueOf(productId);
 //
 //        Product product = productRepository.findById(uuid)
 //                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại"));
@@ -150,7 +150,7 @@
 //     * Tăng view count cho product
 //     */
 //    public void incrementViewCount(String productId) {
-//        UUID uuid = merchandiseHelper.convertStringToUUID(productId);
+//        Long uuid = Long.valueOf(productId);
 //        Product product = productRepository.findById(uuid)
 //                .orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại"));
 //

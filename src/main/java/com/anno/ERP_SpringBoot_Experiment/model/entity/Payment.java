@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "payment")
@@ -15,45 +16,97 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Payment extends IdentityOnly {
+public class Payment extends IdentityOnly<UUID> {
 
+    /**
+     * Đơn hàng liên kết
+     * @en Linked order
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     Order order;
 
+    /**
+     * Nhà cung cấp dịch vụ thanh toán
+     * @en Payment provider
+     */
     @Column(name = "provider", length = 50)
-    String provider; // VNPAY, MOMO, PAYPAL, CASH
+    String provider;
 
+    /**
+     * Mã giao dịch
+     * @en Transaction code
+     */
     @Column(name = "transaction_code", length = 100)
-    String transactionCode; // Mã giao dịch từ phía provider (vnp_TransactionNo)
+    String transactionCode;
 
+    /**
+     * Số tiền
+     * @en Amount
+     */
     @Column(name = "amount")
     Double amount;
 
+    /**
+     * Trạng thái
+     * @en Status
+     */
     @Column(name = "status", length = 50)
-    String status; // PAID, UNPAID, FAILED
+    String status;
 
+    /**
+     * Ngày thanh toán
+     * @en Payment date
+     */
     @Column(name = "payment_date")
     LocalDateTime paymentDate;
 
+    /**
+     * Mô tả thanh toán
+     * @en Payment description
+     */
     @Column(name = "description", length = 500)
-    String description; // Nội dung thanh toán (vnp_OrderInfo)
+    String description;
 
+    /**
+     * Phản hồi gốc
+     * @en Raw response
+     */
     @Column(name = "raw_response", columnDefinition = "TEXT")
-    String rawResponse; // Lưu toàn bộ response từ 3rd party để debug/audit
+    String rawResponse;
 
+    /**
+     * Mã ngân hàng
+     * @en Bank code
+     */
     @Column(name = "bank_code", length = 50)
-    String bankCode; // Mã ngân hàng (NCB, VCB...)
+    String bankCode;
 
+    /**
+     * Loại thẻ
+     * @en Card type
+     */
     @Column(name = "card_type", length = 50)
-    String cardType; // ATM, QRCODE, VISA...
+    String cardType;
 
+    /**
+     * Số giao dịch ngân hàng
+     * @en Bank transaction number
+     */
     @Column(name = "bank_tran_no", length = 100)
-    String bankTranNo; // Số giao dịch tại ngân hàng (khác với transactionCode của cổng)
+    String bankTranNo;
 
+    /**
+     * Địa chỉ IP
+     * @en IP address
+     */
     @Column(name = "ip_address", length = 50)
     String ipAddress;
 
+    /**
+     * Hóa đơn liên kết
+     * @en Linked bill
+     */
     @OneToOne(mappedBy = "payment")
     Bill bill;
 }

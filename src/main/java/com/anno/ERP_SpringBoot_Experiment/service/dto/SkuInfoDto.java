@@ -1,13 +1,22 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
-import lombok.Value;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
 /**
- * DTO for {@link com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo}
+ * DTO for {@link SkuInfo}
  */
-@Value
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SkuInfoDto implements Serializable {
-    String SKU;
+    @JsonProperty("sku")
+    private String sku;
 }

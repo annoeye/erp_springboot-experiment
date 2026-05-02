@@ -6,14 +6,15 @@ import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.GetProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.GetProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
@@ -30,12 +31,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -61,10 +65,10 @@ public class ProductService implements iProduct {
                 uploadedUrls.add(url);
 
                 String key = featureMerchandiseHelper.generateKey();
-                MediaItem mediaItem = new MediaItem();
-                mediaItem.setKey(key);
-                mediaItem.setUrl(url);
-                mediaItems.add(mediaItem);
+                mediaItems.add(MediaItem.builder()
+                        .key(key)
+                        .url(url)
+                        .build());
             }
             return mediaItems;
 
@@ -84,49 +88,62 @@ public class ProductService implements iProduct {
     @Override
     public Response<?> addProduct(CreateProductRequest request) {
         Category category = categoryRepository
-                .findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
+                .findCategoryBySkuInfo_Sku(request.getCategorySku())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
 
-        AuditInfo audit = new AuditInfo();
-        audit.setCreatedAt(LocalDateTime.now());
-        audit.setCreatedBy(securityUtil.getCurrentUsername());
-        SkuInfo skuInfo = new SkuInfo();
-        skuInfo.setSku(category.getName().toUpperCase());
-
-        Product product = Product.builder()
-                .name(request.getName())
-                .category(category)
-                .skuInfo(skuInfo)
-                .auditInfo(audit)
-                .build();
-
-        return Response.ok(productRepository.save(product));
+        productRepository.save(
+                Product.builder()
+                        .name(request.getName())
+                        .category(category)
+                        .skuInfo(SkuInfo.builder()
+                                .sku(new SkuInfo().createSku("prd-").getSku()
+                                        .replaceFirst("-", "-" + request.getCategorySku().substring(request.getCategorySku().length() - 2)))
+                                .build())
+                        .auditInfo(AuditInfo.builder()
+                                .createdAt(LocalDateTime.now())
+                                .createdBy(securityUtil.getCurrentUsername())
+                                .build())
+                        .status(Stream.of(ActiveStatus.ACTIVE, ActiveStatus.LOCKED)
+                                .filter(s -> s.name().equals(request.getStatus()))
+                                .findFirst()
+                                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
+                                        "Định dạng không hợp lệ!")))
+                        .build());
+        return Response.ok("Thêm sản phẩm '" +request.getName() + "' thành công.");
     }
 
     @Override
     @Transactional
     public Response<?> updateProduct(UpdateProductRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Sản phẩm không không được để trống.");
         }
 
-        final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(request.getId()))
+        final var product = productRepository.findById(Long.valueOf(request.getId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
-        if (request.getCategoryId() != null && !request.getCategoryId().isBlank()) {
-            Category category = categoryRepository.findCategoryById(featureMerchandiseHelper.convertStringToUUID(request.getCategoryId()))
+        if (StringUtils.hasText(request.getCategoryId())) {
+            Category category = categoryRepository
+                    .findCategoryById(Long.valueOf(request.getCategoryId()))
                     .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
             product.setCategory(category);
         }
+
         productMapper.updateFromRequest(request, product);
 
-        log.info("Đã cập nhật sản phẩm '{}' với ID {}", request.getName(), request.getId());
+        if (product.getAuditInfo() == null) {
+            product.setAuditInfo(new AuditInfo());
+        }
+        product.getAuditInfo().setUpdatedAt(LocalDateTime.now());
+        product.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
+
+        log.info("Đã cập nhật sản phẩm '{}' với ID {}", product.getName(), product.getId());
         productRepository.save(product);
-        return Response.ok("Cập nhập sản phẩm thành công.");
+        return Response.ok("Cập nhật sản phẩm thành công.");
     }
 
     @Override
-    public Response<?> deleteProduct(@NonNull final List<UUID> ids) {
+    public Response<?> deleteProduct(@NonNull final List<Long> ids) {
         // xóa 1 list
         productRepository.softDeleteAllByIds(ids, securityUtil.getCurrentUsername());
         return Response.noContent();
@@ -137,33 +154,33 @@ public class ProductService implements iProduct {
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
         List<SearchCriteria> criteriaList = new ArrayList<>();
 
-        if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
+        if (StringUtils.hasText(request.getKeyword())) {
             // Default "keyword" to search within name
             criteriaList.add(new SearchCriteria("name", ":", request.getKeyword()));
         }
 
-        if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
+        if (!CollectionUtils.isEmpty(request.getCreatedBy())) {
             criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
         }
 
-        if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
-            List<UUID> uuidList = request.getProductIds().stream()
-                    .map(featureMerchandiseHelper::convertStringToUUID)
+        if (!CollectionUtils.isEmpty(request.getProductIds())) {
+            List<Long> uuidList = request.getProductIds().stream()
+                    .map(Long::valueOf)
                     .toList();
             criteriaList.add(new SearchCriteria("id", "~", uuidList));
         }
 
-        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+        if (!CollectionUtils.isEmpty(request.getStatuses())) {
             criteriaList.add(new SearchCriteria("status", "~", request.getStatuses()));
         }
 
-        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
-            List<UUID> uuidList = request.getCategoryIds().stream()
-                    .map(featureMerchandiseHelper::convertStringToUUID)
+        if (!CollectionUtils.isEmpty(request.getCategoryIds())) {
+            List<Long> uuidList = request.getCategoryIds().stream()
+                    .map(Long::valueOf)
                     .toList();
             criteriaList.add(new SearchCriteria("category.id", "~", uuidList));
         }
-        
+
         if (request.getMinSoldQuantity() != null) {
             criteriaList.add(new SearchCriteria("totalSoldQuantity", ">", request.getMinSoldQuantity()));
         }
@@ -233,12 +250,31 @@ public class ProductService implements iProduct {
     }
 
     @Override
+    public void viewCount(String productId) {
+        productRepository.updateViewCount(Long.valueOf(productId));
+    }
+
+    @Override
+    public void totalSoldQuantity(String productId) {
+        productRepository.updateTotalSoldQuantity(
+                Long.valueOf(productId),
+                1);
+    }
+
+    @Override
+    public void totalRevenue(String productId, double price) {
+        productRepository.updateTotalRevenue(
+                Long.valueOf(productId),
+                BigDecimal.valueOf(price));
+    }
+
+    @Override
     @Transactional
     public Response<?> addProductImages(String productId, List<MultipartFile> images) {
-        final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
+        final var product = productRepository.findById(Long.valueOf(productId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
-        if (images == null || images.isEmpty()) {
+        if (CollectionUtils.isEmpty(images)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh không được để trống.");
         }
 
@@ -252,7 +288,7 @@ public class ProductService implements iProduct {
     @Override
     @Transactional
     public Response<?> deleteProductImage(String productId, String imageKey) {
-        final var product = productRepository.findById(featureMerchandiseHelper.convertStringToUUID(productId))
+        final var product = productRepository.findById(Long.valueOf(productId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
         MediaItem itemToDelete = product.getMediaItems().stream()
@@ -278,9 +314,9 @@ public class ProductService implements iProduct {
     @Override
     @Transactional
     public Response<?> replaceProductImages(String productId, List<MultipartFile> images) {
-        UUID uuid;
+        Long uuid;
         try {
-            uuid = featureMerchandiseHelper.convertStringToUUID(productId);
+            uuid = Long.valueOf(productId);
         } catch (IllegalArgumentException e) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "ID sản phẩm không hợp lệ.");
         }
@@ -288,7 +324,7 @@ public class ProductService implements iProduct {
         final var product = productRepository.findById(uuid)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
 
-        if (images == null || images.isEmpty()) {
+        if (CollectionUtils.isEmpty(images)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh không được để trống.");
         }
 
@@ -309,6 +345,16 @@ public class ProductService implements iProduct {
         // Trả về DTO thay vì Entity
         Product savedProduct = productRepository.save(product);
         return Response.ok(productMapper.toDto(savedProduct), "Thay thế ảnh thành công.");
+    }
+
+    @Override
+    public byte[] getProductImage(String imageName) {
+        try (java.io.InputStream inputStream = minioService.getFile(imageName)) {
+            return inputStream.readAllBytes();
+        } catch (Exception e) {
+            log.error("Lỗi khi đọc ảnh {}: {}", imageName, e.getMessage());
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể đọc dữ liệu ảnh: " + imageName);
+        }
     }
 
 }

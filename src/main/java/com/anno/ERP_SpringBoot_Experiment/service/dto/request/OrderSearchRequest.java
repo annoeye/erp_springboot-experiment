@@ -2,7 +2,6 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
-import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -49,11 +48,6 @@ public class OrderSearchRequest {
      * Trạng thái đơn hàng.
      */
     OrderStatus orderStatus;
-
-    /**
-     * Trạng thái thanh toán.
-     */
-    PaymentStatus paymentStatus;
 
     /**
      * Ngày bắt đầu khoảng thời gian tìm kiếm.

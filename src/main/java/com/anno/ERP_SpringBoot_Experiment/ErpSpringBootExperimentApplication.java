@@ -20,7 +20,7 @@ public class ErpSpringBootExperimentApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ErpSpringBootExperimentApplication.class);
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         final var app = new SpringApplication(ErpSpringBootExperimentApplication.class);
         final var env = app.run(args).getEnvironment();
         logApplicationStartup(env);
@@ -71,5 +71,4 @@ public class ErpSpringBootExperimentApplication {
                 contextPath,
                 env.getActiveProfiles());
     }
-
 }

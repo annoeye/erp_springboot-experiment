@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -57,7 +57,7 @@ public class ShoppingCartService implements iShoppingCart {
                 .toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
-                .findAllById(attributesIds.stream().map(UUID::fromString).toList())
+                .findAllById(attributesIds.stream().map(Long::valueOf).toList())
                 .stream()
                 .collect(Collectors.toMap(
                         a -> a.getId().toString(),

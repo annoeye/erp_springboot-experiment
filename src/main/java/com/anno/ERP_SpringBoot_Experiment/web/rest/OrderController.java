@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest;
 
-import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
@@ -93,12 +92,12 @@ public interface OrderController {
     /**
      * Cập nhật status của order (Admin)
      */
-    @PatchMapping("/{orderId}/status")
-    @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> updateOrderStatus(
-            @PathVariable String orderId,
-            @RequestParam OrderStatus status
-    );
+//    @PatchMapping("/{orderId}/status")
+//    @ResponseStatus(HttpStatus.OK)
+//    Response<OrderDto> updateOrderStatus(
+//            @PathVariable String orderId,
+//            @RequestParam OrderStatus status
+//    );
 
     /**
      * Xác nhận order (Admin)
@@ -110,9 +109,9 @@ public interface OrderController {
     /**
      * Đánh dấu order đã giao hàng (Admin/Shipper)
      */
-    @PostMapping("/{orderId}/delivered")
-    @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> markAsDelivered(@PathVariable String orderId);
+//    @PostMapping("/{orderId}/delivered")
+//    @ResponseStatus(HttpStatus.OK)
+//    Response<OrderDto> markAsDelivered(@PathVariable String orderId);
 
     /**
      * Hoàn thành order (Admin)

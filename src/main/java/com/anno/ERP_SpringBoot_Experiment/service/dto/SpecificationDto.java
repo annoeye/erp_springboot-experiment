@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specificationa;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +10,7 @@ import java.io.Serializable;
 
 /**
  * DTO for
- * {@link com.anno.ERP_SpringBoot_Experiment.model.embedded.Specification}
+ * {@link Specificationa}
  */
 @Data
 @NoArgsConstructor

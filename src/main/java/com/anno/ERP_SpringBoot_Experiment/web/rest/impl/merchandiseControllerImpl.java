@@ -8,7 +8,6 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryCreateResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PageableData;
@@ -29,7 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -58,36 +56,15 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Override
     @Operation(summary = "Xóa sản phẩm", description = "Xóa một hoặc nhiều sản phẩm theo danh sách IDs")
     public Response<?> deleteProduct(@RequestParam List<String> ids) {
-        // Chuẩn hóa tất cả UUID strings
-        List<UUID> uuidList = ids.stream()
+        List<Long> longList = ids.stream()
                 .map(id -> {
                     try {
-                        return UUID.fromString(id);
-                    } catch (IllegalArgumentException e) {
-                        String normalized = normalizeUUID(id);
-                        return UUID.fromString(normalized);
+                        return Long.valueOf(id.trim());
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("ID phải là một số nguyên hợp lệ.");
                     }
                 }).collect(Collectors.toList());
-        return productService.deleteProduct(uuidList);
-    }
-
-    private String normalizeUUID(String uuid) {
-        if (uuid == null || uuid.isBlank()) {
-            throw new IllegalArgumentException("UUID không được để trống");
-        }
-
-        String cleanUuid = uuid.replaceAll("-", "");
-
-        if (cleanUuid.length() != 32) {
-            throw new IllegalArgumentException("UUID phải có 32 ký tự");
-        }
-
-        return String.format("%s-%s-%s-%s-%s",
-                cleanUuid.substring(0, 8),
-                cleanUuid.substring(8, 12),
-                cleanUuid.substring(12, 16),
-                cleanUuid.substring(16, 20),
-                cleanUuid.substring(20, 32)).toLowerCase();
+        return productService.deleteProduct(longList);
     }
 
      @Override
@@ -122,15 +99,28 @@ public class merchandiseControllerImpl implements MerchandiseController {
     }
 
     @Override
+    @Operation(summary = "Xem ảnh", description = "Lấy và xem trực tiếp ảnh sản phẩm dựa trên tên file ảnh")
+    public byte[] viewProductImage(@PathVariable String imageName) {
+        return productService.getProductImage(imageName);
+    }
+
+    @Override
     public ProductIsExiting checkProduct(String name) {
         return productService.isExiting(name);
+    }
+
+    @Override
+    @Operation(summary = "Tăng lượt xem sản phẩm", description = "Tăng lượt xem khi người dùng truy cập chi tiết sản phẩm")
+    public Response<?> incrementViewCount(@PathVariable String productId) {
+        productService.viewCount(productId);
+        return Response.ok("Đã tăng lượt xem");
     }
 
     /************* Category CRUD *****************/
 
     @Override
     @Operation(summary = "Tạo danh mục mới", description = "Tạo một danh mục sản phẩm mới")
-    public Response<CategoryCreateResponse> addCategory(@RequestParam String name) {
+    public Response<?> addCategory(@RequestParam String name) {
         return categoryService.create(name);
     }
 

@@ -14,10 +14,10 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecificationExecutor<Order> {
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
     /**
      * Tìm order theo order number
@@ -38,7 +38,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
      * Tìm orders theo customer ID
      */
     @Query("SELECT o FROM Order o WHERE o.customer.id = :customerId")
-    Page<Order> findByCustomerId(@Param("customerId") UUID customerId, Pageable pageable);
+    Page<Order> findByCustomerId(@Param("customerId") Long customerId, Pageable pageable);
 
     /**
      * Tìm orders theo status
@@ -65,7 +65,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
      */
     @Query("SELECT o FROM Order o WHERE o.customer.id = :customerId AND o.orderDate BETWEEN :startDate AND :endDate")
     Page<Order> findByCustomerIdAndOrderDateBetween(
-            @Param("customerId") UUID customerId,
+            @Param("customerId") Long customerId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable
@@ -115,11 +115,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     Optional<Order> findByBookingId(String bookingId);
 
     /**
-     * Tìm orders theo shopping cart ID
-     */
-    Optional<Order> findByShoppingCartId(String shoppingCartId);
-
-    /**
      * Tìm top customers theo tổng giá trị đơn hàng
      */
     @Query("SELECT o.customer, SUM(o.totalAmount) as total FROM Order o " +
@@ -139,14 +134,5 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     List<Object[]> getOrderStatisticsByDate(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
-    );
-
-    /**
-     * Tìm orders theo payment status
-     */
-    @Query("SELECT o FROM Order o WHERE o.paymentInfo.paymentStatus = :paymentStatus")
-    Page<Order> findByPaymentStatus(
-            @Param("paymentStatus") com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentStatus paymentStatus,
-            Pageable pageable
     );
 }
