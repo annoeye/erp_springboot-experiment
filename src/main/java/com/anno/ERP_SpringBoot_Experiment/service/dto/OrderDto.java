@@ -17,8 +17,8 @@ import java.util.List;
 public class OrderDto {
     Long id;
     String orderNumber;
-    LocalDateTime orderDate;
-    OrderStatus status;
+    List<OrderStatus> status;
+    OrderStatus currentStatus;
 
     // Customer info
     Long customerId;

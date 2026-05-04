@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
+import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentMethod;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -48,6 +49,12 @@ public class CreateOrderRequest {
      */
     @JsonProperty("shipping_method")
     String shippingMethod;
+
+    /**
+     * Kiểu thanh toán
+     */
+    @JsonProperty("payment_method")
+    PaymentMethod paymentMethod;
 
     /**
      * Chi tiết một sản phẩm trong Order.

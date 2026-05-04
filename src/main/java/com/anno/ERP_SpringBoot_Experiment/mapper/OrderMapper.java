@@ -11,6 +11,9 @@ import org.mapstruct.*;
 )
 public interface OrderMapper extends EntityMapper<OrderDto, Order> {
 
+    @Mapping(target = "currentStatus", expression = "java(order.getCurrentStatus())")
+    OrderDto toDto(Order order);
+
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     Order partialUpdate(OrderDto orderDto, @MappingTarget Order order);
 }

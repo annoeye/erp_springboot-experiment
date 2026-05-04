@@ -8,7 +8,7 @@ import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "addresses", indexes = {
-        @Index(name = "idx_address_user", columnList = "user_id"),
+        @Index(name = "idx_address_user ", columnList = "user_id"),
 })
 @Getter
 @Setter

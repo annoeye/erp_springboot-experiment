@@ -1,9 +1,11 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto;
 
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditEntry;
 import lombok.Value;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO for {@link com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo}
@@ -11,9 +13,9 @@ import java.time.LocalDateTime;
 @Value
 public class AuditInfoDto implements Serializable {
     LocalDateTime createdAt;
-    LocalDateTime updatedAt;
-    LocalDateTime deletedAt;
     String createdBy;
-    String updatedBy;
+    LocalDateTime updatedAt;
+    List<AuditEntry> updateHistory;
+    LocalDateTime deletedAt;
     String deletedBy;
 }

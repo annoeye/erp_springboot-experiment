@@ -6,13 +6,11 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum PaymentMethod {
-    CASH("Tiền mặt"),
-    BANK_TRANSFER("Chuyển khoản ngân hàng"),
-    CREDIT_CARD("Thẻ tín dụng"),
-    DEBIT_CARD("Thẻ ghi nợ"),
-
-    MOMO("MoMo"),
-    ZALOPAY("ZaloPay"),
+    VNBANK("Chuyển khoản ngân hàng VNPay"),
+    CARD("Khách có thẻ Visa/Master"),
+    PAYPAL("Khách có tài khoản PayPal"),
+    GOOGLE_PAY("GOOGLE_PAY"),
+    APPLE_PAY("APPLE_PAY"),
     COD("Thanh toán khi nhận hàng");
 
     private final String displayName;

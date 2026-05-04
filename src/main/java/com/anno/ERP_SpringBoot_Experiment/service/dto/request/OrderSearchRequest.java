@@ -80,7 +80,7 @@ public class OrderSearchRequest {
     Integer size;
 
     /**
-     * Trường để sắp xếp (orderDate, totalAmount, status).
+     * Trường để sắp xếp (auditInfo.createdAt, totalAmount, status).
      */
     String sortBy;
 

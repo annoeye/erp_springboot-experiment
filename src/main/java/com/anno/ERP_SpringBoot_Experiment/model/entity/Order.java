@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
+import com.anno.ERP_SpringBoot_Experiment.config.converter.OrderStatusListConverter;
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
@@ -15,7 +16,6 @@ import java.util.List;
 @Table(name = "orders", indexes = {
         @Index(name = "idx_order_number", columnList = "order_number"),
         @Index(name = "idx_order_status", columnList = "order_status"),
-        @Index(name = "idx_order_date", columnList = "order_date"),
         @Index(name = "idx_customer_id", columnList = "customer_id"),
         @Index(name = "idx_tracking_number", columnList = "tracking_number")
 })
@@ -41,21 +41,18 @@ public class Order extends IdentityOnly<Long> {
         String orderNumber;
 
         /**
-         * Ngày đặt hàng
-         * 
-         * @en Order date
+         * Lịch sử trạng thái đơn hàng, chỉ được append, không được xóa.
+         * DB lưu dạng JSON: ["PENDING","CONFIRMED","COMPLETED"]
+         * Trạng thái hiện tại là phần tử cuối cùng.
+         *
+         * @en Order status history, append-only.
+         * Stored as JSON: ["PENDING","CONFIRMED","COMPLETED"]
+         * Current status is the last element.
          */
-        @Column(name = "order_date", nullable = false)
-        LocalDateTime orderDate;
-
-        /**
-         * Trạng thái đơn hàng
-         * 
-         * @en Order status
-         */
-        @Enumerated(EnumType.STRING)
-        @Column(name = "order_status", nullable = false)
-        OrderStatus status;
+        @Convert(converter = OrderStatusListConverter.class)
+        @Column(name = "order_status", nullable = false, columnDefinition = "TEXT")
+        @Builder.Default
+        List<OrderStatus> status = new ArrayList<>();
 
         @Column(name = "tracking_number", length = 100)
         String trackingNumber;
@@ -344,20 +341,42 @@ public class Order extends IdentityOnly<Long> {
         }
 
         /**
+         * Lấy trạng thái hiện tại (phần tử cuối cùng trong list).
+         *
+         * @en Get current status (last element in the list).
+         */
+        public OrderStatus getCurrentStatus() {
+                if (status == null || status.isEmpty()) return null;
+                return status.getLast();
+        }
+
+        /**
+         * Append trạng thái mới — không bao giờ xóa.
+         *
+         * @en Append a new status — never deleted.
+         */
+        public void appendStatus(OrderStatus newStatus) {
+                if (this.status == null) this.status = new ArrayList<>();
+                this.status.add(newStatus);
+        }
+
+        /**
          * Kiểm tra xem đơn hàng có thể hủy không
          */
         public boolean canBeCancelled() {
-                return status == OrderStatus.PENDING ||
-                                status == OrderStatus.CONFIRMED ||
-                                status == OrderStatus.PROCESSING;
+                OrderStatus current = getCurrentStatus();
+                return current == OrderStatus.PENDING ||
+                                current == OrderStatus.CONFIRMED ||
+                                current == OrderStatus.PROCESSING;
         }
 
         /**
          * Kiểm tra xem đơn hàng có thể hoàn trả không
          */
         public boolean canBeReturned() {
-                return status == OrderStatus.DELIVERED ||
-                                status == OrderStatus.COMPLETED;
+                OrderStatus current = getCurrentStatus();
+                return current == OrderStatus.DELIVERED ||
+                                current == OrderStatus.COMPLETED;
         }
 
 }

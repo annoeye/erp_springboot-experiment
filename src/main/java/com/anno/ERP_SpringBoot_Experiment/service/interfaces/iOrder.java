@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
+import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
@@ -91,4 +92,9 @@ public interface iOrder {
      * Thống kê orders
      */
     Response<?> getOrderStatistics(String startDate, String endDate);
+
+    /**
+     * Cập nhật trạng thái đơn hàng (Helper)
+     */
+    void setStatus(String orderNumber, OrderStatus status);
 }

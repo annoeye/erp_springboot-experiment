@@ -171,6 +171,10 @@ public class AttributesService implements iAttributes {
             attributes.setStatusProduct(request.getStatus());
         }
 
+        if (attributes.getAuditInfo() != null) {
+            attributes.getAuditInfo().addUpdateEntry("Cập nhật thuộc tính sản phẩm", securityUtil.getCurrentUsername());
+        }
+
         attributesRepository.save(attributes);
         return Response.ok("Đã cập nhật thành công.");
     }
@@ -203,7 +207,7 @@ public class AttributesService implements iAttributes {
 
         // Soft delete
         attributesToDelete.forEach(attr -> {
-            attr.getAuditInfo().markDeleted(currentUser);
+            attr.getAuditInfo().markDeletedAfter30Days(currentUser);
         });
 
         attributesRepository.saveAll(attributesToDelete);
@@ -227,7 +231,7 @@ public class AttributesService implements iAttributes {
         String currentUser = securityUtil.getCurrentUsername();
 
         attributesList.forEach(attr -> {
-            attr.getAuditInfo().markDeleted(currentUser);
+            attr.getAuditInfo().markDeletedAfter30Days(currentUser);
         });
 
         attributesRepository.saveAll(attributesList);

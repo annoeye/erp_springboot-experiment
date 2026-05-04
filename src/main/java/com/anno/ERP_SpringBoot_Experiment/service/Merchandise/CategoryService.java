@@ -68,6 +68,7 @@ public class CategoryService implements iCategory {
         Category category = optionalCategory
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
         category.setName(request.getName());
+        category.getAuditInfo().addUpdateEntry("Cập nhật tên danh mục", securityUtil.getCurrentUsername());
         log.info("Đã sửa danh mục thành {} với mã id {}", category.getName(), category.getId());
         categoryMapper.toDto(categoryRepository.save(category));
         return Response.ok("Sửa danh mục thành công.");

@@ -35,6 +35,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -103,7 +105,7 @@ public class OrderService implements iOrder {
         log.info("Order created successfully");
         HttpServletRequest httpServletRequest = null;
         try {
-            httpServletRequest = ((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder
+            httpServletRequest = ((ServletRequestAttributes) RequestContextHolder
                     .getRequestAttributes()).getRequest();
         } catch (Exception e) {
             log.warn("Không lấy được HttpServletRequest");
@@ -117,10 +119,11 @@ public class OrderService implements iOrder {
             }
         }
 
+        // (shipping method) nhan tai cua hang || giao hang (tinh tien dua vao ~)
         OrderEventDto eventDto = OrderEventDto.builder()
                 .paymentProvider(order.getShippingMethod())
                 .amount(order.getTotalAmount())
-                .currency(!(order.getShippingMethod().equals("PAYPAL")) ? "VND" : "USD")
+                .currency(!(order.getShippingMethod().equals("PAYPAL")) ? "VND" : "USD") // nen chua lam
                 .orderId(order.getOrderNumber())
                 .orderDescription(order.getCustomerNotes() != null ? order.getCustomerNotes()
                         : "Thanh toan don hang " + order.getOrderNumber())
@@ -130,16 +133,14 @@ public class OrderService implements iOrder {
                         .language(language)
                         .build())
                 .paymentOptions(PaymentOptions.builder()
-                        .paymentMethod("QR")
-                        .extraData("Đơn hàng:" + order.getOrderNumber())
+                        .paymentMethod(request.getPaymentMethod().toString().toUpperCase())
+                        .extraData("Đơn hàng: " + order.getOrderNumber())
                         .build())
                 .build();
 
         log.info("===> Đang chuẩn bị gửi Kafka cho đơn hàng: {}", eventDto.getOrderId());
         orderKafkaProducer.sendOrderCreatedEvent(eventDto);
         log.info("===> Đã gọi lệnh gửi Kafka xong!");
-
-
         return Response.ok("Tạo thành công đơn đặt hàng");
     }
 
@@ -277,16 +278,19 @@ public class OrderService implements iOrder {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (request.getStatus() != null) {
-            validateStatusTransition(order.getStatus(), request.getStatus());
-            order.setStatus(request.getStatus());
+            validateStatusTransition(order.getCurrentStatus(), request.getStatus());
+            order.appendStatus(request.getStatus());
+            order.getAuditInfo().addUpdateEntry("Cập nhật trạng thái đơn hàng: " + request.getStatus(), securityUtil.getCurrentUsername());
         }
 
         if (request.getShippingInfo() != null) {
             order.setShippingInfo(request.getShippingInfo());
+            order.getAuditInfo().addUpdateEntry("Cập nhật thông tin giao hàng", securityUtil.getCurrentUsername());
         }
 
         if (request.getAdminNotes() != null) {
             order.setAdminNotes(request.getAdminNotes());
+            order.getAuditInfo().addUpdateEntry("Cập nhật ghi chú quản trị", securityUtil.getCurrentUsername());
         }
 
         Order savedOrder = orderRepository.save(order);
@@ -318,14 +322,15 @@ public class OrderService implements iOrder {
         Order order = orderRepository.findById(convertStringToLong(orderId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
-        if (order.getStatus() != OrderStatus.PENDING) {
+        if (order.getCurrentStatus() != OrderStatus.PENDING) {
             throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
                     "Chỉ có thể xác nhận đơn hàng ở trạng thái PENDING");
         }
 
-        order.setStatus(OrderStatus.CONFIRMED);
+        order.appendStatus(OrderStatus.CONFIRMED);
         order.setConfirmedAt(LocalDateTime.now());
         order.setConfirmedBy(securityUtil.getCurrentUser().map(u -> u.getId().toString()).orElse(null));
+        order.getAuditInfo().addUpdateEntry("Xác nhận đơn hàng", securityUtil.getCurrentUsername());
 
         Order savedOrder = orderRepository.save(order);
         log.info("Order {} confirmed", order.getOrderNumber());
@@ -340,13 +345,14 @@ public class OrderService implements iOrder {
 
         if (!order.canBeCancelled()) {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_MODIFIED,
-                    "Không thể hủy đơn hàng ở trạng thái " + order.getStatus());
+                    "Không thể hủy đơn hàng ở trạng thái " + order.getCurrentStatus());
         }
 
-        order.setStatus(OrderStatus.CANCELLED);
+        order.appendStatus(OrderStatus.CANCELLED);
         order.setCancellationReason(request.getCancellationReason());
         order.setCancelledAt(LocalDateTime.now());
         order.setCancelledBy(securityUtil.getCurrentUser().map(u -> u.getId().toString()).orElse(null));
+        order.getAuditInfo().addUpdateEntry("Hủy đơn hàng: " + request.getCancellationReason(), securityUtil.getCurrentUsername());
 
         Order savedOrder = orderRepository.save(order);
         log.info("Order {} cancelled: {}", order.getOrderNumber(), request.getCancellationReason());
@@ -393,12 +399,13 @@ public class OrderService implements iOrder {
         Order order = orderRepository.findById(convertStringToLong(orderId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
-        if (order.getStatus() != OrderStatus.DELIVERED) {
+        if (order.getCurrentStatus() != OrderStatus.DELIVERED) {
             throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "Chỉ có thể hoàn thành đơn hàng đã giao");
         }
 
-        order.setStatus(OrderStatus.COMPLETED);
+        order.appendStatus(OrderStatus.COMPLETED);
         order.setCompletedAt(LocalDateTime.now());
+        order.getAuditInfo().addUpdateEntry("Hoàn thành đơn hàng", securityUtil.getCurrentUsername());
 
         Order savedOrder = orderRepository.save(order);
 
@@ -472,8 +479,7 @@ public class OrderService implements iOrder {
     private Order buildOrderFromRequest(CreateOrderRequest request, User customer, Address address) {
         return Order.builder()
                 .orderNumber(generateOrderNumber())
-                .orderDate(LocalDateTime.now())
-                .status(OrderStatus.PENDING)
+                .status(new ArrayList<>(List.of(OrderStatus.PENDING)))
                 .customer(customer)
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
@@ -482,7 +488,7 @@ public class OrderService implements iOrder {
                 .shippingInfo(address)
                 .customerNotes(request.getCustomerNotes())
                 .discountCode(request.getDiscountCode()) // chưa làm
-                .shippingFee(30000.0)  // chưa làm
+                .shippingFee(30000.0) // chưa làm
                 .auditInfo(new AuditInfo())
                 .build();
     }
@@ -599,7 +605,7 @@ public class OrderService implements iOrder {
     private Pageable createPageable(OrderSearchRequest request) {
         int page = request.getPage() != null ? request.getPage() : 0;
         int size = request.getSize() != null ? request.getSize() : 20;
-        String sortBy = request.getSortBy() != null ? request.getSortBy() : "orderDate";
+        String sortBy = request.getSortBy() != null ? request.getSortBy() : "auditInfo.createdAt";
         String sortDirection = request.getSortDirection() != null ? request.getSortDirection() : "DESC";
 
         Sort sort = sortDirection.equalsIgnoreCase("ASC") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
@@ -623,11 +629,12 @@ public class OrderService implements iOrder {
             }
 
             if (request.getOrderStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), request.getOrderStatus()));
+                // Vì status giờ là TEXT lưu JSON ["PENDING", "PAID"], dùng LIKE để tìm kiếm
+                predicates.add(cb.like(root.get("status").as(String.class), "%\"" + request.getOrderStatus().name() + "\"%"));
             }
 
             if (request.getStartDate() != null && request.getEndDate() != null) {
-                predicates.add(cb.between(root.get("orderDate"), request.getStartDate(), request.getEndDate()));
+                predicates.add(cb.between(root.get("auditInfo").get("createdAt"), request.getStartDate(), request.getEndDate()));
             }
 
             if (request.getMinAmount() != null) {
@@ -669,5 +676,13 @@ public class OrderService implements iOrder {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("ID phải là một số nguyên hợp lệ.");
         }
+    }
+    @Transactional
+    public void setStatus(String orderNumber, OrderStatus status) {
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Lỗi: Đơn hàng không tồn tại."));
+        order.appendStatus(status);
+        String updatedBy = "Hệ thống xử lý trạng thái đơn hàng.";
+        order.getAuditInfo().addUpdateEntry(status.toString(), updatedBy);
     }
 }

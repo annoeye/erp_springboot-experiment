@@ -134,8 +134,7 @@ public class ProductService implements iProduct {
         if (product.getAuditInfo() == null) {
             product.setAuditInfo(new AuditInfo());
         }
-        product.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        product.getAuditInfo().setUpdatedBy(securityUtil.getCurrentUsername());
+        product.getAuditInfo().addUpdateEntry("Cập nhật thông tin sản phẩm", securityUtil.getCurrentUsername());
 
         log.info("Đã cập nhật sản phẩm '{}' với ID {}", product.getName(), product.getId());
         productRepository.save(product);
@@ -280,6 +279,7 @@ public class ProductService implements iProduct {
 
         List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
+        product.getAuditInfo().addUpdateEntry("Thêm " + newItems.size() + " ảnh sản phẩm", securityUtil.getCurrentUsername());
         log.info("Đã thêm {} ảnh mới vào sản phẩm {}", newItems.size(), productId);
 
         return Response.ok(productRepository.save(product), "Thêm ảnh thành công.");
@@ -304,6 +304,7 @@ public class ProductService implements iProduct {
         }
 
         product.getMediaItems().remove(itemToDelete);
+        product.getAuditInfo().addUpdateEntry("Xóa ảnh sản phẩm: " + imageKey, securityUtil.getCurrentUsername());
 
         log.info("Đã xóa ảnh {} khỏi sản phẩm {}", imageKey, productId);
 
@@ -340,6 +341,7 @@ public class ProductService implements iProduct {
 
         List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
+        product.getAuditInfo().addUpdateEntry("Thay thế " + newItems.size() + " ảnh sản phẩm", securityUtil.getCurrentUsername());
         log.info("Đã thay thế {} ảnh cho sản phẩm {}", newItems.size(), productId);
 
         // Trả về DTO thay vì Entity

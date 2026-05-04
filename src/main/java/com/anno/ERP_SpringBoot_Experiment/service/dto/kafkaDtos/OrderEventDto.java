@@ -31,6 +31,7 @@ public class OrderEventDto {
      */
     String orderDescription;
 
+
     CustomerInfo customerInfo;
 
     PaymentOptions paymentOptions;

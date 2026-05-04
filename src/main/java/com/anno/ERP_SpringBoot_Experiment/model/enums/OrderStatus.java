@@ -9,11 +9,11 @@ public enum OrderStatus {
     PENDING("Chờ xác nhận"),
     CONFIRMED("Đã xác nhận"),
     PROCESSING("Đang xử lý"),
-    PACKED("Đã đóng gói"),
     SHIPPED("Đang giao hàng"),
     DELIVERED("Đã giao hàng"),
     COMPLETED("Hoàn thành"),
     CANCELLED("Đã hủy"),
+    RETURNING("Hoàn trả hàng"),
     RETURNED("Đã trả hàng"),
     REFUNDED("Đã hoàn tiền");
 

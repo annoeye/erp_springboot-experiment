@@ -8,8 +8,9 @@ import lombok.RequiredArgsConstructor;
 public enum PaymentStatus {
     UNPAID("Chưa thanh toán"),
     PENDING("Đang xử lý"),
-    PARTIAL("Thanh toán một phần"),
+    COD("Thanh toán khi nhận hàng"),
     PAID("Đã thanh toán"),
+    REFUND_FAILED("Xử lý thanh toán hoàn trả hàng thất bại"),
     REFUNDED("Đã hoàn tiền"),
     FAILED("Thanh toán thất bại"),
     CANCELLED("Đã hủy");
