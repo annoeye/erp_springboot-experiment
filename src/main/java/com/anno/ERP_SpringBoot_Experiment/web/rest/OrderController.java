@@ -1,10 +1,8 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest;
 
-import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CancelOrderRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.OrderSearchRequest;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateOrderRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.OrderAdminResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.OrderUserResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import jakarta.validation.Valid;
@@ -18,129 +16,101 @@ public interface OrderController {
 
     /* ==================== Customer Order Operations ==================== */
 
-    /**
-     * Tạo order mới
-     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    Response<OrderDto> createOrder(@Valid @RequestBody CreateOrderRequest request);
+    Response<OrderUserResponse> createOrder(@Valid @RequestBody CreateOrderRequest request);
 
-    /**
-     * Tạo order từ shopping cart
-     */
-    @PostMapping("/from-cart/{cartId}")
-    @ResponseStatus(HttpStatus.CREATED)
-    Response<OrderDto> createOrderFromCart(
-            @PathVariable String cartId,
-            @Valid @RequestBody CreateOrderRequest request
-    );
-
-    /**
-     * Tạo order từ booking
-     */
-    @PostMapping("/from-booking/{bookingId}")
-    @ResponseStatus(HttpStatus.CREATED)
-    Response<OrderDto> createOrderFromBooking(
-            @PathVariable String bookingId,
-            @Valid @RequestBody CreateOrderRequest request
-    );
-
-    /**
-     * Lấy thông tin order theo ID
-     */
     @GetMapping("/{orderId}")
     @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> getOrderById(@PathVariable String orderId);
+    Response<OrderUserResponse> getOrderById(@PathVariable String orderId);
 
-    /**
-     * Lấy thông tin order theo order number
-     */
     @GetMapping("/number/{orderNumber}")
     @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> getOrderByOrderNumber(@PathVariable String orderNumber);
+    Response<OrderUserResponse> getOrderByOrderNumber(@PathVariable String orderNumber);
 
-    /**
-     * Lấy danh sách orders của customer hiện tại
-     */
     @PostMapping("/my-orders")
     @ResponseStatus(HttpStatus.OK)
-    Response<PagingResponse<OrderDto>> getMyOrders(@RequestBody OrderSearchRequest request);
+    Response<PagingResponse<OrderUserResponse>> getMyOrders(@RequestBody OrderSearchRequest request);
 
-    /**
-     * Hủy order
-     */
     @PostMapping("/cancel")
     @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> cancelOrder(@Valid @RequestBody CancelOrderRequest request);
+    Response<OrderUserResponse> cancelOrder(@Valid @RequestBody CancelOrderRequest request);
 
     /* ==================== Admin Order Operations ==================== */
 
-    /**
-     * Tìm kiếm orders (Admin)
-     */
     @PostMapping("/search")
     @ResponseStatus(HttpStatus.OK)
-    Response<PagingResponse<OrderDto>> searchOrders(@RequestBody OrderSearchRequest request);
+    Response<PagingResponse<OrderAdminResponse>> searchOrders(@RequestBody OrderSearchRequest request);
 
-    /**
-     * Cập nhật order (Admin)
-     */
-    @PutMapping
+    @PutMapping("/shipping")
     @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> updateOrder(@Valid @RequestBody UpdateOrderRequest request);
+    Response<OrderAdminResponse> updateShipping(@Valid @RequestBody UpdateShippingRequest request);
 
-    /**
-     * Cập nhật status của order (Admin)
-     */
-//    @PatchMapping("/{orderId}/status")
-//    @ResponseStatus(HttpStatus.OK)
-//    Response<OrderDto> updateOrderStatus(
-//            @PathVariable String orderId,
-//            @RequestParam OrderStatus status
-//    );
-
-    /**
-     * Xác nhận order (Admin)
-     */
-    @PostMapping("/{orderId}/confirm")
+    @PutMapping("/delivery")
     @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> confirmOrder(@PathVariable String orderId);
+    Response<OrderAdminResponse> updateDelivery(@Valid @RequestBody UpdateDeliveryRequest request);
 
-    /**
-     * Đánh dấu order đã giao hàng (Admin/Shipper)
-     */
-//    @PostMapping("/{orderId}/delivered")
-//    @ResponseStatus(HttpStatus.OK)
-//    Response<OrderDto> markAsDelivered(@PathVariable String orderId);
-
-    /**
-     * Hoàn thành order (Admin)
-     */
-    @PostMapping("/{orderId}/complete")
+    @PutMapping("/admin-notes")
     @ResponseStatus(HttpStatus.OK)
-    Response<OrderDto> completeOrder(@PathVariable String orderId);
+    Response<OrderAdminResponse> updateAdminNotes(@Valid @RequestBody UpdateAdminNotesRequest request);
 
-    /**
-     * Lấy danh sách orders cần xử lý (Admin)
-     */
+    @PostMapping("/confirm")
+    @ResponseStatus(HttpStatus.OK)
+    Response<OrderAdminResponse> confirmOrder(@Valid @RequestBody ConfirmOrderRequest request);
+
+    @PostMapping("/complete")
+    @ResponseStatus(HttpStatus.OK)
+    Response<OrderAdminResponse> completeOrder(@Valid @RequestBody CompleteOrderRequest request);
+
     @GetMapping("/pending")
     @ResponseStatus(HttpStatus.OK)
-    Response<List<OrderDto>> getPendingOrders();
+    Response<List<OrderAdminResponse>> getPendingOrders();
 
-    /**
-     * Lấy danh sách orders đang giao hàng (Admin)
-     */
     @GetMapping("/in-progress")
     @ResponseStatus(HttpStatus.OK)
-    Response<List<OrderDto>> getInProgressOrders();
+    Response<List<OrderAdminResponse>> getInProgressOrders();
 
-    /**
-     * Thống kê orders (Admin)
-     */
     @GetMapping("/statistics")
     @ResponseStatus(HttpStatus.OK)
     Response<?> getOrderStatistics(
             @RequestParam String startDate,
-            @RequestParam String endDate
-    );
+            @RequestParam String endDate);
+
+    /*
+     * ==================== Order Status Transitions (Dashboard)
+     * ====================
+     */
+
+    /**
+     * Dashboard Admin chuyển trạng thái đơn hàng.
+     * Dùng cho: PROCESSING, DELIVERED, READY_FOR_PICKUP, RETURNING, RETURNED,
+     * COMPLETED.
+     * SHIPPED phải dùng endpoint riêng (cần thông tin tài xế).
+     */
+    @PostMapping("/transition")
+    @ResponseStatus(HttpStatus.OK)
+    Response<OrderAdminResponse> transitionOrder(@Valid @RequestBody TransitionOrderRequest request);
+
+    /**
+     * Dashboard Admin chuyển sang SHIPPED — bắt buộc có thông tin tài xế.
+     * Hệ thống sẽ tự sinh delivery token + PIN và lưu vào Redis.
+     */
+    @PostMapping("/ship")
+    @ResponseStatus(HttpStatus.OK)
+    Response<?> shipOrder(@Valid @RequestBody TransitionOrderRequest request);
+
+    /**
+     * Admin xem PIN hiện tại của shipper.
+     */
+    @GetMapping("/delivery-pin/{orderNumber}")
+    @ResponseStatus(HttpStatus.OK)
+    Response<?> getDeliveryPin(@PathVariable String orderNumber);
+
+    /**
+     * Admin xóa PIN → shipper mở link lại sẽ thấy màn hình tạo PIN mới.
+     * Dùng khi shipper quên PIN hoặc cần đổi máy.
+     */
+    @DeleteMapping("/delivery-pin/{orderNumber}")
+    @ResponseStatus(HttpStatus.OK)
+    Response<?> clearDeliveryPin(@PathVariable String orderNumber);
 }

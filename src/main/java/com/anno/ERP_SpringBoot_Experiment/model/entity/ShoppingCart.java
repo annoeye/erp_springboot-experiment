@@ -80,6 +80,15 @@ public class ShoppingCart extends IdentityOnly<Long> {
     @Builder.Default
     Double totalDiscount = 0.0;
 
+    /**
+     * Thoi diem tuong tac cuoi cung voi gio hang.
+     * Dung de xac dinh khi nao can doc dep (theo Rank cua User).
+     *
+     * @en Last activity timestamp. Used by cleanup job based on User rank.
+     */
+    @Column(name = "last_activity_at")
+    java.time.LocalDateTime lastActivityAt;
+
     public void addItems(List<ProductQuantity> itemsToAdd) {
         if (itemsToAdd == null || itemsToAdd.isEmpty()) {
             return;
@@ -134,5 +143,16 @@ public class ShoppingCart extends IdentityOnly<Long> {
         this.totalPrice = totalPrice != null ? totalPrice : 0.0;
         this.totalSalePrice = totalSalePrice != null ? totalSalePrice : 0.0;
         this.totalDiscount = this.totalPrice - this.totalSalePrice;
+        touchActivity();
+    }
+
+    /**
+     * Cap nhat thoi diem tuong tac cuoi cung.
+     * Goi moi khi gio hang co thay doi (them/xoa/cap nhat).
+     *
+     * @en Update last activity timestamp on every cart change.
+     */
+    public void touchActivity() {
+        this.lastActivityAt = java.time.LocalDateTime.now();
     }
 }

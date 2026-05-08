@@ -15,7 +15,7 @@ public class KafkaTopicConfig {
 
     @Bean
     public NewTopic orderCreatedTopic() {
-        return new NewTopic(KafkaTopics.ORDER_CREATED_TOPIC, 2, (short) 1);
+        return new NewTopic(KafkaTopics.ORDER_TOPIC, 2, (short) 1);
     }
 
     @Bean

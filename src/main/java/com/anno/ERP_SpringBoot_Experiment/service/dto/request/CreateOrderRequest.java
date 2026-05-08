@@ -2,7 +2,6 @@ package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.model.enums.PaymentMethod;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -11,6 +10,7 @@ import java.util.List;
 
 /**
  * Request DTO để tạo Order mới.
+ * Hỗ trợ cả tạo trực tiếp (có items) và tạo từ giỏ hàng (có cartId).
  */
 @Data
 @Builder
@@ -20,10 +20,24 @@ import java.util.List;
 public class CreateOrderRequest {
 
     /**
-     * Danh sách sản phẩm trong đơn hàng (bắt buộc, ít nhất 1 item).
+     * Danh sách sản phẩm trong đơn hàng.
+     * Bắt buộc nếu không có cartId hoặc bookingId.
      */
-    @NotEmpty(message = "Order phải có ít nhất 1 sản phẩm")
     List<OrderItemRequest> items;
+
+    /**
+     * Cờ đánh dấu tạo đơn hàng từ giỏ hàng (optional).
+     * Nếu là true, hệ thống sẽ tự động lấy giỏ hàng của user đang đăng nhập.
+     */
+    @JsonProperty("is_from_cart")
+    boolean isFromCart;
+
+    /**
+     * ID booking (optional).
+     * Nếu có, sẽ lấy items từ booking.
+     */
+    @JsonProperty("booking_id")
+    String bookingId;
 
     /**
      * Thông tin giao hàng (bắt buộc).
@@ -57,6 +71,18 @@ public class CreateOrderRequest {
     PaymentMethod paymentMethod;
 
     /**
+     * Ngôn ngữ thanh toán (vn, en)
+     */
+    @JsonProperty("language")
+    String language;
+
+    /**
+     * Mã ngân hàng (nếu có, dùng cho VNPay...)
+     */
+    @JsonProperty("bank_code")
+    String bankCode;
+
+    /**
      * Chi tiết một sản phẩm trong Order.
      */
     @Data
@@ -80,3 +106,4 @@ public class CreateOrderRequest {
         Integer quantity;
     }
 }
+

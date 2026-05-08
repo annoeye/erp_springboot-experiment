@@ -87,8 +87,10 @@ public class ShoppingCartService implements iShoppingCart {
 
         helper.recalculateAndUpdateTotals(cart);
 
-        cart.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        cart.getAuditInfo().setUpdatedBy(username);
+        if (cart.getAuditInfo() == null) {
+            cart.setAuditInfo(new com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo());
+        }
+        cart.getAuditInfo().addUpdateEntry("Cập nhật giỏ hàng", username);
 
         ShoppingCart savedCart = shoppingCartRepository.save(cart);
         log.info("User {} đã cập nhật giỏ hàng với {} items", username, items.size());
@@ -127,8 +129,10 @@ public class ShoppingCartService implements iShoppingCart {
 
         helper.recalculateAndUpdateTotals(cart);
 
-        cart.getAuditInfo().setUpdatedAt(LocalDateTime.now());
-        cart.getAuditInfo().setUpdatedBy(username);
+        if (cart.getAuditInfo() == null) {
+            cart.setAuditInfo(new com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo());
+        }
+        cart.getAuditInfo().addUpdateEntry("Xóa sản phẩm khỏi giỏ hàng", username);
 
         ShoppingCart savedCart = shoppingCartRepository.save(cart);
         log.info("User {} đã xóa {} sản phẩm khỏi giỏ hàng", username, removedCount);

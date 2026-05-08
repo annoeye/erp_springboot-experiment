@@ -21,6 +21,12 @@ public class Address extends IdentityOnly<Long> {
     @Column(name = "shipping_address", length = 500)
     String address;
 
+    @Column(name = "latitude")
+    Double latitude;
+
+    @Column(name = "longitude")
+    Double longitude;
+
     @Column(name = "shipping_phone", length = 20)
     String phoneNumber;
 

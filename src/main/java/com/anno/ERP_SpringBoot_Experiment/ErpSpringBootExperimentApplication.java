@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 
 @SpringBootApplication
 @EnableConfigurationProperties({ SecurityProperties.class, MinioProperties.class, CacheProperties.class })
+@org.springframework.scheduling.annotation.EnableScheduling
 public class ErpSpringBootExperimentApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ErpSpringBootExperimentApplication.class);

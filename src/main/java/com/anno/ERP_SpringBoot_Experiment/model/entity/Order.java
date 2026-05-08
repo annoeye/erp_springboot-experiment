@@ -14,10 +14,10 @@ import java.util.List;
 
 @Entity
 @Table(name = "orders", indexes = {
-        @Index(name = "idx_order_number", columnList = "order_number"),
-        @Index(name = "idx_order_status", columnList = "order_status"),
-        @Index(name = "idx_customer_id", columnList = "customer_id"),
-        @Index(name = "idx_tracking_number", columnList = "tracking_number")
+                @Index(name = "idx_order_number", columnList = "order_number"),
+                @Index(name = "idx_order_status", columnList = "order_status"),
+                @Index(name = "idx_customer_id", columnList = "customer_id"),
+                @Index(name = "idx_tracking_number", columnList = "tracking_number")
 })
 @Getter
 @Setter
@@ -46,8 +46,8 @@ public class Order extends IdentityOnly<Long> {
          * Trạng thái hiện tại là phần tử cuối cùng.
          *
          * @en Order status history, append-only.
-         * Stored as JSON: ["PENDING","CONFIRMED","COMPLETED"]
-         * Current status is the last element.
+         *     Stored as JSON: ["PENDING","CONFIRMED","COMPLETED"]
+         *     Current status is the last element.
          */
         @Convert(converter = OrderStatusListConverter.class)
         @Column(name = "order_status", nullable = false, columnDefinition = "TEXT")
@@ -300,83 +300,5 @@ public class Order extends IdentityOnly<Long> {
         @Embedded
         @Builder.Default
         AuditInfo auditInfo = new AuditInfo();
-
-        /*
-         * ============================ 🔧 Helper Methods ============================
-         */
-
-        /**
-         * Thêm order item vào đơn hàng
-         */
-        public void addOrderItem(OrderItem item) {
-                orderItems.add(item);
-                item.setOrder(this);
-        }
-
-        /**
-         * Xóa order item khỏi đơn hàng
-         */
-        public void removeOrderItem(OrderItem item) {
-                orderItems.remove(item);
-                item.setOrder(null);
-        }
-
-        /**
-         * Tính toán lại tổng tiền đơn hàng
-         */
-        public void calculateTotals() {
-                // Tính subtotal từ các order items
-                this.subtotal = orderItems.stream()
-                                .mapToDouble(item -> item.getSubtotal() != null ? item.getSubtotal() : 0.0)
-                                .sum();
-
-                // Tính tổng thuế
-                this.taxAmount = orderItems.stream()
-                                .mapToDouble(item -> item.getTaxAmount() != null ? item.getTaxAmount() : 0.0)
-                                .sum();
-
-                // Tính tổng tiền = subtotal - discount + shipping + tax
-                this.totalAmount = this.subtotal - this.discountAmount + this.shippingFee + this.taxAmount;
-                this.totalAmount = Math.max(0, this.totalAmount); // Đảm bảo không âm
-        }
-
-        /**
-         * Lấy trạng thái hiện tại (phần tử cuối cùng trong list).
-         *
-         * @en Get current status (last element in the list).
-         */
-        public OrderStatus getCurrentStatus() {
-                if (status == null || status.isEmpty()) return null;
-                return status.getLast();
-        }
-
-        /**
-         * Append trạng thái mới — không bao giờ xóa.
-         *
-         * @en Append a new status — never deleted.
-         */
-        public void appendStatus(OrderStatus newStatus) {
-                if (this.status == null) this.status = new ArrayList<>();
-                this.status.add(newStatus);
-        }
-
-        /**
-         * Kiểm tra xem đơn hàng có thể hủy không
-         */
-        public boolean canBeCancelled() {
-                OrderStatus current = getCurrentStatus();
-                return current == OrderStatus.PENDING ||
-                                current == OrderStatus.CONFIRMED ||
-                                current == OrderStatus.PROCESSING;
-        }
-
-        /**
-         * Kiểm tra xem đơn hàng có thể hoàn trả không
-         */
-        public boolean canBeReturned() {
-                OrderStatus current = getCurrentStatus();
-                return current == OrderStatus.DELIVERED ||
-                                current == OrderStatus.COMPLETED;
-        }
 
 }

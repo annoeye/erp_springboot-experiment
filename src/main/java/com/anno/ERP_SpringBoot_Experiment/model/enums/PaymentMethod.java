@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum PaymentMethod {
-    VNBANK("Chuyển khoản ngân hàng VNPay"),
+    VNPAY("Chuyển khoản ngân hàng VNPay"),
     CARD("Khách có thẻ Visa/Master"),
     PAYPAL("Khách có tài khoản PayPal"),
     GOOGLE_PAY("GOOGLE_PAY"),

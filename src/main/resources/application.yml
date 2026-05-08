@@ -17,6 +17,8 @@ spring:
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
+    mapper:
+      default-view-inclusion: true
 
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/XEPDB1
@@ -36,7 +38,7 @@ spring:
         linger.ms: 5
 
     consumer:
-      group-id: 
+      group-id: erp-service-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest

@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest.impl;
 
+import com.anno.ERP_SpringBoot_Experiment.config.ViewResolver;
 import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.AttributesService;
 import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.CategoryService;
 import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.ProductService;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,8 +71,11 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
      @Override
      @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
-     public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request)
-     { return productService.searchProducts(request); }
+     public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request) {
+         // JsonView duoc ap dung tu dong thong qua cau hinh ObjectMapper
+         // hoac su dung MappingJacksonValue o cac endpoint tra ve Response wrapper
+         return productService.searchProducts(request);
+     }
 
     /************* Product Images Management *****************/
 
@@ -140,7 +145,6 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Operation(summary = "Tìm kiếm danh mục", description = "Tìm kiếm danh mục theo các tiêu chí với phân trang")
     public Response<PagingResponse<CategoryDto>> searchCategory(@RequestBody CategorySearchRequest request) {
         final Page<CategoryDto> categories = categoryService.search(request);
-        final PagingRequest page = request.getPaging();
 
         return Response.ok(
                 PagingResponse.<CategoryDto>builder()

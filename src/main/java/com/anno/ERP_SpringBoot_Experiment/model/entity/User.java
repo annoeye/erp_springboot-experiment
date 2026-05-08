@@ -6,6 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuthCode;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.UserRank;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -139,6 +140,16 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(name = "gender")
     Gender gender;
+
+    /**
+     * Hang thanh vien
+     * 
+     * @en User rank / loyalty tier
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_rank", length = 20)
+    @Builder.Default
+    UserRank rank = UserRank.MEMBER;
 
     /* ============================ 🔐 UserDetails ============================ */
 

@@ -215,11 +215,7 @@
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>com.anno</groupId>
-            <artifactId>ERP_SpringBoot-Experiment</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
+
     </dependencies>
 
     <build>
