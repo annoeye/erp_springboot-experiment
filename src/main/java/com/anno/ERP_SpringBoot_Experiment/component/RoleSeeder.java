@@ -6,6 +6,7 @@ import com.anno.ERP_SpringBoot_Experiment.repository.RoleRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -19,7 +20,16 @@ public class RoleSeeder {
     private final RoleRepository roleRepository;
 
     @PostConstruct
-    public void seedRoles() {
+    public void init() {
+        try {
+            System.out.println("Đang kiểm tra và tạo dữ liệu Role mặc định...");
+            seedRoles();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void seedRoles() {
         List<RoleType> missingRoles = Arrays.stream(RoleType.values())
                 .filter(roleType -> roleRepository.findByName(roleType.name()).isEmpty())
                 .toList();

@@ -96,11 +96,11 @@ public class Helper {
     }
 
     public void handleAddItem(ShoppingCart cart, ProductQuantity item, Attributes attributes) {
-        String attributesId = item.getAttributesId();
+        String sku = item.getSku();
         int quantityToAdd = item.getQuantity();
 
         Optional<ProductQuantity> existingItem = cart.getItems().stream()
-                .filter(i -> i.getAttributesId().equals(attributesId))
+                .filter(i -> i.getSku().equals(sku))
                 .findFirst();
 
         int currentQuantity = existingItem.map(ProductQuantity::getQuantity).orElse(0);
@@ -117,35 +117,35 @@ public class Helper {
         if (existingItem.isPresent()) {
             existingItem.get().setQuantity(newTotalQuantity);
             log.debug("Cập nhật số lượng sản phẩm {} từ {} lên {}",
-                    attributesId, currentQuantity, newTotalQuantity);
+                    sku, currentQuantity, newTotalQuantity);
         } else {
             cart.addItems(List.of(item));
-            log.debug("Thêm mới sản phẩm {} với số lượng {}", attributesId, quantityToAdd);
+            log.debug("Thêm mới sản phẩm {} với số lượng {}", sku, quantityToAdd);
         }
     }
 
-    public void handleDecreaseItem(ShoppingCart cart, ProductQuantity item, String attributesId) {
+    public void handleDecreaseItem(ShoppingCart cart, ProductQuantity item, String sku) {
         int quantityToDecrease = Math.abs(item.getQuantity()); // Chuyển về số dương
 
         Optional<ProductQuantity> existingItem = cart.getItems().stream()
-                .filter(i -> i.getAttributesId().equals(attributesId))
+                .filter(i -> i.getSku().equals(sku))
                 .findFirst();
 
         if (existingItem.isEmpty()) {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
-                    "Sản phẩm " + attributesId + " không có trong giỏ hàng");
+                    "Sản phẩm " + sku + " không có trong giỏ hàng");
         }
 
         int currentQuantity = existingItem.get().getQuantity();
         int newQuantity = currentQuantity - quantityToDecrease;
 
         if (newQuantity <= 0) {
-            cart.getItems().removeIf(i -> i.getAttributesId().equals(attributesId));
-            log.debug("Xóa sản phẩm {} khỏi giỏ hàng do số lượng <= 0", attributesId);
+            cart.getItems().removeIf(i -> i.getSku().equals(sku));
+            log.debug("Xóa sản phẩm {} khỏi giỏ hàng do số lượng <= 0", sku);
         } else {
             existingItem.get().setQuantity(newQuantity);
             log.debug("Giảm số lượng sản phẩm {} từ {} xuống {}",
-                    attributesId, currentQuantity, newQuantity);
+                    sku, currentQuantity, newQuantity);
         }
     }
 
@@ -156,15 +156,15 @@ public class Helper {
             return;
         }
 
-        List<String> attributesIds = cart.getItems().stream()
-                .map(ProductQuantity::getAttributesId)
+        List<String> skus = cart.getItems().stream()
+                .map(ProductQuantity::getSku)
                 .toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
-                .findAllById(attributesIds.stream().map(Long::valueOf).toList())
+                .findAllBySku_skuIn(skus)
                 .stream()
                 .collect(Collectors.toMap(
-                        a -> a.getId().toString(),
+                        a -> a.getSku().getSku(),
                         a -> a));
 
         int totalItems = cart.getItems().stream()
@@ -173,7 +173,7 @@ public class Helper {
 
         double totalPrice = cart.getItems().stream()
                 .mapToDouble(item -> {
-                    Attributes attributes = attributesMap.get(item.getAttributesId());
+                    Attributes attributes = attributesMap.get(item.getSku());
                     if (attributes != null) {
                         return attributes.getPrice() * item.getQuantity();
                     }
@@ -183,7 +183,7 @@ public class Helper {
 
         double totalDiscount = cart.getItems().stream()
                 .mapToDouble(item -> {
-                    Attributes attributes = attributesMap.get(item.getAttributesId());
+                    Attributes attributes = attributesMap.get(item.getSku());
                     if (attributes != null && attributes.getSalePrice() > 0) {
                         return (attributes.getPrice() - attributes.getSalePrice()) * item.getQuantity();
                     }

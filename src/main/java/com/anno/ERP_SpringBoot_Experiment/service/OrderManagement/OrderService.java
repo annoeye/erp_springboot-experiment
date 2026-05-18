@@ -84,7 +84,7 @@ public class OrderService implements iOrder {
             orderItems = cart.getItems().stream()
                     .map(item -> {
                         Attributes attributes = attributesRepository
-                                .findById(convertStringToLong(item.getAttributesId()))
+                                .findAttributesBySku_sku(item.getSku())
                                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
                                         "Không tìm thấy sản phẩm"));
                         return buildOrderItem(attributes, item.getQuantity(), order);
@@ -105,7 +105,7 @@ public class OrderService implements iOrder {
             orderItems = booking.getProducts().stream()
                     .map(item -> {
                         Attributes attributes = attributesRepository
-                                .findById(convertStringToLong(item.getAttributesId()))
+                                .findAttributesBySku_sku(item.getSku())
                                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
                                         "Không tìm thấy sản phẩm"));
                         return buildOrderItem(attributes, item.getQuantity(), order);

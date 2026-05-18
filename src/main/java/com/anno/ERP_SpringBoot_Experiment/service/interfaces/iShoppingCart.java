@@ -9,5 +9,5 @@ import java.util.List;
 public interface iShoppingCart {
 
     Response<ShoppingCartDto> add(final List<ProductQuantity> items);
-    Response<ShoppingCartDto> remove(final List<String> attributesIds);
+    Response<ShoppingCartDto> remove(final List<String> skus);
 }

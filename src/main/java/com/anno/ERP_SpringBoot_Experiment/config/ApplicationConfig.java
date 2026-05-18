@@ -21,4 +21,6 @@ public class ApplicationConfig {
         return configuration.getAuthenticationManager();
     }
 
+
+
 }

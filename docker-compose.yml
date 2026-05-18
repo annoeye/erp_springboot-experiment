@@ -15,6 +15,11 @@ services:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      TZ: Asia/Ho_Chi_Minh
+      SPRING_DATASOURCE_USERNAME: system
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      INTEGRATION_MINIO_URL: http://minio:9000
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -27,7 +32,7 @@ services:
     image: container-registry.oracle.com/database/express:21.3.0-xe
     container_name: oracle-db
     environment:
-      ORACLE_PWD: ddinhnn11
+      ORACLE_PWD: ${DB_PASSWORD}
       ORACLE_CHARACTERSET: AL32UTF8
     ports:
       - "1521:1521"
@@ -35,7 +40,7 @@ services:
     volumes:
       - ./oracle-data:/opt/oracle/oradata
     healthcheck:
-      test: ["CMD", "tnsping", "XE", "1"]
+      test: [ "CMD", "tnsping", "XE", "1" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -58,8 +63,14 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok"
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.3.0
@@ -70,7 +81,8 @@ services:
       - "9092:9092"
       - "9093:9093"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -167,4 +179,3 @@ volumes:
     driver: local
   mongodb_live_data:
     driver: local
-

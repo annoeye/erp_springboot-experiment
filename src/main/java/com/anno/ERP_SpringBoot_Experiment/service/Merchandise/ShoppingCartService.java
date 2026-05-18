@@ -51,37 +51,37 @@ public class ShoppingCartService implements iShoppingCart {
         ShoppingCart cart = shoppingCartRepository.findByUser(user)
                 .orElseGet(() -> helper.createNewCart(user));
 
-        List<String> attributesIds = items.stream()
-                .map(ProductQuantity::getAttributesId)
+        List<String> skus = items.stream()
+                .map(ProductQuantity::getSku)
                 .distinct()
                 .toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
-                .findAllById(attributesIds.stream().map(Long::valueOf).toList())
+                .findAllBySku_skuIn(skus)
                 .stream()
                 .collect(Collectors.toMap(
-                        a -> a.getId().toString(),
+                        a -> a.getSku().getSku(),
                         a -> a));
 
         for (ProductQuantity item : items) {
-            String attributesId = item.getAttributesId();
+            String sku = item.getSku();
             int quantity = item.getQuantity();
 
-            Attributes attributes = attributesMap.get(attributesId);
+            Attributes attributes = attributesMap.get(sku);
             if (attributes == null) {
                 throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
-                        "Sản phẩm " + attributesId + " không tồn tại");
+                        "Sản phẩm " + sku + " không tồn tại");
             }
 
             if (quantity == 0) {
-                cart.getItems().removeIf(i -> i.getAttributesId().equals(attributesId));
-                log.info("Đã xóa sản phẩm {} khỏi giỏ hàng của user {}", attributesId, username);
+                cart.getItems().removeIf(i -> i.getSku().equals(sku));
+                log.info("Đã xóa sản phẩm {} khỏi giỏ hàng của user {}", sku, username);
 
             } else if (quantity > 0) {
                 helper.handleAddItem(cart, item, attributes);
 
             } else {
-                helper.handleDecreaseItem(cart, item, attributesId);
+                helper.handleDecreaseItem(cart, item, sku);
             }
         }
 
@@ -102,8 +102,8 @@ public class ShoppingCartService implements iShoppingCart {
 
     @Override
     @Transactional
-    public Response<ShoppingCartDto> remove(final List<String> attributesIds) {
-        if (attributesIds == null || attributesIds.isEmpty()) {
+    public Response<ShoppingCartDto> remove(final List<String> skus) {
+        if (skus == null || skus.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Danh sách sản phẩm cần xóa không được rỗng");
         }
 
@@ -115,9 +115,9 @@ public class ShoppingCartService implements iShoppingCart {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Giỏ hàng không tồn tại"));
 
         int removedCount = 0;
-        for (String attributesId : attributesIds) {
+        for (String sku : skus) {
             boolean removed = cart.getItems().removeIf(
-                    item -> item.getAttributesId().equals(attributesId));
+                    item -> item.getSku().equals(sku));
             if (removed) {
                 removedCount++;
             }

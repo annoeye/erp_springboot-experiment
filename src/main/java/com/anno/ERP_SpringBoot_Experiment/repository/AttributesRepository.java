@@ -23,6 +23,8 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
 
         Optional<Attributes> findAttributesById(Long id);
 
+        List<Attributes> findAllBySku_skuIn(List<String> skus);
+
         @Query("SELECT a FROM Attributes a WHERE a.id IN :ids")
         List<Attributes> getQuantityAttributesById(@Param("ids") List<Long> ids);
 

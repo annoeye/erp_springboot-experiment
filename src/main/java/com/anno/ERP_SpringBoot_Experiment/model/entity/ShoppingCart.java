@@ -105,7 +105,7 @@ public class ShoppingCart extends IdentityOnly<Long> {
 
             boolean found = false;
             for (ProductQuantity existingItem : this.items) {
-                if (existingItem.getAttributesId().equals(itemToAdd.getAttributesId())) {
+                if (existingItem.getSku().equals(itemToAdd.getSku())) {
                     existingItem.setQuantity(existingItem.getQuantity() + itemToAdd.getQuantity());
                     found = true;
                     break;
@@ -125,7 +125,7 @@ public class ShoppingCart extends IdentityOnly<Long> {
 
         for (ProductQuantity itemToRemove : itemsToRemove) {
             this.items.removeIf(existingItem -> {
-                if (existingItem.getAttributesId().equals(itemToRemove.getAttributesId())) {
+                if (existingItem.getSku().equals(itemToRemove.getSku())) {
                     if (itemToRemove.getQuantity() >= existingItem.getQuantity()) {
                         return true;
                     } else {

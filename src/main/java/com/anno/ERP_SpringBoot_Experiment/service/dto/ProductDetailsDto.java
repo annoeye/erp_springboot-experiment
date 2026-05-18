@@ -9,8 +9,8 @@ import lombok.*;
 @Getter
 @Setter
 public class ProductDetailsDto {
-    @Column(name = "attributes_id")
-    String attributesId;
+    @Column(name = "sku")
+    String sku;
 
     int quantity;
 }

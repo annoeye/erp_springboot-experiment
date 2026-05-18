@@ -42,21 +42,21 @@ public class BookingService implements iBooking {
         final var booking = new Booking();
         final var audit = new AuditInfo();
 
-        List<String> attributesIds = request.getProducts().stream()
-                .map(ProductQuantity::getAttributesId).toList();
+        List<String> skus = request.getProducts().stream()
+                .map(ProductQuantity::getSku).toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
-                .findAllById(attributesIds.stream().map(Long::valueOf).toList())
-                .stream().collect(Collectors.toMap(a -> a.getId().toString(), Function.identity()));
+                .findAllBySku_skuIn(skus)
+                .stream().collect(Collectors.toMap(a -> a.getSku().getSku(), Function.identity()));
 
-        if (attributesMap.size() != attributesIds.size()) {
+        if (attributesMap.size() != skus.size()) {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
                     "Một hoặc nhiều thuộc tính sản phẩm không tồn tại.");
         }
 
         double totalPrice = request.getProducts().stream()
                 .mapToDouble(p -> {
-                    Attributes attributes = attributesMap.get(p.getAttributesId());
+                    Attributes attributes = attributesMap.get(p.getSku());
                     return attributes.getSalePrice() > 0 ? attributes.getSalePrice()
                             : attributes.getPrice() * p.getQuantity();
                 }).sum();

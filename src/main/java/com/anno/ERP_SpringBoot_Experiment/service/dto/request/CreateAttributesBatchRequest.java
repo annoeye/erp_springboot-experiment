@@ -1,8 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
 import com.anno.ERP_SpringBoot_Experiment.common.annotation.NormalizedId;
-import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -17,41 +15,17 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Request DTO để tạo batch Attributes (variants) cho Product.
- * Tự động tạo tổ hợp từ danh sách variantGroups.
+ * Request DTO để tạo batch Attributes (variants) cho Product thông qua productId.
  */
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateAttributesBatchRequest {
 
     /**
-     * Tên variant (bắt buộc).
+     * Tên sản phẩm chung cho tất cả biến thể.
      */
     @NotBlank(message = "Không được để trống name.")
     String name;
-
-    /**
-     * Giá bán (bắt buộc).
-     */
-    @NotNull(message = "Không được để trống giá.")
-    double price;
-
-    /**
-     * Giá khuyến mãi (optional).
-     */
-    double salePrice;
-
-    /**
-     * Số lượng tồn kho (bắt buộc).
-     */
-    @NotNull(message = "Không được để trống số lượng")
-    int stockQuantity;
-
-    /**
-     * Trạng thái tồn kho (bắt buộc).
-     */
-    @NotNull(message = "Không được để trống trạng thái hàng.")
-    StockStatus statusProduct;
 
     /**
      * ID của Product chứa variant này (bắt buộc).
@@ -65,20 +39,14 @@ public class CreateAttributesBatchRequest {
     String productId;
 
     /**
-     * Các nhóm variant option để tạo tổ hợp (bắt buộc).
-     * VD: [ {key:"Color", values:["Đen","Trắng"]}, {key:"Size", values:["S","M"]} ]
-     */
-    @NotEmpty(message = "Phải có ít nhất 1 variant group")
-    @Valid
-    List<VariantGroupInput> variantGroups;
-
-    /**
-     * Thông số kỹ thuật (optional).
-     */
-    List<SpecificationGroupDto> specifications;
-
-    /**
-     * Từ khóa SEO (optional).
+     * Từ khóa SEO chung.
      */
     Set<String> keywords;
+
+    /**
+     * Danh sách các biến thể cụ thể đã được gán giá và số lượng.
+     */
+    @NotEmpty(message = "Phải có ít nhất 1 biến thể")
+    @Valid
+    List<AttributeInput> attributes;
 }

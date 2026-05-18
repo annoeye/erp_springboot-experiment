@@ -1,6 +1,7 @@
 spring:
   application:
     name: ERP_SpringBoot-Experiment
+
 #  profiles:
 #    active: dev
 
@@ -25,6 +26,8 @@ spring:
     username: Spring_app
     password: ddinhnn11
     driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      initialization-fail-timeout: -1
 
   kafka:
     bootstrap-servers: localhost:9093
@@ -49,6 +52,8 @@ spring:
     listener:
       concurrency: 3
       ack-mode: manual
+      auto-startup: false
+      missing-topics-fatal: false
 
   jpa:
     hibernate:

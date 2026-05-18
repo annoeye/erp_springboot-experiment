@@ -97,7 +97,9 @@ public class ProductService implements iProduct {
                         .category(category)
                         .skuInfo(SkuInfo.builder()
                                 .sku(new SkuInfo().createSku("prd-").getSku()
-                                        .replaceFirst("-", "-" + request.getCategorySku().substring(request.getCategorySku().length() - 2)))
+                                        .replaceFirst("-",
+                                                "-" + request.getCategorySku()
+                                                        .substring(request.getCategorySku().length() - 2)))
                                 .build())
                         .auditInfo(AuditInfo.builder()
                                 .createdAt(LocalDateTime.now())
@@ -109,7 +111,7 @@ public class ProductService implements iProduct {
                                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
                                         "Định dạng không hợp lệ!")))
                         .build());
-        return Response.ok("Thêm sản phẩm '" +request.getName() + "' thành công.");
+        return Response.ok("Thêm sản phẩm '" + request.getName() + "' thành công.");
     }
 
     @Override
@@ -279,7 +281,8 @@ public class ProductService implements iProduct {
 
         List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
-        product.getAuditInfo().addUpdateEntry("Thêm " + newItems.size() + " ảnh sản phẩm", securityUtil.getCurrentUsername());
+        product.getAuditInfo().addUpdateEntry("Thêm " + newItems.size() + " ảnh sản phẩm",
+                securityUtil.getCurrentUsername());
         log.info("Đã thêm {} ảnh mới vào sản phẩm {}", newItems.size(), productId);
 
         return Response.ok(productRepository.save(product), "Thêm ảnh thành công.");
@@ -341,7 +344,8 @@ public class ProductService implements iProduct {
 
         List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
-        product.getAuditInfo().addUpdateEntry("Thay thế " + newItems.size() + " ảnh sản phẩm", securityUtil.getCurrentUsername());
+        product.getAuditInfo().addUpdateEntry("Thay thế " + newItems.size() + " ảnh sản phẩm",
+                securityUtil.getCurrentUsername());
         log.info("Đã thay thế {} ảnh cho sản phẩm {}", newItems.size(), productId);
 
         // Trả về DTO thay vì Entity

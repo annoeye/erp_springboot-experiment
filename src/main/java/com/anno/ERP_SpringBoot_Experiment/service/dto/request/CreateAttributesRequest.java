@@ -1,8 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
-import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.PromotionDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -17,46 +14,17 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Request DTO để tạo Attributes (variant) cho Product.
- * Tự động tạo tổ hợp từ danh sách variantGroups.
+ * Request DTO để tạo danh sách biến thể cụ thể cho Product.
  */
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateAttributesRequest {
 
     /**
-     * Tên variant (bắt buộc).
+     * Tên sản phẩm chung cho tất cả biến thể.
      */
     @NotBlank(message = "Không được để trống name.")
     String name;
-
-    /**
-     * Giá bán (bắt buộc).
-     */
-    @NotNull(message = "Không được để trống giá.")
-    double price;
-
-    /**
-     * Giá khuyến mãi (optional).
-     */
-    double salePrice;
-
-    /**
-     * Số lượng tồn kho (bắt buộc).
-     */
-    @NotNull(message = "Không được để trống số lượng")
-    int stockQuantity;
-
-    /**
-     * Trạng thái tồn kho (bắt buộc).
-     */
-    @NotNull(message = "Không được để trống trạng thái hàng.")
-    StockStatus statusProduct;
-
-    /**
-     * Từ khóa SEO (optional).
-     */
-    Set<String> keywords;
 
     /**
      * Sku của Product chứa variant này (bắt buộc).
@@ -67,22 +35,14 @@ public class CreateAttributesRequest {
     String productSku;
 
     /**
-     * Thông số kỹ thuật (optional).
+     * Từ khóa SEO chung.
      */
-    List<SpecificationGroupDto> specifications;
+    Set<String> keywords;
 
     /**
-     * Ưu đãi (promotion).
+     * Danh sách các biến thể cụ thể đã được gán giá và số lượng.
      */
-    List<PromotionDto> promotions;
-
-    /**
-     * Các nhóm variant option để tạo tổ hợp (bắt buộc, ít nhất 1).
-     * VD: [ {key:"Color", values:["Đen","Trắng"]}, {key:"Storage",
-     * values:["128GB","256GB"]} ]
-     * → Tạo 4 variants: Đen-128GB, Đen-256GB, Trắng-128GB, Trắng-256GB
-     */
-    @NotEmpty(message = "Phải có ít nhất 1 variant group")
+    @NotEmpty(message = "Phải có ít nhất 1 biến thể")
     @Valid
-    List<VariantGroupInput> variantGroups;
+    List<AttributeInput> attributes;
 }

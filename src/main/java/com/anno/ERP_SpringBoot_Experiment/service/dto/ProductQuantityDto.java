@@ -9,6 +9,6 @@ import java.io.Serializable;
  */
 @Value
 public class ProductQuantityDto implements Serializable {
-    String attributesId;
+    String sku;
     int quantity;
 }
