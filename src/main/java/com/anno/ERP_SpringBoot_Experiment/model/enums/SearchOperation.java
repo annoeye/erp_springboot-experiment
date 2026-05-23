@@ -1,5 +1,8 @@
 package com.anno.ERP_SpringBoot_Experiment.model.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum SearchOperation {
     EQUALITY(":"), NEGATION("!"), GREATER_THAN(">"), LESS_THAN("<"), LIKE("~"), STARTS_WITH(""), ENDS_WITH(""), CONTAINS(""), IN("IN");
 
@@ -9,7 +12,4 @@ public enum SearchOperation {
         this.symbol = symbol;
     }
 
-    public String getSymbol() {
-        return symbol;
-    }
 }
