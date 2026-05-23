@@ -5,7 +5,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
 import org.mapstruct.*;
 
-@Mapper(
+@Mapper(builder = @org.mapstruct.Builder(disableBuilder = true), 
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
         componentModel = MappingConstants.ComponentModel.SPRING,
         uses = {CategoryMapper.class}

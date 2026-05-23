@@ -5,20 +5,27 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.OrderAdminResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.OrderUserResponse;
 import org.mapstruct.*;
+import java.util.List;
 
-@Mapper(
+@Mapper(builder = @org.mapstruct.Builder(disableBuilder = true), 
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
         componentModel = MappingConstants.ComponentModel.SPRING,
         uses = {OrderItemMapper.class}
 )
 public interface OrderMapper extends EntityMapper<OrderDto, Order> {
 
+    @Named("toDto")
     @Mapping(target = "currentStatus", expression = "java(order.getStatus() != null && !order.getStatus().isEmpty() ? order.getStatus().get(order.getStatus().size() - 1) : null)")
     OrderDto toDto(Order order);
 
+    @IterableMapping(qualifiedByName = "toDto")
+    List<OrderDto> toDto(List<Order> entityList);
+
+    @Named("toAdminResponse")
     @Mapping(target = "currentStatus", expression = "java(order.getStatus() != null && !order.getStatus().isEmpty() ? order.getStatus().get(order.getStatus().size() - 1) : null)")
     OrderAdminResponse toAdminResponse(Order order);
 
+    @Named("toUserResponse")
     @Mapping(target = "currentStatus", expression = "java(order.getStatus() != null && !order.getStatus().isEmpty() ? order.getStatus().get(order.getStatus().size() - 1) : null)")
     OrderUserResponse toUserResponse(Order order);
 

@@ -14,7 +14,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "Category", indexes = {
-        @Index(name = "idx_category_id", columnList = "id",  unique = true),
+                @Index(name = "idx_category_id", columnList = "id", unique = true),
 })
 @Getter
 @Setter
@@ -24,33 +24,34 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Category extends BaseEntity<Long> {
 
-    /**
-     * Thông tin kiểm toán
-     * @en Audit info
-     */
-    @Embedded
-    @Builder.Default
-    AuditInfo auditInfo = new AuditInfo();
+        @Column(name = "name")
+        String name;
 
-    /**
-     * Thông tin SKU
-     * @en SKU info
-     */
-    @Embedded
-    @AttributeOverrides(@AttributeOverride(name = "sku", column = @Column(name = "sku_name")))
-    SkuInfo skuInfo;
+        /**
+         * Thông tin kiểm toán
+         * 
+         * @en Audit info
+         */
+        @Embedded
+        @Builder.Default
+        AuditInfo auditInfo = new AuditInfo();
 
-    /**
-     * Danh sách sản phẩm
-     * @en Products list
-     */
-    @OneToMany(
-            mappedBy = "category",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
-    )
-    @JsonIgnore
-    @Builder.Default
-    List<Product> products = new ArrayList<>();
+        /**
+         * Thông tin SKU
+         * 
+         * @en SKU info
+         */
+        @Embedded
+        @AttributeOverrides(@AttributeOverride(name = "sku", column = @Column(name = "sku_name")))
+        SkuInfo skuInfo;
+
+        /**
+         * Danh sách sản phẩm
+         * 
+         * @en Products list
+         */
+        @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+        @JsonIgnore
+        @Builder.Default
+        List<Product> products = new ArrayList<>();
 }

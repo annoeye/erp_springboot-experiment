@@ -160,7 +160,7 @@ public class ProductService implements iProduct {
             criteriaList.add(new SearchCriteria("name", ":", request.getKeyword()));
         }
 
-        if (!CollectionUtils.isEmpty(request.getCreatedBy())) {
+        if (StringUtils.hasText(request.getCreatedBy())) {
             criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
         }
 

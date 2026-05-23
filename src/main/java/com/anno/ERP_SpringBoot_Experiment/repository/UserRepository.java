@@ -19,13 +19,13 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findByEmail(String email);
 
-    @Query("SELECT u FROM User u WHERE u.name = :name")
+    @Query("SELECT u FROM User u WHERE u.fullName = :name")
     Optional<User> findByName(@Param("name") String name);
 
-    @Query("SELECT u FROM User u WHERE u.name = :value OR u.email = :value")
+    @Query("SELECT u FROM User u WHERE u.fullName = :value OR u.email = :value")
     Optional<User> findByNameOrEmail(@Param("value") String value);
 
-    @Query("SELECT u FROM User u WHERE u.name = :name OR u.email = :email")
+    @Query("SELECT u FROM User u WHERE u.fullName = :name OR u.email = :email")
     Optional<User> findByNameAndEmail(@Param("name") String name, @Param("email") String email);
 
     long count();

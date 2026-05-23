@@ -74,20 +74,20 @@ public class AttributesService implements iAttributes {
                                     .replaceFirst("-", "-" + request.getProductSku().substring(request.getProductSku().length() - 3)))
                             .build())
                     .name(request.getName())
-                    .price(item.getPrice())
-                    .salePrice(item.getSalePrice())
+                    .price(item.getPrice() != null ? item.getPrice().doubleValue() : 0.0)
+                    .salePrice(item.getSalePrice() != null ? item.getSalePrice().doubleValue() : 0.0)
                     .stockQuantity(item.getStockQuantity())
                     .variantOptions((item.getVariantOptions() != null && !item.getVariantOptions().isEmpty())
                             ? item.getVariantOptions().stream()
-                                    .map(dto -> new VariantOption(dto.getKey(), dto.getValue(), dto.getTarget()))
+                                    .map(dto -> new VariantOption(dto.getName(), dto.getValues()))
                                     .toList()
                             : new ArrayList<>())
                     .keywords(request.getKeywords())
                     .promotions((item.getPromotions() != null && !item.getPromotions().isEmpty())
-                            ? item.getPromotions().stream().map(promotionMapper::toEntity).toList()
+                            ? item.getPromotions()
                             : new ArrayList<>())
                     .specifications((item.getSpecifications() != null && !item.getSpecifications().isEmpty())
-                            ? mapSpecificationGroups(item.getSpecifications())
+                            ? item.getSpecifications()
                             : new ArrayList<>())
                     .statusProduct(item.getStatusProduct() != null ? item.getStatusProduct() : StockStatus.NOT_ACTIVE)
                     .build();
@@ -142,7 +142,7 @@ public class AttributesService implements iAttributes {
 
         if (request.getVariantOptions() != null && !request.getVariantOptions().isEmpty()) {
             List<VariantOption> variantOptions = request.getVariantOptions().stream()
-                    .map(dto -> new VariantOption(dto.getKey(), dto.getValue(), dto.getTarget()))
+                    .map(dto -> new VariantOption(dto.getName(), dto.getValues()))
                     .toList();
             attributes.setVariantOptions(variantOptions);
         }
@@ -159,12 +159,24 @@ public class AttributesService implements iAttributes {
         }
 
         if (request.getSpecifications() != null) {
-            attributes.setSpecifications(mapSpecificationGroups(request.getSpecifications()));
+            List<SpecificationGroup> groups = request.getSpecifications().stream()
+                    .map(dto -> SpecificationGroup.builder()
+                            .groupName(dto.getGroupName())
+                            .specifications(dto.getSpecifications() != null
+                                    ? dto.getSpecifications().stream()
+                                            .map(specificationMapper::toEntity)
+                                            .toList()
+                                    : new ArrayList<>())
+                            .build())
+                    .toList();
+            attributes.setSpecifications(groups);
         }
 
-        attributes.getPromotions().clear();
-        attributes.getPromotions().addAll(
-                promotionMapper.toEntity(request.getPromotions()));
+        if (request.getPromotions() != null) {
+            attributes.getPromotions().clear();
+            attributes.getPromotions().addAll(
+                    promotionMapper.toEntity(request.getPromotions()));
+        }
 
         if (request.getStatus() != null) {
             attributes.setStatusProduct(request.getStatus());
@@ -334,24 +346,6 @@ public class AttributesService implements iAttributes {
 
 
 
-    /**
-     * Map List<SpecificationGroupDto> → List<SpecificationGroup>
-     */
-    private List<SpecificationGroup> mapSpecificationGroups(
-            List<com.anno.ERP_SpringBoot_Experiment.service.dto.SpecificationGroupDto> dtos) {
-        if (dtos == null)
-            return new ArrayList<>();
-        return dtos.stream().map(dto -> SpecificationGroup.builder()
-                .title(dto.getTitle())
-                .items(dto.getItems() != null
-                        ? dto.getItems().stream()
-                                .map(item -> Specificationa.builder()
-                                        .key(item.getKey())
-                                        .data(item.getData())
-                                        .build())
-                                .toList()
-                        : new ArrayList<>())
-                .build()).toList();
-    }
+    // Removed mapSpecificationGroups as it is no longer needed
 
 }

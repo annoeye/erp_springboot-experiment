@@ -87,6 +87,6 @@ public class Response<T> {
 
     @JsonIgnore
     public String getMessage() {
-        return status != null ? status.getMessage() : null;
+        return status != null ? status.name() : null;
     }
 }

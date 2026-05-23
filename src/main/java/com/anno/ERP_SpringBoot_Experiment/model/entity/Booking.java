@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.ProductQuantity;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.BookingStatus;
 import jakarta.persistence.*;
@@ -20,13 +19,6 @@ import java.util.List;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Booking extends BaseEntity<Long> {
-
-    /**
-     * Thông tin kiểm toán
-     * @en Audit info
-     */
-    @Embedded
-    AuditInfo auditInfo = new AuditInfo();
 
     /**
      * Danh sách sản phẩm
@@ -86,4 +78,8 @@ public class Booking extends BaseEntity<Long> {
      */
     @Enumerated(EnumType.STRING)
     BookingStatus status;
+
+    public void setName(String name) {
+        this.customerName = name;
+    }
 }

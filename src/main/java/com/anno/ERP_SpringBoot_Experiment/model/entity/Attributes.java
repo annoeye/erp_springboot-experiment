@@ -42,6 +42,12 @@ public class Attributes extends BaseEntity      <Long> {
         SkuInfo sku;
 
         /**
+         * Tên thuộc tính
+         */
+        @Column(name = "name")
+        String name;
+
+        /**
          * Giá
          * 
          * @en Price

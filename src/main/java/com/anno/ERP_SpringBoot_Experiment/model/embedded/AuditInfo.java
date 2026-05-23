@@ -36,7 +36,7 @@ public class AuditInfo {
      * @en Creation timestamp — set only once.
      */
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", insertable = false, updatable = false)
     LocalDateTime createdAt;
 
     /**
@@ -45,7 +45,7 @@ public class AuditInfo {
      * @en Created by — set only once.
      */
     @CreatedBy
-    @Column(name = "created_by", updatable = false)
+    @Column(name = "created_by", insertable = false, updatable = false)
     String createdBy;
 
     /*
@@ -58,7 +58,7 @@ public class AuditInfo {
      *
      * @en Latest update timestamp — used for search / indexing.
      */
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", insertable = false, updatable = false)
     LocalDateTime updatedAt;
 
     /**

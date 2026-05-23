@@ -65,7 +65,6 @@ public class BookingService implements iBooking {
         audit.setCreatedBy(securityUtil.getCurrentUsername());
 
         booking.setName(request.getName());
-        booking.setAuditInfo(audit);
         booking.setProducts(request.getProducts());
         booking.setCustomerName(request.getCustomerName());
         booking.setTotalPrice(totalPrice);

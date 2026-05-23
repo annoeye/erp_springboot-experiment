@@ -186,4 +186,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
     public boolean isEnabled() {
         return status == ActiveStatus.ACTIVE;
     }
+
+    public String getName() {
+        return this.fullName;
+    }
+
+    public void setName(String name) {
+        this.fullName = name;
+    }
 }

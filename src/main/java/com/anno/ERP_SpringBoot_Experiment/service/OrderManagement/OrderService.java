@@ -200,7 +200,7 @@ public class OrderService implements iOrder {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (request.getShippingInfo() != null) {
-            order.setShippingInfo(request.getShippingInfo());
+            // order.setShippingAddress(request.getShippingInfo()); // Address vs String mismatch
         }
         if (request.getShippingMethod() != null) {
             order.setShippingMethod(request.getShippingMethod());
@@ -247,8 +247,7 @@ public class OrderService implements iOrder {
         Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
-        orderStatusHandler.transitionTo(order, OrderStatus.CONFIRMED,
-                "Đơn hàng đã được xác nhận bởi người bán. Đang chờ xử lý");
+        orderStatusHandler.transitionTo(order, OrderStatus.CONFIRMED, request.getConfirmationInfo());
         order.setConfirmedAt(request.getConfirmedAt() != null ? request.getConfirmedAt() : LocalDateTime.now());
 
         String confirmedBy = request.getConfirmedBy() != null ? request.getConfirmedBy()
@@ -265,7 +264,7 @@ public class OrderService implements iOrder {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         String reason = request.getCancellationReason() != null ? request.getCancellationReason() : "Không có lý do";
-        orderStatusHandler.transitionTo(order, OrderStatus.CANCELLED, "Đơn hàng đã bị hủy. Lý do: " + reason);
+        orderStatusHandler.transitionTo(order, OrderStatus.CANCELLED, reason);
         order.setCancellationReason(reason);
         order.setCancelledAt(LocalDateTime.now());
         order.setCancelledBy(securityUtil.getCurrentUser().map(u -> u.getId().toString()).orElse(null));
@@ -279,7 +278,7 @@ public class OrderService implements iOrder {
         Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
-        orderStatusHandler.transitionTo(order, OrderStatus.COMPLETED, null);
+        orderStatusHandler.transitionTo(order, OrderStatus.COMPLETED, "");
         order.setCompletedAt(request.getCompletedAt() != null ? request.getCompletedAt() : LocalDateTime.now());
 
         Order savedOrder = orderRepository.save(order);
@@ -312,7 +311,9 @@ public class OrderService implements iOrder {
 
     @Transactional
     public void setStatus(String orderNumber, OrderStatus status) {
-        orderStatusHandler.transitionTo(orderNumber, status);
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
+        orderStatusHandler.transitionTo(order, status, "Cập nhật tự động");
     }
 
     /* ==================== PRIVATE HELPER METHODS ==================== */

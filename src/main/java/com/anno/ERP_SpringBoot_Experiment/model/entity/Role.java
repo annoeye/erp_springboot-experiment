@@ -13,4 +13,6 @@ import lombok.experimental.FieldDefaults;
 @Entity
 @Table(name = "roles")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Role extends BaseEntity<Long> {}
+public class Role extends BaseEntity<Long> {
+    private String name;
+}

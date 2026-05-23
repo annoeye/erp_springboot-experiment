@@ -11,11 +11,17 @@ import java.io.Serializable;
 import java.util.List;
 
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
 /**
  * DTO for {@link Product}
  */
-@Value
+@Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProductDto implements Serializable {
 
     @JsonView(Views.User.class)
