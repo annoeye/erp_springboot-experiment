@@ -34,3 +34,5 @@ build/
 
 ### Oracle - DB ###
 oracle-data
+.aider*
+.env

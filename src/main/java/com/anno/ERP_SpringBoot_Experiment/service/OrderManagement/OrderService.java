@@ -11,6 +11,8 @@ import com.anno.ERP_SpringBoot_Experiment.repository.*;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.BillService.BillService;
+import com.anno.ERP_SpringBoot_Experiment.service.OutboxOrderHelper;
+import com.anno.ERP_SpringBoot_Experiment.service.OrderInventoryService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.kafkaDtos.CustomerInfo;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.kafkaDtos.OrderEventDto;
@@ -58,6 +60,8 @@ public class OrderService implements iOrder {
     private final BillService billService;
     private final OrderKafkaProducer orderKafkaProducer;
     private final OrderStatusHandler orderStatusHandler;
+    private final OutboxOrderHelper outboxOrderHelper;
+    private final OrderInventoryService orderInventoryService;
 
     @Override
     @Transactional
@@ -148,7 +152,9 @@ public class OrderService implements iOrder {
         Order savedOrder = orderRepository.save(order);
         log.info("Tạo đơn hàng thành công: {}", savedOrder.getOrderNumber());
 
-        sendKafkaEvent(savedOrder, request);
+        // Lưu event vào Outbox thay vì gửi Kafka trực tiếp
+        // Đảm bảo event được lưu cùng transaction với order
+        outboxOrderHelper.saveOrderCreatedEvent(savedOrder, request);
 
         return Response.ok(orderMapper.toDto(savedOrder));
     }
