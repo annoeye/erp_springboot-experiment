@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.service;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.OutboxEvent;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Order;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateOrderRequest;
 import com.anno.ERP_SpringBoot_Experiment.repository.OutboxEventRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.kafkaDtos.CustomerInfo;
@@ -52,7 +53,7 @@ public class OutboxOrderHelper {
                     .orderId(order.getOrderNumber())
                     .orderDescription("Thanh toan don hang " + order.getOrderNumber())
                     .customerInfo(CustomerInfo.builder()
-                            .appUserId(order.getCustomer() != null ? order.getCustomer().getId() : null)
+                            .appUserId(order.getCustomer() != null ? String.valueOf(order.getCustomer().getId()) : null)
                             .ipAddress(securityUtil.getIpAddress())
                             .language("vn")
                             .build())
@@ -61,7 +62,6 @@ public class OutboxOrderHelper {
                             .bankCode(bankCode)
                             .extraData("Don hang: " + order.getOrderNumber())
                             .build())
-                    .correlationId(correlationId)
                     .build();
 
             String payload = objectMapper.writeValueAsString(eventDto);

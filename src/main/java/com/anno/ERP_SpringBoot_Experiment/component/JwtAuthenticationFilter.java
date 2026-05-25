@@ -115,11 +115,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String mapJwtExceptionToMessage(Exception e) {
         return switch (e) {
-            case ExpiredJwtException _ -> "Token đã hết hạn";
-            case UnsupportedJwtException _ -> "Token không được hỗ trợ";
-            case MalformedJwtException _ -> "Token không đúng định dạng";
-            case SignatureException _ -> "Chữ ký JWT không hợp lệ";
-            case IllegalArgumentException _ -> "Token không hợp lệ hoặc rỗng";
+            case ExpiredJwtException ignored -> "Token đã hết hạn";
+            case UnsupportedJwtException ignored -> "Token không được hỗ trợ";
+            case MalformedJwtException ignored -> "Token không đúng định dạng";
+            case SignatureException ignored -> "Chữ ký JWT không hợp lệ";
+            case IllegalArgumentException ignored -> "Token không hợp lệ hoặc rỗng";
             default -> "Lỗi xác thực JWT: " + e.getMessage();
         };
     }

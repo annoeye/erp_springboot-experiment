@@ -24,20 +24,20 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public abstract class BaseEntity<T extends Serializable> extends IdentityOnly<T> {
-    
-    @Column(name = "created_by")
-    String createdBy;
 
-    @Column(name = "updated_by")
-    String updatedBy;
+  @Column(name = "created_by")
+  String createdBy;
 
-    @Column(name = "created_at")
-    LocalDateTime createdAt;
+  @Column(name = "updated_by")
+  String updatedBy;
 
-    @Column(name = "updated_at")
-    LocalDateTime updatedAt;
+  @Column(name = "created_at")
+  LocalDateTime createdAt;
 
-    @Builder.Default
-    @Column(name = "is_deleted")
-    Boolean isDeleted = false;
+  @Column(name = "updated_at")
+  LocalDateTime updatedAt;
+
+  @Builder.Default
+  @Column(name = "is_deleted")
+  Boolean isDeleted = false;
 }

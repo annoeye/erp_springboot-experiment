@@ -75,7 +75,7 @@ public class OrderInventoryService {
                 
                 if (!acquired) {
                     log.error("Failed to acquire lock for SKU: {}", sku);
-                    throw new BusinessException(ErrorCode.SERVICE_ERROR, 
+                    throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, 
                             "Hệ thống đang bận, vui lòng thử lại sau: " + sku);
                 }
                 acquiredLocks.add(lock);
@@ -122,7 +122,7 @@ public class OrderInventoryService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Lock acquisition interrupted", e);
-            throw new BusinessException(ErrorCode.SERVICE_ERROR, "Hệ thống đang bận, vui lòng thử lại");
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Hệ thống đang bận, vui lòng thử lại");
         } finally {
             // Always release locks
             for (RLock lock : acquiredLocks) {
@@ -201,7 +201,7 @@ public class OrderInventoryService {
      * @return ValidationResult chứa thông tin valid/invalid items
      */
     public ValidationResult validateCartItems(Map<String, Integer> skusWithQuantities) {
-        ValidationResult result = new ValidationResult();
+        ValidationResult result = ValidationResult.builder().build();
         
         for (Map.Entry<String, Integer> entry : skusWithQuantities.entrySet()) {
             String sku = entry.getKey();

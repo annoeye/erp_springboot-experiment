@@ -120,8 +120,10 @@ public class UserService implements iUser {
                         .build());
         return Response.ok(RegisterResponse.builder()
                 .message(someCondition
-                        ? (STR."Email đã tồn tại nhưng chưa xác thực. Một email xác thực mới đã được gửi đến \{helper.maskEmail(user.getEmail())}. Vui lòng kiểm tra.")
-                        : (STR."Một email xác thực đã được gửi đến \{helper.maskEmail(user.getEmail())}. Vui lòng kiểm tra."))
+                        ? String.format("Email đã tồn tại nhưng chưa xác thực. Một email xác thực mới đã được gửi đến %s. Vui lòng kiểm tra.",
+                                helper.maskEmail(user.getEmail()))
+                        : String.format("Một email xác thực đã được gửi đến %s. Vui lòng kiểm tra.",
+                                helper.maskEmail(user.getEmail())))
                 .build());
     }
 

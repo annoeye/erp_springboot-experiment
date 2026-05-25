@@ -54,8 +54,9 @@ public class Helper {
         String raw = text.replace("-", "");
 
         if (raw.length() != 32) {
-            throw new IllegalArgumentException(
-                    STR."Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID 36 ký tự, nhận được: \{text.length()} ký tự (sau khi xóa dấu '-': \{raw.length()} ký tự).");
+            throw new IllegalArgumentException(String.format(
+                    "Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID 36 ký tự, nhận được: %d ký tự (sau khi xóa dấu '-': %d ký tự).",
+                    text.length(), raw.length()));
         }
 
         return buildUUIDFromHex(raw);
