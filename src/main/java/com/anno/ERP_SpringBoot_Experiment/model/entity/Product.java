@@ -4,6 +4,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
+import java.time.LocalDateTime;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -152,4 +153,30 @@ public class Product extends BaseEntity<Long> {
         @Column(name = "review_count")
         @Builder.Default
         Integer reviewCount = 0;
+
+    /*
+     * ============================ 🏷️ Discount Fields ============================
+     */
+
+    /**
+     * Phần trăm giảm giá sản phẩm
+     * @en Product discount percent
+     */
+    @Column(name = "discount_percent")
+    @Builder.Default
+    Double discountPercent = 0.0;
+
+    /**
+     * Ngày bắt đầu giảm giá
+     * @en Discount start date
+     */
+    @Column(name = "discount_start_date")
+    LocalDateTime discountStartDate;
+
+    /**
+     * Ngày kết thúc giảm giá
+     * @en Discount end date
+     */
+    @Column(name = "discount_end_date")
+    LocalDateTime discountEndDate;
 }

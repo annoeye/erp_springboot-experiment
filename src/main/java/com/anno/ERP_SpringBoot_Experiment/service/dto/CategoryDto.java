@@ -27,4 +27,8 @@ public class CategoryDto implements Serializable {
     /** Thong tin SKU noi bo - Chi Admin thay */
     @JsonView(Views.Admin.class)
     SkuInfoDto skuInfo;
+
+    /** Số lượng sản phẩm trong danh mục */
+    @JsonView(Views.User.class)
+    Long productCount;
 }

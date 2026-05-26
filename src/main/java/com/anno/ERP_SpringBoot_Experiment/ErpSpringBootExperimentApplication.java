@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.cache.CacheProperties;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
@@ -15,6 +16,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @SpringBootApplication
+@EnableCaching
 @EnableConfigurationProperties({ SecurityProperties.class, MinioProperties.class, CacheProperties.class })
 @org.springframework.scheduling.annotation.EnableScheduling
 public class ErpSpringBootExperimentApplication {

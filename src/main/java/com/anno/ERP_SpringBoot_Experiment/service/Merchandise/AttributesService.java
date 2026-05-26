@@ -29,6 +29,8 @@ import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,6 +57,7 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
+    @CacheEvict(value = "attributes", allEntries = true)
     public Response<List<AttributesDto>> create(@NonNull CreateAttributesRequest request) {
         Product product = productRepository
                 .findProductBySkuInfo_Sku(request.getProductSku())
@@ -111,6 +114,7 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
+    @CacheEvict(value = "attributes", allEntries = true)
     public Response<?> update(@NonNull UpdateAttributesRequest request) {
 
         Attributes attributes = attributesRepository
@@ -192,6 +196,7 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
+    @CacheEvict(value = "attributes", allEntries = true)
     public Response<?> delete(@NonNull List<String> ids) {
         if (ids.isEmpty()) {
             throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Mã định danh không được để trống.");
@@ -259,6 +264,7 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
+    @Cacheable(value = "attributes", key = "#request.hashCode()")
     public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
         List<SearchCriteria> criteriaList = new ArrayList<>();
 

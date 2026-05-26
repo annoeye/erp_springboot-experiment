@@ -20,6 +20,8 @@ import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +42,7 @@ public class CategoryService implements iCategory {
     private final Helper featureMerchandiseHelper;
 
     @Override
+    @CacheEvict(value = "categories", allEntries = true)
     public Response<?> create(@NonNull final String name) {
         if (categoryRepository.existsAllByName(name)) {
             throw new BusinessException(ErrorCode.CATEGORY_ALREADY_EXISTS, "Danh mục đã tồn tại.");
@@ -62,6 +65,7 @@ public class CategoryService implements iCategory {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true)
     public Response<?> update(final UpdateCategoryRequest request) {
         Optional<Category> optionalCategory = categoryRepository
                 .findCategoryById(Long.valueOf(request.getId()));
@@ -75,6 +79,7 @@ public class CategoryService implements iCategory {
     }
 
     @Override
+    @CacheEvict(value = "categories", allEntries = true)
     public Response<?> delete(@NonNull final List<String> ids) {
         List<Long> idList = ids.stream()
                 .map(Long::valueOf)
@@ -86,6 +91,7 @@ public class CategoryService implements iCategory {
 
     @Override
     @Transactional
+    @Cacheable(value = "categories", key = "#request.hashCode()")
     public Page<CategoryDto> search(@NonNull final CategorySearchRequest request) {
         categoryRepository.deleteAllExpiredCategories();
 

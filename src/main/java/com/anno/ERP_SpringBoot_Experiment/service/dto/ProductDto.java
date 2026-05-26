@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -50,4 +51,20 @@ public class ProductDto implements Serializable {
     /** Tong doanh thu - Chi Admin/Manager thay */
     @JsonView(Views.Admin.class)
     java.math.BigDecimal totalRevenue;
+
+    /** Phần trăm giảm giá */
+    @JsonView(Views.User.class)
+    Double discountPercent;
+
+    /** Ngày bắt đầu giảm giá */
+    @JsonView(Views.Admin.class)
+    LocalDateTime discountStartDate;
+
+    /** Ngày kết thúc giảm giá */
+    @JsonView(Views.Admin.class)
+    LocalDateTime discountEndDate;
+
+    /** Tên danh mục (snapshot) */
+    @JsonView(Views.User.class)
+    String categoryName;
 }

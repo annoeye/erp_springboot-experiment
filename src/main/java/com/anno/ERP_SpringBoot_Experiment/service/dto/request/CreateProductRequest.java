@@ -8,6 +8,8 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 /**
  * Request DTO để tạo Product mới.
  */
@@ -26,4 +28,16 @@ public class CreateProductRequest {
 
     @JsonProperty("status")
     String status;
+
+    /** Phần trăm giảm giá (optional) */
+    @JsonProperty("discount_percent")
+    Double discountPercent;
+
+    /** Ngày bắt đầu giảm giá (optional) */
+    @JsonProperty("discount_start_date")
+    LocalDateTime discountStartDate;
+
+    /** Ngày kết thúc giảm giá (optional) */
+    @JsonProperty("discount_end_date")
+    LocalDateTime discountEndDate;
 }

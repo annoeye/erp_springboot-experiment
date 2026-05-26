@@ -37,4 +37,13 @@ public class UpdateProductRequest {
      * Trạng thái active của sản phẩm (optional).
      */
     ActiveStatus status;
+
+    /** Phần trăm giảm giá mới (optional) */
+    Double discountPercent;
+
+    /** Ngày bắt đầu giảm giá mới (optional) */
+    LocalDateTime discountStartDate;
+
+    /** Ngày kết thúc giảm giá mới (optional) */
+    LocalDateTime discountEndDate;
 }

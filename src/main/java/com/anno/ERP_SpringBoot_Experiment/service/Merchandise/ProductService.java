@@ -14,6 +14,8 @@ import com.anno.ERP_SpringBoot_Experiment.repository.specification.Specification
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.GetProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
@@ -86,6 +88,7 @@ public class ProductService implements iProduct {
     }
 
     @Override
+    @CacheEvict(value = "products", allEntries = true)
     public Response<?> addProduct(CreateProductRequest request) {
         Category category = categoryRepository
                 .findCategoryBySkuInfo_Sku(request.getCategorySku())
@@ -116,6 +119,7 @@ public class ProductService implements iProduct {
 
     @Override
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public Response<?> updateProduct(UpdateProductRequest request) {
         if (!StringUtils.hasText(request.getId())) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Sản phẩm không không được để trống.");
@@ -144,6 +148,7 @@ public class ProductService implements iProduct {
     }
 
     @Override
+    @CacheEvict(value = "products", allEntries = true)
     public Response<?> deleteProduct(@NonNull final List<Long> ids) {
         // xóa 1 list
         productRepository.softDeleteAllByIds(ids, securityUtil.getCurrentUsername());
@@ -152,6 +157,7 @@ public class ProductService implements iProduct {
 
     @Override
     @Transactional
+    @Cacheable(value = "products", key = "#request.hashCode()")
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
         List<SearchCriteria> criteriaList = new ArrayList<>();
 
