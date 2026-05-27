@@ -1,8 +1,9 @@
-
 package com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig;
 
+import com.anno.ERP_SpringBoot_Experiment.config.Views;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonView;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,7 +18,10 @@ import org.springframework.http.HttpStatus;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Response<T> {
 
+    @JsonView(Views.Public.class)
     ApiStatus status;
+
+    @JsonView(Views.Public.class)
     T data;
 
     public static <T> Response<T> ok(T data) {

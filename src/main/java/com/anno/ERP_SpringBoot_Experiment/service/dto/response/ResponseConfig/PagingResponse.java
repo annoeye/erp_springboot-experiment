@@ -1,5 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig;
 
+import com.anno.ERP_SpringBoot_Experiment.config.Views;
+import com.fasterxml.jackson.annotation.JsonView;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,8 +17,12 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PagingResponse<T> {
+
+    @JsonView(Views.Public.class)
     @Builder.Default
     List<T> contents = new ArrayList<>();
+
+    @JsonView(Views.Public.class)
     PageableData paging;
 
     public static <T> PagingResponse<T> from(Page<T> page) {

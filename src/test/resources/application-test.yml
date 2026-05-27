@@ -1,0 +1,86 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+    lazy-initialization: false
+
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+
+  # H2 in-memory database — Oracle compatibility mode
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      initialization-fail-timeout: -1
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  # Tắt Kafka — dùng stream test binder
+  cloud:
+    stream:
+      default-binder: test
+
+  # Tắt kafka listener
+  kafka:
+    bootstrap-servers: localhost:9999
+    listener:
+      auto-startup: false
+
+  # Tắt mail — sẽ throw exception nếu có
+  mail:
+    host: localhost
+    port: 9999
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+  data:
+    redis:
+      host: localhost
+      port: 9999
+
+  # Tắt cache cho test
+  cache:
+    type: none
+
+  # Tắt devtools
+  devtools:
+    restart:
+      enabled: false
+
+integration:
+  minio:
+    access-key: test
+    secret-key: test
+    url: http://localhost:9999
+    bucket: test-bucket
+
+# Tắt swagger trong test
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.test: INFO
+    com.anno.ERP_SpringBoot_Experiment: DEBUG
