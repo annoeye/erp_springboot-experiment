@@ -52,7 +52,7 @@ spring:
     listener:
       concurrency: 3
       ack-mode: manual
-      auto-startup: false
+      auto-startup: true
       missing-topics-fatal: false
 
   jpa:

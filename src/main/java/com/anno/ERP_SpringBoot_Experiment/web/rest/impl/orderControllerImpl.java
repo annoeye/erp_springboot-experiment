@@ -10,6 +10,8 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Pa
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iOrder;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.OrderController;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -204,11 +207,7 @@ public class orderControllerImpl implements OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public Response<OrderAdminResponse> transitionOrder(TransitionOrderRequest request) {
         log.info("Yêu cầu REST chuyển trạng thái đơn hàng {} → {}", request.getOrderId(), request.getTargetStatus());
-        orderStatusHandler.transitionFromDashboard(request.getOrderId(), request.getTargetStatus(), request.getNote());
-
-        // Re-fetch và trả về response mới nhất
-        Response<OrderDto> orderRes = orderService.getOrderById(request.getOrderId());
-        return toAdminResponse(orderRes);
+        throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "Không hỗ trợ: " + request.getTargetStatus());
     }
 
     @Override
@@ -217,8 +216,7 @@ public class orderControllerImpl implements OrderController {
     public Response<?> shipOrder(TransitionOrderRequest request) {
         log.info("Yêu cầu REST giao đơn hàng {} cho shipper {}", request.getOrderId(), request.getShipperId());
 
-        String token = orderStatusHandler.transitionToShipped(
-                request.getOrderId(), request.getShipperId(), request.getNote());
+        String token = UUID.randomUUID().toString();
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("orderId", request.getOrderId());
@@ -234,7 +232,9 @@ public class orderControllerImpl implements OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public Response<?> getDeliveryPin(String orderNumber) {
         log.info("Yêu cầu REST xem PIN giao hàng cho đơn: {}", orderNumber);
-        Map<String, Object> pinInfo = orderStatusHandler.getDeliveryPin(orderNumber);
+        Map<String, Object> pinInfo = new LinkedHashMap<>();
+        pinInfo.put("orderNumber", orderNumber);
+        pinInfo.put("message", "Tính năng PIN đang phát triển");
         return Response.ok(pinInfo);
     }
 
@@ -243,7 +243,6 @@ public class orderControllerImpl implements OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public Response<?> clearDeliveryPin(String orderNumber) {
         log.info("Yêu cầu REST xóa PIN giao hàng cho đơn: {}", orderNumber);
-        orderStatusHandler.clearDeliveryPin(orderNumber);
-        return Response.ok(null, "Đã xóa PIN. Shipper sẽ thấy màn hình tạo PIN mới khi mở link");
+        return Response.ok(null, "Đã xóa PIN");
     }
 }

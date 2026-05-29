@@ -151,7 +151,7 @@ public class SpecificationBuilder<T> {
         if (value instanceof List<?> listValue && !listValue.isEmpty()) {
             return path.in(listValue);
         }
-        return cb -> cb.equal(path, value);
+        return null;
     }
 
     private Path<?> resolvePath(Root<T> root, String key) {

@@ -288,6 +288,18 @@ public class Order extends IdentityOnly<Long> {
         @Column(name = "booking_id")
         String bookingId;
 
+        @Column(name = "shipper_id", length = 100)
+        String shipperId;
+
+        @Column(name = "shipper_name", length = 200)
+        String shipperName;
+
+        @Column(name = "shipper_phone", length = 20)
+        String shipperPhone;
+
+        @Column(name = "delivery_token", length = 255)
+        String deliveryToken;
+
         /*
          * ============================ 🧩 Embedded Fields ============================
          */

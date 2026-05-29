@@ -23,7 +23,7 @@ public class ErpSpringBootExperimentApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ErpSpringBootExperimentApplication.class);
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         final var app = new SpringApplication(ErpSpringBootExperimentApplication.class);
         final var env = app.run(args).getEnvironment();
         logApplicationStartup(env);

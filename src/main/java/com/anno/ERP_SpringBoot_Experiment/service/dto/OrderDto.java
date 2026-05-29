@@ -29,6 +29,9 @@ public class OrderDto {
     @JsonView(Views.User.class)
     OrderStatus currentStatus;
 
+    @JsonView(Views.User.class)
+    String currentStatusDescription;
+
     // Customer info
     /** Customer ID noi bo - Chi Admin thay */
     @JsonView(Views.Admin.class)

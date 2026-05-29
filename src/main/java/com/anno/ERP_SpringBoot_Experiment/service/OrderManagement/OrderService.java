@@ -1,6 +1,5 @@
 package com.anno.ERP_SpringBoot_Experiment.service.OrderManagement;
 
-import com.anno.ERP_SpringBoot_Experiment.event.producer.OrderKafkaProducer;
 import com.anno.ERP_SpringBoot_Experiment.mapper.OrderMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.*;
@@ -10,13 +9,9 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.SearchOperation;
 import com.anno.ERP_SpringBoot_Experiment.repository.*;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
-import com.anno.ERP_SpringBoot_Experiment.service.BillService.BillService;
 import com.anno.ERP_SpringBoot_Experiment.service.OutboxOrderHelper;
 import com.anno.ERP_SpringBoot_Experiment.service.OrderInventoryService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.OrderDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.kafkaDtos.CustomerInfo;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.kafkaDtos.OrderEventDto;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.kafkaDtos.PaymentOptions;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PageableData;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
@@ -38,8 +33,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -57,512 +51,333 @@ public class OrderService implements iOrder {
     private final BookingRepository bookingRepository;
     private final OrderMapper orderMapper;
     private final SecurityUtil securityUtil;
-    private final BillService billService;
-    private final OrderKafkaProducer orderKafkaProducer;
     private final OrderStatusHandler orderStatusHandler;
     private final OutboxOrderHelper outboxOrderHelper;
     private final OrderInventoryService orderInventoryService;
 
-    @Override
-    @Transactional
+    @Override @Transactional
     public Response<OrderDto> createOrder(CreateOrderRequest request) {
-        log.info("Đang tạo đơn hàng...");
-
-        User customer = securityUtil.getCurrentUser()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập để đặt hàng"));
-
-        Order order = buildOrderFromRequest(request, customer, null); // Address logic should be handled appropriately
-
-        List<OrderItem> orderItems = new ArrayList<>();
-
-        if (request.isFromCart()) {
-            // Logic cho Cart (tự động lấy theo user đang đăng nhập)
-            ShoppingCart cart = shoppingCartRepository.findByUser(customer)
-                    .orElseThrow(
-                            () -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy giỏ hàng của bạn"));
-
-            if (cart.getItems() == null || cart.getItems().isEmpty()) {
-                throw new BusinessException(ErrorCode.INVALID_REQUEST, "Giỏ hàng của bạn đang trống");
-            }
-
-            orderItems = cart.getItems().stream()
-                    .map(item -> {
-                        Attributes attributes = attributesRepository
-                                .findAttributesBySku_sku(item.getSku())
-                                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
-                                        "Không tìm thấy sản phẩm"));
-                        return buildOrderItem(attributes, item.getQuantity(), order);
-                    })
-                    .toList();
-
-            // Xóa giỏ hàng
-            cart.getItems().clear();
-            cart.updateTotals(0, 0.0, 0.0);
-            shoppingCartRepository.save(cart);
-
-        } else if (request.getBookingId() != null && !request.getBookingId().isEmpty()) {
-            // Logic cho Booking
-            Booking booking = bookingRepository.findById(convertStringToLong(request.getBookingId()))
-                    .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy booking"));
-            order.setBookingId(request.getBookingId());
-
-            orderItems = booking.getProducts().stream()
-                    .map(item -> {
-                        Attributes attributes = attributesRepository
-                                .findAttributesBySku_sku(item.getSku())
-                                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
-                                        "Không tìm thấy sản phẩm"));
-                        return buildOrderItem(attributes, item.getQuantity(), order);
-                    })
-                    .toList();
-        } else {
-            // Logic cho Items trực tiếp
-            if (request.getItems() == null || request.getItems().isEmpty()) {
-                throw new BusinessException(ErrorCode.INVALID_REQUEST, "Danh sách sản phẩm không được trống");
-            }
-
-            List<SearchCriteria> criteriaList = new ArrayList<>();
-            criteriaList.add(new SearchCriteria("sku.sku", SearchOperation.IN.getSymbol(),
-                    request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getAttributesSku).toList()));
-
-            Specification<Attributes> spec = new SpecificationBuilder<Attributes>(criteriaList).build();
-            List<Attributes> attributesList = attributesRepository.findAll(spec);
-
-            List<Integer> quantities = request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getQuantity)
-                    .toList();
-
-            if (attributesList.size() != quantities.size()) {
-                throw new BusinessException(ErrorCode.ATTRIBUTES_OUT_OF_STOCK, "Lỗi sản phẩm không tồn tại.");
-            }
-
-            if (!IntStream.range(0, attributesList.size())
-                    .allMatch(i -> attributesList.get(i).getStockQuantity() >= quantities.get(i))) {
-                throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK, "Sản phẩm không đủ số lượng tồn kho");
-            }
-
-            orderItems = createOrderItems(request.getItems(), order);
-        }
-
-        order.setOrderItems(orderItems);
-        for (OrderItem item : orderItems) {
-            item.setOrder(order);
-        }
-        calculateOrderTotals(order);
-
-        Order savedOrder = orderRepository.save(order);
-        log.info("Tạo đơn hàng thành công: {}", savedOrder.getOrderNumber());
-
-        // Lưu event vào Outbox thay vì gửi Kafka trực tiếp
-        // Đảm bảo event được lưu cùng transaction với order
-        outboxOrderHelper.saveOrderCreatedEvent(savedOrder, request);
-
-        return Response.ok(orderMapper.toDto(savedOrder));
-    }
-
-    @Override
-    public Response<OrderDto> getOrderById(String orderId) {
-        Order order = orderRepository.findById(convertStringToLong(orderId))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        checkOrderAccess(order);
-        return Response.ok(orderMapper.toDto(order));
-    }
-
-    @Override
-    public Response<OrderDto> getOrderByOrderNumber(String orderNumber) {
-        Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        checkOrderAccess(order);
-        return Response.ok(orderMapper.toDto(order));
-    }
-
-    @Override
-    public Response<PagingResponse<OrderDto>> getMyOrders(OrderSearchRequest request) {
-        User customer = securityUtil.getCurrentUser()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập"));
-
-        Pageable pageable = createPageable(request);
-        Page<Order> orderPage = orderRepository.findByCustomerId(customer.getId(), pageable);
-
-        return Response.ok(createPagingResponse(orderPage));
-    }
-
-    @Override
-    public Response<PagingResponse<OrderDto>> searchOrders(OrderSearchRequest request) {
-        Pageable pageable = createPageable(request);
-        Specification<Order> spec = buildSpecification(request);
-
-        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
-        return Response.ok(createPagingResponse(orderPage));
-    }
-
-    /* ==================== UPDATE (Grouped) ==================== */
-
-    @Override
-    @Transactional
-    public Response<OrderDto> updateShipping(UpdateShippingRequest request) {
-        Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        if (request.getShippingInfo() != null) {
-            // order.setShippingAddress(request.getShippingInfo()); // Address vs String mismatch
-        }
-        if (request.getShippingMethod() != null) {
-            order.setShippingMethod(request.getShippingMethod());
-        }
-
-        order.getAuditInfo().addUpdateEntry("Cập nhật thông tin vận chuyển", securityUtil.getCurrentUsername());
-        return Response.ok(orderMapper.toDto(orderRepository.save(order)));
-    }
-
-    @Override
-    @Transactional
-    public Response<OrderDto> updateDelivery(UpdateDeliveryRequest request) {
-        Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        if (request.getEstimatedDeliveryDate() != null) {
-            order.setEstimatedDeliveryDate(request.getEstimatedDeliveryDate());
-        }
-        if (request.getActualDeliveryDate() != null) {
-            order.setActualDeliveryDate(request.getActualDeliveryDate());
-        }
-
-        order.getAuditInfo().addUpdateEntry("Cập nhật thông tin giao hàng", securityUtil.getCurrentUsername());
-        return Response.ok(orderMapper.toDto(orderRepository.save(order)));
-    }
-
-    @Override
-    @Transactional
-    public Response<OrderDto> updateAdminNotes(UpdateAdminNotesRequest request) {
-        Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        if (request.getAdminNotes() != null) {
-            order.setAdminNotes(request.getAdminNotes());
-        }
-
-        order.getAuditInfo().addUpdateEntry("Cập nhật ghi chú quản trị", securityUtil.getCurrentUsername());
-        return Response.ok(orderMapper.toDto(orderRepository.save(order)));
-    }
-
-    @Override
-    @Transactional
-    public Response<OrderDto> confirmOrder(ConfirmOrderRequest request) {
-        Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        orderStatusHandler.transitionTo(order, OrderStatus.CONFIRMED, request.getConfirmationInfo());
-        order.setConfirmedAt(request.getConfirmedAt() != null ? request.getConfirmedAt() : LocalDateTime.now());
-
-        String confirmedBy = request.getConfirmedBy() != null ? request.getConfirmedBy()
-                : securityUtil.getCurrentUser().map(u -> u.getId().toString()).orElse(null);
-        order.setConfirmedBy(confirmedBy);
-
-        return Response.ok(orderMapper.toDto(orderRepository.save(order)));
-    }
-
-    @Override
-    @Transactional
-    public Response<OrderDto> cancelOrder(CancelOrderRequest request) {
-        Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        String reason = request.getCancellationReason() != null ? request.getCancellationReason() : "Không có lý do";
-        orderStatusHandler.transitionTo(order, OrderStatus.CANCELLED, reason);
-        order.setCancellationReason(reason);
-        order.setCancelledAt(LocalDateTime.now());
-        order.setCancelledBy(securityUtil.getCurrentUser().map(u -> u.getId().toString()).orElse(null));
-
-        return Response.ok(orderMapper.toDto(orderRepository.save(order)));
-    }
-
-    @Override
-    @Transactional
-    public Response<OrderDto> completeOrder(CompleteOrderRequest request) {
-        Order order = orderRepository.findById(convertStringToLong(request.getOrderId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        orderStatusHandler.transitionTo(order, OrderStatus.COMPLETED, "");
-        order.setCompletedAt(request.getCompletedAt() != null ? request.getCompletedAt() : LocalDateTime.now());
-
-        Order savedOrder = orderRepository.save(order);
-        updateProductAnalytics(savedOrder);
-        return Response.ok(orderMapper.toDto(savedOrder));
-    }
-
-    /* ==================== QUERIES & STATISTICS ==================== */
-
-    @Override
-    public Response<List<OrderDto>> getPendingOrders() {
-        List<Order> orders = orderRepository.findPendingOrders();
-        return Response.ok(orders.stream().map(orderMapper::toDto).collect(Collectors.toList()));
-    }
-
-    @Override
-    public Response<List<OrderDto>> getInProgressOrders() {
-        List<Order> orders = orderRepository.findInProgressOrders();
-        return Response.ok(orders.stream().map(orderMapper::toDto).collect(Collectors.toList()));
-    }
-
-    @Override
-    public Response<?> getOrderStatistics(String startDate, String endDate) {
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
-        LocalDateTime start = LocalDateTime.parse(startDate, formatter);
-        LocalDateTime end = LocalDateTime.parse(endDate, formatter);
-        List<Object[]> statistics = orderRepository.getOrderStatisticsByDate(start, end);
-        return Response.ok(statistics);
-    }
-
-    @Transactional
-    public void setStatus(String orderNumber, OrderStatus status) {
-        Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-        orderStatusHandler.transitionTo(order, status, "Cập nhật tự động");
-    }
-
-    /* ==================== PRIVATE HELPER METHODS ==================== */
-
-    private Order buildOrderFromRequest(CreateOrderRequest request, User customer, Address address) {
+        User customer = securityUtil.getCurrentUser().orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, ""));
         Order order = new Order();
         order.setOrderNumber(generateOrderNumber());
-
-        List<OrderStatus> initialStatus = new ArrayList<>();
+        var initialStatus = new ArrayList<OrderStatus>();
         initialStatus.add(OrderStatus.PENDING);
+        if (request.getPaymentMethod() == PaymentMethod.COD) {
+            initialStatus.add(OrderStatus.CONFIRMED);
+            initialStatus.add(OrderStatus.PROCESSING);
+        } else if (request.getPaymentMethod() != null) {
+            initialStatus.add(OrderStatus.WAITING_PAYMENT);
+        }
         order.setStatus(initialStatus);
-
         order.setCustomer(customer);
         order.setCustomerName(customer.getFullName());
         order.setCustomerEmail(customer.getEmail());
         order.setCustomerPhone(customer.getPhoneNumber());
         order.setShippingMethod(request.getShippingMethod());
-        order.setShippingInfo(address); // TODO: fetch address by ID
         order.setCustomerNotes(request.getCustomerNotes());
         order.setDiscountCode(request.getDiscountCode());
         order.setShippingFee(30000.0);
         order.setAuditInfo(new AuditInfo());
+        order.getAuditInfo().addUpdateEntry("Tạo đơn hàng", securityUtil.getCurrentUsername());
 
-        // Ghi audit entry ban đầu theo phương thức thanh toán (kiểu Shopee)
-        String initialAudit = resolveInitialAuditMessage(request.getPaymentMethod());
-        order.getAuditInfo().addUpdateEntry(initialAudit, "Hệ thống");
-
-        return order;
-    }
-
-    private List<OrderItem> createOrderItems(List<CreateOrderRequest.OrderItemRequest> itemRequests, Order order) {
-        return itemRequests.stream()
-                .map(itemRequest -> {
-                    Attributes attributes = attributesRepository
-                            .findAttributesBySku_sku(itemRequest.getAttributesSku())
-                            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND,
-                                    "Không tìm thấy sản phẩm với ID: " + itemRequest.getAttributesSku()));
-
-                    if (itemRequest.getQuantity() == null || itemRequest.getQuantity() <= 0) {
-                        throw new BusinessException(ErrorCode.INVALID_QUANTITY, "Số lượng sản phẩm phải lớn hơn 0");
-                    }
-                    if (attributes.getStockQuantity() < itemRequest.getQuantity()) {
-                        throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK,
-                                "Sản phẩm " + attributes.getSku().getSku() + " không đủ số lượng");
-                    }
-
-                    return buildOrderItem(attributes, itemRequest.getQuantity(), order);
-                })
-                .collect(Collectors.toList());
-    }
-
-    private OrderItem buildOrderItem(Attributes attributes, Integer quantity, Order order) {
-        Product product = attributes.getProduct();
-        OrderItem orderItem = OrderItem.builder()
-                .order(order)
-                .product(product)
-                .productName(product.getName())
-                .attributes(attributes)
-                .productSku(product.getSkuInfo().getSku())
-                .attributesSku(attributes.getSku().getSku())
-                .variantOptions(new ArrayList<>(attributes.getVariantOptions()))
-                .quantity(quantity)
-                .unitPrice(attributes.getPrice())
-                .salePrice(attributes.getSalePrice())
-                .discountAmount(0.0)
-                .discountPercentage(0.0)
-                .taxAmount(0.0)
-                .build();
-
-        if (product.getMediaItems() != null && !product.getMediaItems().isEmpty()) {
-            orderItem.setImageUrl(product.getMediaItems().getFirst().getUrl());
+        List<OrderItem> items = new ArrayList<>();
+        if (request.isFromCart()) {
+            var cart = shoppingCartRepository.findByUser(customer).orElseThrow();
+            items = cart.getItems().stream().map(i -> {
+                var a = attributesRepository.findAttributesBySku_sku(i.getSku()).orElseThrow();
+                return buildItem(a, i.getQuantity(), order);
+            }).toList();
+            cart.getItems().clear();
+            shoppingCartRepository.save(cart);
+        } else if (request.getBookingId() != null) {
+            var b = bookingRepository.findById(convertLong(request.getBookingId())).orElseThrow();
+            items = b.getProducts().stream().map(i -> {
+                var a = attributesRepository.findAttributesBySku_sku(i.getSku()).orElseThrow();
+                return buildItem(a, i.getQuantity(), order);
+            }).toList();
+        } else {
+            var skus = request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getAttributesSku).toList();
+            var qty = request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getQuantity).toList();
+            List<SearchCriteria> c = new ArrayList<>();
+            c.add(new SearchCriteria("sku.sku", SearchOperation.IN, skus));
+            var attrs = attributesRepository.findAll(new SpecificationBuilder<Attributes>(c).build());
+            if (attrs.size() != qty.size()) throw new BusinessException(ErrorCode.ATTRIBUTES_OUT_OF_STOCK, "");
+            items = buildItems(request.getItems(), order);
         }
-
-        orderItem.calculateSubtotal();
-        return orderItem;
+        order.setOrderItems(items);
+        items.forEach(i -> i.setOrder(order));
+        calcTotal(order);
+        Order saved = orderRepository.save(order);
+        log.info("✅ ORDER_CREATED: {}", saved.getOrderNumber());
+        outboxOrderHelper.saveOrderCreatedEvent(saved, request);
+        // Ghi outbox event cho auto-transition
+        if (request.getPaymentMethod() == PaymentMethod.COD) {
+            outboxOrderHelper.saveOrderStatusChangedEvent(saved, OrderStatus.PENDING, OrderStatus.PROCESSING, "COD auto", "system");
+        } else if (request.getPaymentMethod() != null) {
+            outboxOrderHelper.saveOrderStatusChangedEvent(saved, OrderStatus.PENDING, OrderStatus.WAITING_PAYMENT, "Online chờ thanh toán", "system");
+        }
+        return Response.ok(orderMapper.toDto(saved));
     }
 
-    private void calculateOrderTotals(Order order) {
-        double subtotal = order.getOrderItems().stream()
-                .mapToDouble(item -> item.getSubtotal() != null ? item.getSubtotal() : 0.0)
-                .sum();
-        double taxAmount = order.getOrderItems().stream()
-                .mapToDouble(item -> item.getTaxAmount() != null ? item.getTaxAmount() : 0.0)
-                .sum();
+    @Override public Response<OrderDto> getOrderById(String id) {
+        var o = orderRepository.findById(convertLong(id)).orElseThrow();
+        return Response.ok(orderMapper.toDto(o));
+    }
 
-        double discountAmount = order.getDiscountAmount() != null ? order.getDiscountAmount() : 0.0;
-        double shippingFee = order.getShippingFee() != null ? order.getShippingFee() : 0.0;
+    @Override public Response<OrderDto> getOrderByOrderNumber(String n) {
+        return Response.ok(orderMapper.toDto(orderRepository.findByOrderNumber(n).orElseThrow()));
+    }
 
-        double totalAmount = subtotal - discountAmount + shippingFee + taxAmount;
+    @Override public Response<PagingResponse<OrderDto>> getMyOrders(OrderSearchRequest r) {
+        var u = securityUtil.getCurrentUser().orElseThrow();
+        var p = orderRepository.findByCustomerId(u.getId(), PageRequest.of(0,20));
+        return Response.ok(PagingResponse.<OrderDto>builder().contents(p.map(orderMapper::toDto).getContent())
+                .paging(PageableData.builder().pageNumber(p.getNumber()).totalPages(p.getTotalPages())
+                        .totalElements(p.getTotalElements()).pageSize(p.getSize()).build()).build());
+    }
 
-        order.setSubtotal(subtotal);
-        order.setTaxAmount(taxAmount);
-        order.setTotalAmount(Math.max(0, totalAmount));
+    @Override public Response<PagingResponse<OrderDto>> searchOrders(OrderSearchRequest r) {
+        var p = orderRepository.findAll(PageRequest.of(0,20));
+        return Response.ok(PagingResponse.<OrderDto>builder().contents(p.map(orderMapper::toDto).getContent())
+                .paging(PageableData.builder().pageNumber(p.getNumber()).totalPages(p.getTotalPages())
+                        .totalElements(p.getTotalElements()).pageSize(p.getSize()).build()).build());
+    }
+
+    @Override public Response<List<OrderDto>> getPendingOrders() {
+        return Response.ok(orderRepository.findPendingOrders().stream().map(orderMapper::toDto).toList());
+    }
+
+    @Override public Response<List<OrderDto>> getInProgressOrders() {
+        return Response.ok(orderRepository.findInProgressOrders().stream().map(orderMapper::toDto).toList());
+    }
+
+    @Override public Response<?> getOrderStatistics(String a, String b) { return Response.ok(null); }
+
+    @Override @Transactional
+    public Response<OrderDto> updateShipping(UpdateShippingRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        if (r.getShippingMethod() != null) o.setShippingMethod(r.getShippingMethod());
+        return Response.ok(orderMapper.toDto(orderRepository.save(o)));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> updateDelivery(UpdateDeliveryRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        if (r.getEstimatedDeliveryDate() != null) o.setEstimatedDeliveryDate(r.getEstimatedDeliveryDate());
+        if (r.getActualDeliveryDate() != null) o.setActualDeliveryDate(r.getActualDeliveryDate());
+        return Response.ok(orderMapper.toDto(orderRepository.save(o)));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> updateAdminNotes(UpdateAdminNotesRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        if (r.getAdminNotes() != null) o.setAdminNotes(r.getAdminNotes());
+        return Response.ok(orderMapper.toDto(orderRepository.save(o)));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> confirmOrder(ConfirmOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.CONFIRMED, r.getConfirmationInfo());
+        o.setConfirmedAt(LocalDateTime.now());
+        o.setConfirmedBy(securityUtil.getCurrentUsername());
+        orderInventoryService.confirmReservation(o.getOrderItems());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.CONFIRMED, r.getConfirmationInfo());
+        log.info("🔄 CONFIRMED: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> cancelOrder(CancelOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        var reason = r.getCancellationReason() != null ? r.getCancellationReason() : "";
+        if (!orderStatusHandler.isValidTransition(cur, OrderStatus.CANCELLED))
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "");
+        orderStatusHandler.transitionTo(o, OrderStatus.CANCELLED, reason);
+        o.setCancellationReason(reason); o.setCancelledAt(LocalDateTime.now());
+        o.setCancelledBy(securityUtil.getCurrentUsername());
+        orderInventoryService.releaseInventory(o.getOrderItems());
+        var wasPaid = cur == OrderStatus.CONFIRMED || cur == OrderStatus.PROCESSING;
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.CANCELLED, reason);
+        outboxOrderHelper.saveOrderCancelledEvent(s, reason, wasPaid);
+        log.info("🔄 CANCELLED: {} wasPaid={}", s.getOrderNumber(), wasPaid);
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> completeOrder(CompleteOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.COMPLETED, "");
+        o.setCompletedAt(LocalDateTime.now());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.COMPLETED, "");
+        log.info("🔄 COMPLETED: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> processOrder(ProcessOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.PROCESSING, r.getNote());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.PROCESSING, r.getNote());
+        log.info("🔄 PROCESSING: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> shipOrder(ShipOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.SHIPPING, r.getNote());
+        o.setShipperId(r.getShipperId()); o.setShipperName(r.getShipperName());
+        o.setShipperPhone(r.getShipperPhone()); o.setDeliveryToken(UUID.randomUUID().toString());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.SHIPPING, "shipper: "+r.getShipperName());
+        log.info("🔄 SHIPPING: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> markDelayed(DelayOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.DELAYED, r.getReason());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.DELAYED, r.getReason());
+        log.info("🔄 DELAYED: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> deliverOrder(DeliverOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.DELIVERED, r.getNote());
+        o.setActualDeliveryDate(LocalDateTime.now());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.DELIVERED, "giao thành công");
+        log.info("🔄 DELIVERED: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> readyForPickup(ReadyForPickupRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.READY_FOR_PICKUP, r.getNote());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.READY_FOR_PICKUP, r.getNote());
+        log.info("🔄 READY_FOR_PICKUP: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> pickupOrder(PickupOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.DELIVERED, r.getNote());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.DELIVERED, "khách lấy tại shop");
+        log.info("🔄 PICKUP: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> returnOrder(ReturnOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.RETURNING, r.getReason());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.RETURNING, r.getReason());
+        log.info("🔄 RETURNING: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> confirmReturn(ConfirmReturnRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.RETURNED, r.getNote());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.RETURNED, r.getCondition());
+        log.info("🔄 RETURNED: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> refundOrder(RefundOrderRequest r) {
+        var o = orderRepository.findById(convertLong(r.getOrderId())).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        orderStatusHandler.transitionTo(o, OrderStatus.REFUNDED, r.getNote());
+        orderInventoryService.releaseInventory(o.getOrderItems());
+        var s = orderRepository.save(o);
+        outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.REFUNDED, "hoàn tiền");
+        log.info("🔄 REFUNDED: {}", s.getOrderNumber());
+        return Response.ok(orderMapper.toDto(s));
+    }
+
+    @Override @Transactional
+    public Response<OrderDto> processPayment(PaymentCallbackRequest r) {
+        var o = orderRepository.findByOrderNumber(r.getOrderNumber()).orElseThrow();
+        var cur = orderStatusHandler.getCurrentStatus(o);
+        if (cur != OrderStatus.WAITING_PAYMENT && cur != OrderStatus.PENDING)
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "");
+        if ("SUCCESS".equalsIgnoreCase(r.getStatus())) {
+            orderStatusHandler.transitionTo(o, OrderStatus.CONFIRMED, "");
+            orderStatusHandler.transitionTo(o, OrderStatus.PROCESSING, "");
+            o.setConfirmedAt(LocalDateTime.now());
+            orderInventoryService.confirmReservation(o.getOrderItems());
+            var s = orderRepository.save(o);
+            outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.PROCESSING, "payment OK");
+            log.info("🔄 PAYMENT_SUCCESS: {}", s.getOrderNumber());
+            return Response.ok(orderMapper.toDto(s));
+        } else {
+            orderStatusHandler.transitionTo(o, OrderStatus.FAILED, "");
+            var s = orderRepository.save(o);
+            outboxOrderHelper.saveOrderStatusChangedEvent(s, cur, OrderStatus.FAILED, "payment FAILED");
+            log.info("🔄 PAYMENT_FAILED: {}", s.getOrderNumber());
+            return Response.ok(orderMapper.toDto(s));
+        }
+    }
+
+    @Override
+    public void setStatus(String orderNumber, OrderStatus status) {
+        var o = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
+        orderStatusHandler.transitionTo(o, status, "");
+        orderRepository.save(o);
+    }
+
+    private void calcTotal(Order order) {
+        double sub = order.getOrderItems().stream().mapToDouble(i -> i.getSubtotal()!=null?i.getSubtotal():0).sum();
+        order.setSubtotal(sub);
+        order.setTotalAmount(Math.max(0, sub - (order.getDiscountAmount()!=null?order.getDiscountAmount():0)
+                + (order.getShippingFee()!=null?order.getShippingFee():0)));
     }
 
     private String generateOrderNumber() {
-        String prefix = "ORD";
-        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String randomPart = String.format("%04d", (int) (Math.random() * 10000));
-        String orderNumber = prefix + "-" + datePart + "-" + randomPart;
-
-        while (orderRepository.existsByOrderNumber(orderNumber)) {
-            randomPart = String.format("%04d", (int) (Math.random() * 10000));
-            orderNumber = prefix + "-" + datePart + "-" + randomPart;
-        }
-
-        return orderNumber;
+        return "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + String.format("%04d",(int)(Math.random()*10000));
     }
 
-    /**
-     * Xác định message audit ban đầu theo phương thức thanh toán.
-     * - Online (VNPAY, CARD, PAYPAL...): "Đang chờ thanh toán"
-     * - COD: "Thanh toán khi nhận hàng"
-     * - Mặc định: thông báo chung
-     */
-    private String resolveInitialAuditMessage(PaymentMethod paymentMethod) {
-        if (paymentMethod == null) {
-            return "Đơn hàng đã được đặt thành công";
-        }
-        return switch (paymentMethod) {
-            case COD -> "Đơn hàng đã được đặt thành công. Thanh toán khi nhận hàng";
-            case VNPAY, CARD, PAYPAL, GOOGLE_PAY, APPLE_PAY -> "Đơn hàng đã được đặt thành công. Đang chờ thanh toán";
-        };
+    private OrderItem buildItem(Attributes a, int qty, Order order) {
+        return OrderItem.builder().order(order).product(a.getProduct()).productName(a.getProduct().getName())
+                .attributes(a).productSku(a.getProduct().getSkuInfo().getSku()).attributesSku(a.getSku().getSku())
+                .quantity(qty).unitPrice(a.getPrice()).salePrice(a.getSalePrice())
+                .subtotal(a.getSalePrice()*qty).build();
     }
 
-    private void checkOrderAccess(Order order) {
-        User currentUser = securityUtil.getCurrentUser().orElse(null);
-        if (currentUser != null && !order.getCustomer().getId().equals(currentUser.getId())) {
-            if (!securityUtil.hasRole("ADMIN")) {
-                throw new BusinessException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền xem đơn hàng này");
-            }
-        }
+    private List<OrderItem> buildItems(List<CreateOrderRequest.OrderItemRequest> reqs, Order order) {
+        return reqs.stream().map(r -> {
+            var a = attributesRepository.findAttributesBySku_sku(r.getAttributesSku()).orElseThrow();
+            return buildItem(a, r.getQuantity(), order);
+        }).toList();
     }
 
-    private void sendKafkaEvent(Order order, CreateOrderRequest request) {
-        String language = request.getLanguage() != null ? request.getLanguage().toLowerCase() : "vn";
-
-        OrderEventDto eventDto = OrderEventDto.builder()
-                .paymentProvider(order.getShippingMethod())
-                .amount(order.getTotalAmount())
-                .currency(!"PAYPAL".equals(order.getShippingMethod()) ? "VND" : "USD")
-                .orderId(order.getOrderNumber())
-                .orderDescription(order.getCustomerNotes() != null ? order.getCustomerNotes()
-                        : "Thanh toan don hang " + order.getOrderNumber())
-                .customerInfo(CustomerInfo.builder()
-                        .appUserId(securityUtil.getCurrentUserId())
-                        .ipAddress(securityUtil.getIpAddress())
-                        .language(language)
-                        .build())
-                .paymentOptions(PaymentOptions.builder()
-                        .paymentMethod(
-                                request.getPaymentMethod() != null ? request.getPaymentMethod().toString().toUpperCase()
-                                        : "COD")
-                        .bankCode(request.getBankCode())
-                        .extraData("Đơn hàng: " + order.getOrderNumber())
-                        .build())
-                .build();
-
-        log.info("===> Đang chuẩn bị gửi Kafka cho đơn hàng: {}", eventDto.getOrderId());
-        try {
-            orderKafkaProducer.sendOrderCreatedEvent(eventDto);
-            log.info("===> Đã gọi lệnh gửi Kafka xong!");
-        } catch (Exception e) {
-            log.error("Lỗi gửi event kafka", e);
-        }
-    }
-
-    private void updateProductAnalytics(Order order) {
-        log.info("📊 Đang xử lý phân tích dữ liệu cho Đơn hàng: {}", order.getOrderNumber());
-        for (OrderItem item : order.getOrderItems()) {
-            try {
-                Long productId = item.getProduct().getId();
-                Long attributesId = item.getAttributes().getId();
-                productRepository.updateTotalSoldQuantity(productId, item.getQuantity());
-                productRepository.updateTotalRevenue(productId, BigDecimal.valueOf(item.getSubtotal()));
-                productRepository.updateTotalOrders(productId);
-                attributesRepository.updateSoldQuantity(attributesId, item.getQuantity());
-                attributesRepository.updateTotalOrders(attributesId);
-            } catch (Exception e) {
-                log.error("❌ Lỗi khi cập nhật phân tích dữ liệu cho Sản phẩm {}: {}", item.getId(), e.getMessage());
-            }
-        }
-    }
-
-    private Pageable createPageable(OrderSearchRequest request) {
-        int page = request.getPage() != null ? request.getPage() : 0;
-        int size = request.getSize() != null ? request.getSize() : 20;
-        String sortBy = request.getSortBy() != null ? request.getSortBy() : "auditInfo.createdAt";
-        String sortDirection = request.getSortDirection() != null ? request.getSortDirection() : "DESC";
-
-        Sort sort = sortDirection.equalsIgnoreCase("ASC") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        return PageRequest.of(page, size, sort);
-    }
-
-    private Specification<Order> buildSpecification(OrderSearchRequest request) {
-        return (root, query, cb) -> {
-            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
-            if (request.getOrderNumber() != null) {
-                predicates.add(cb.like(root.get("orderNumber"), "%" + request.getOrderNumber() + "%"));
-            }
-            if (request.getCustomerId() != null) {
-                predicates.add(cb.equal(root.get("customer").get("id"), convertStringToLong(request.getCustomerId())));
-            }
-            if (request.getCustomerName() != null) {
-                predicates.add(cb.like(root.get("customerName"), "%" + request.getCustomerName() + "%"));
-            }
-            if (request.getOrderStatus() != null) {
-                predicates.add(
-                        cb.like(root.get("status").as(String.class), "%\"" + request.getOrderStatus().name() + "\"%"));
-            }
-            if (request.getStartDate() != null && request.getEndDate() != null) {
-                predicates.add(cb.between(root.get("auditInfo").get("createdAt"), request.getStartDate(),
-                        request.getEndDate()));
-            }
-            if (request.getMinAmount() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("totalAmount"), request.getMinAmount()));
-            }
-            if (request.getMaxAmount() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("totalAmount"), request.getMaxAmount()));
-            }
-            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
-        };
-    }
-
-    private PagingResponse<OrderDto> createPagingResponse(Page<Order> orderPage) {
-        List<OrderDto> orderDtos = orderPage.getContent().stream().map(orderMapper::toDto).collect(Collectors.toList());
-        PageableData pageableData = PageableData.builder()
-                .pageNumber(orderPage.getNumber())
-                .totalPages(orderPage.getTotalPages())
-                .totalElements(orderPage.getTotalElements())
-                .pageSize(orderPage.getSize())
-                .build();
-        return PagingResponse.<OrderDto>builder().contents(orderDtos).paging(pageableData).build();
-    }
-
-    private Long convertStringToLong(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new IllegalArgumentException("ID không được để trống.");
-        }
-        try {
-            return Long.valueOf(id.trim());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("ID phải là một số nguyên hợp lệ.");
-        }
-    }
+    private Long convertLong(String s) { return Long.valueOf(s); }
 }
