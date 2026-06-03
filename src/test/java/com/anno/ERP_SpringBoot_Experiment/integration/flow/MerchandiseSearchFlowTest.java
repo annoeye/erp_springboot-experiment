@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.containsString;
  * Integration test cho luồng nghiệp vụ Get/Search.
  * <ul>
  *   <li>Login thật → lấy JWT token thật</li>
- *   <li>Gọi search với Bearer token → @JsonView filtering theo role</li>
+ *   <li>Gọi search với Bearer token</li>
  *   <li>Kiểm tra field visibility: USER vs ADMIN</li>
  * </ul>
  */

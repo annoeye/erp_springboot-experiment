@@ -1,9 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig;
 
-import com.anno.ERP_SpringBoot_Experiment.config.Views;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonView;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,10 +15,8 @@ import org.springframework.http.HttpStatus;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Response<T> {
 
-    @JsonView(Views.Public.class)
     ApiStatus status;
 
-    @JsonView(Views.Public.class)
     T data;
 
     public static <T> Response<T> ok(T data) {
@@ -55,17 +50,26 @@ public class Response<T> {
                 .build();
     }
 
-    public static <T> Response<T> fail(String message, int code) {
-        ApiStatus status = new ApiStatus(message, code);
+    public static <T> Response<T> noContent() {
+        final ApiStatus status = new ApiStatus(HttpStatus.NO_CONTENT.value());
         return Response.<T>builder()
                 .status(status)
                 .build();
     }
 
-    public static <T> Response<T> found(T data) {
-        final ApiStatus status = new ApiStatus(HttpStatus.FOUND.value());
+    public static <T> Response<T> found(String url) {
+        final ApiStatus status = new ApiStatus(url, HttpStatus.FOUND.value());
         return Response.<T>builder()
                 .status(status)
+                .data(null)
+                .build();
+    }
+
+    public static <T> Response<T> loginResponse(HttpStatus httpStatus, T data) {
+        final ApiStatus status = new ApiStatus(httpStatus.value());
+        return Response.<T>builder()
+                .status(status)
+                .data(data)
                 .build();
     }
 
@@ -73,24 +77,5 @@ public class Response<T> {
         return Response.<T>builder()
                 .status(status)
                 .build();
-    }
-
-    public static <T> Response<T> noContent() {
-        ApiStatus status = new ApiStatus(HttpStatus.NO_CONTENT.value());
-        return Response.<T>builder()
-                .status(status)
-                .build();
-    }
-
-    public static <T> Response<T> loginResponse(HttpStatus status, T data) {
-        return Response.<T>builder()
-                .data(data)
-                .status(new ApiStatus(status.value()))
-                .build();
-    }
-
-    @JsonIgnore
-    public String getMessage() {
-        return status != null ? status.name() : null;
     }
 }

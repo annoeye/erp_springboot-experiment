@@ -1,0 +1,19 @@
+# Cline ignore — files/dirs Cline should not access
+target/
+node_modules/
+.git/
+data/
+oracle-data/
+*.log
+.env
+.aider*
+.aider-desk/
+.aiderdesk/
+.agent/
+.agents/
+.cursor/
+.docs/
+.mvn/
+.vscode/
+.idea/
+.settings/
