@@ -1,0 +1,32 @@
+---
+description: Dumb Mapper + Caffeine static/dynamic data split
+globs: src/main/java/**/*Mapper.java,src/main/java/**/Order*.java,src/main/java/**/*Cache*.java
+alwaysApply: false
+---
+
+# Dumb Mapper
+
+MapStruct mappers map **only pre-loaded fields** from A → B.
+
+- ❌ No `expression = "java(...)"` that calls DB, services, or `securityUtil`
+- ✅ Prepare User, Product, status fields in Service/BFF **before** calling mapper
+
+```java
+// ✅ Service prepares data, mapper stays dumb
+OrderDto dto = orderMapper.toDto(order);
+orderDtoFactory.applyCurrentStatus(dto, order);
+```
+
+# Caffeine RAM Cache
+
+| Data type | Examples | Rule |
+|-----------|----------|------|
+| **Static** | User info, Product, Category | `@Cacheable` via Caffeine |
+| **Dynamic** | Order status, inventory/stock | **No cache** — query realtime |
+
+## BFF search fork
+
+1. Query order skeleton from DB (dynamic core)
+2. Virtual thread A → `@Cacheable` static enrichment (users, products)
+3. Virtual thread B → realtime dynamic data (inventory, live status)
+4. `thenCombine` → merge into enriched DTO

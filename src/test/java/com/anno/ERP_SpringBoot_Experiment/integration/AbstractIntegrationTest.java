@@ -1,11 +1,9 @@
 package com.anno.ERP_SpringBoot_Experiment.integration;
 
 import com.anno.ERP_SpringBoot_Experiment.ErpSpringBootExperimentApplication;
-import com.anno.ERP_SpringBoot_Experiment.model.entity.Role;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
-import com.anno.ERP_SpringBoot_Experiment.repository.RoleRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
@@ -30,7 +28,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -53,9 +50,6 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -99,20 +93,18 @@ public abstract class AbstractIntegrationTest {
     }
 
     private void setupAuthTokens() {
-        List<Role> allRoles = roleRepository.findAll();
-
         // Tạo USER token
         User user = createUser("testuser_" + System.nanoTime(), "Test User",
-                findRole(allRoles, RoleType.USER));
-        userAccessToken = jwtService.generateToken(user);
+                RoleType.USER);
+        userAccessToken = jwtService.generateToken(user, 86400000L);
 
         // Tạo ADMIN token
         User admin = createUser("testadmin_" + System.nanoTime(), "Admin User",
-                findRole(allRoles, RoleType.ADMIN));
-        adminAccessToken = jwtService.generateToken(admin);
+                RoleType.ADMIN);
+        adminAccessToken = jwtService.generateToken(admin, 86400000L);
     }
 
-    private User createUser(String name, String fullName, Role role) {
+    private User createUser(String name, String fullName, RoleType type) {
         if (userRepository.findByName(name).isPresent()) {
             return userRepository.findByName(name).get();
         }
@@ -122,15 +114,8 @@ public abstract class AbstractIntegrationTest {
         user.setEmail(name + "@test.com");
         user.setPassword(passwordEncoder.encode("Pass123!"));
         user.setStatus(ActiveStatus.ACTIVE);
-        user.setRoles(Set.of(role));
+        user.setRoles(Set.of(type));
         return userRepository.save(user);
-    }
-
-    private Role findRole(List<Role> roles, RoleType type) {
-        return roles.stream()
-                .filter(r -> r.getName().equals(type.name()))
-                .findFirst()
-                .orElse(null);
     }
 
     // ==================== Request Builders ====================

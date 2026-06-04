@@ -10,6 +10,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class TestDataFactory {
      */
     public String createCategory(String name) {
         Response<?> response = categoryService.create(name);
-        return response.getMessage();
+        return response.getStatus().getMessage();
     }
 
     /**
@@ -64,9 +65,9 @@ public class TestDataFactory {
 
         com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput attrItem =
                 new com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput();
-        attrItem.setPrice(price);
+        attrItem.setPrice(BigDecimal.valueOf(price));
         attrItem.setStockQuantity(stockQuantity);
-        attrItem.setStatusProduct(StockStatus.IN_STOCK);
+        attrItem.setStatusProduct(StockStatus.AVAILABLE);
         request.setAttributes(List.of(attrItem));
 
         Response<List<AttributesDto>> response = attributesService.create(request);

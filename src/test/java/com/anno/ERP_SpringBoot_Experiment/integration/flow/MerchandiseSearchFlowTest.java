@@ -62,8 +62,7 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUpAuth() throws Exception {
-        loginAsUser();
-        loginAsAdmin();
+        // Tokens are already set up in AbstractIntegrationTest.setUpMocksAndUsers()
     }
 
     private CategorySearchRequest searchReq(String name) {

@@ -1,6 +1,6 @@
 # ERP System - Agent Skills & Workflow
 
-## 🎯 Project Context
+## Project Context
 
 **Type**: Enterprise Resource Planning (ERP) System
 **Stack**: Spring Boot, JPA/Hibernate, Redis, Kafka, MinIO, PostgreSQL
@@ -8,330 +8,210 @@
 
 ---
 
-## 📚 Learning (Domain Knowledge)
+## Domain Knowledge
 
 ### System Architecture
-- **Microservices Pattern**: Event-driven architecture với Kafka message broker
-- **Data Layer**: JPA/Hibernate với soft-delete pattern, Redis cho caching/session
-- **Storage**: MinIO cho file uploads, Thymeleaf cho email templates
-- **Security**: JWT-based authentication với role-based authorization
+- **Pattern**: Event-driven architecture with Kafka message broker
+- **Data Layer**: JPA/Hibernate with soft-delete pattern, Redis for caching/session
+- **Storage**: MinIO for file uploads, Thymeleaf for email templates
+- **Security**: JWT-based authentication with role-based authorization via `@PreAuthorize`
 
 ### Core Entities & Relationships
-```
-User (1) ──→ (N) Order ──→ (N) OrderItem ──→ (1) Product
-                                                    ↓
-Category (1) ──→ (N) Product ──→ (N) ProductVariant
-                                                    
-Order (1) ──→ (1) Payment
-ShoppingCart (Redis) ──→ CartItem ──→ Product
-```
+- `User (1) → (N) Order → (N) OrderItem → (1) Product + (1) Attributes (variant)`
+- `Category (1) → (N) Product → (N) Attributes (variants with SKU, price, stock)`
+- `Order (1) → (1) Payment`
+- `ShoppingCart (1) → (1) User`, items stored as embedded `List<ProductQuantity>` (SKU + quantity)
+- `ProductInventory (1) → (1) Product`, tracked by SKU
 
 ### Critical Business Flows
-1. **Authentication Flow**: Registration → Email Verification → JWT Token → Refresh Token
-2. **Shopping Flow**: Browse Products → Add to Cart (Redis) → Checkout → Create Order
-3. **Order Lifecycle**: PENDING → CONFIRMED → SHIPPED → DELIVERED → COMPLETED
-4. **Inventory Management**: Stock tracking → Reservation → Deduction → Restoration (on cancel)
+1. **Auth Flow**: Registration → Email Verification → JWT Token
+2. **Shopping Flow**: Browse → Search → Cart (add/remove/update items) → Checkout → Order
+3. **Order Lifecycle**: PENDING → WAITING_PAYMENT → CONFIRMED → PROCESSING → SHIPPING/READY_FOR_PICKUP → DELIVERED → COMPLETED (with CANCELLED, RETURNING, RETURNED, REFUNDED, FAILED, DELAYED as alternative paths)
+4. **Inventory**: Stock tracking via `ProductInventory` → Reservation → Deduction → Restoration on cancel
 
 ### Known Technical Debt
-- ❌ No distributed locking for inventory (race condition risk)
-- ❌ Direct Kafka publishing (no transactional outbox)
-- ❌ OrderItem references Product entity directly (breaks on soft-delete)
-- ❌ No JWT refresh token mechanism
-- ❌ Missing payment validation in order state transitions
+- No distributed locking for inventory (race condition risk) — Redisson dependency exists but not fully utilized
+- Direct Kafka publishing (no transactional outbox) — OutboxEvent entity exists but not connected to all services
+- OrderItem references Product entity via FK (breaks on soft-delete) — has both FK and denormalized snapshot fields (productName, productSku)
+- No dedicated JWT refresh endpoint — refresh tokens stored in Redis via SaveDeviceInfoListener only
+- Missing payment validation in order state transitions
 
 ---
 
-## 🔒 Rules (Constraints & Principles)
+## Rules (Constraints & Principles)
 
-### Code Quality Standards
-1. **Minimal Code**: Write only what's necessary to solve the problem
-2. **Idiomatic Java**: Follow Spring Boot conventions and best practices
-3. **Transaction Boundaries**: Always use `@Transactional` with proper isolation levels
-4. **Error Handling**: Use custom exceptions with meaningful messages
-5. **Logging**: Use SLF4J with structured logging (include correlation IDs)
+### Code Quality
+1. Write minimal code — only what's necessary to solve the problem
+2. Follow idiomatic Spring Boot conventions and best practices
+3. Use `@Transactional` with proper isolation levels
+4. Use custom exceptions with meaningful messages
+5. Use SLF4J with structured logging (include correlation IDs)
 
-### Architecture Constraints
-1. **No Synchronous Calls Between Services**: Use Kafka events for inter-service communication
-2. **Idempotency Required**: All Kafka consumers must handle duplicate messages
-3. **Soft Delete Only**: Never hard-delete entities referenced by orders
-4. **Snapshot Pattern**: Store denormalized data in OrderItem (product name, price, SKU)
-5. **Distributed Locking**: Use Redis (Redisson) for critical sections (inventory, auth codes)
+### Architecture
+1. No synchronous calls between services — use Kafka events
+2. All Kafka consumers must handle duplicate messages (idempotency)
+3. Soft delete only — never hard-delete entities referenced by orders
+4. Snapshot pattern — store denormalized data in OrderItem (product name, price, SKU) alongside FK reference
+5. Use Redis (Redisson) for distributed locking on critical sections (inventory)
 
-### Security Rules
-1. **Authentication**: JWT access token (15min) + refresh token (7 days)
-2. **Authorization**: Check roles via `@PreAuthorize` on controller methods
-3. **Rate Limiting**: Apply to sensitive endpoints (login, password reset, OTP)
-4. **Input Validation**: Use `@Valid` with custom validators for business rules
-5. **Sensitive Data**: Never log passwords, tokens, or payment details
+### Security
+1. JWT authentication with configurable expiration via `JwtService.generateToken(expirationTimeMillis)`
+2. Check roles via `@PreAuthorize` on controller methods (hasRole('ADMIN'), hasAnyRole('CUSTOMER', 'ADMIN'))
+3. Use `@Valid` with custom validators for business rules
+4. Never log passwords, tokens, or payment details
 
-### Database Rules
-1. **Optimistic Locking**: Use `@Version` for entities with concurrent updates (Inventory)
-2. **Pessimistic Locking**: Use for critical reads (User by email during registration)
-3. **Native Queries**: Prefer JPQL, use native SQL only when necessary
-4. **Indexing**: Add indexes on foreign keys and frequently queried fields
-5. **Migration**: Use Flyway/Liquibase for schema changes
+### Database
+1. Use `@Version` for optimistic locking on entities with concurrent updates (`ProductInventory`)
+2. Use pessimistic locking for critical reads (user by email during registration)
+3. Prefer JPQL, use native SQL only when necessary
+4. Add indexes on foreign keys and frequently queried fields
+5. No migration tool in use — schema managed manually or via JPA auto-DDL
 
 ---
 
-## 🛠️ Skills (Capabilities)
+## Skills (Capabilities)
 
 ### Skill 1: Implement Distributed Locking
-**When to use**: Adding inventory management, preventing race conditions, concurrent resource access
+**When to use**: Adding inventory management, preventing race conditions, concurrent resource access.
 
 **Steps**:
-1. Add Redisson dependency to `pom.xml`
-2. Create `RedisLockService` with `acquireLock(key, timeout)` and `releaseLock(key)`
-3. Wrap critical sections: `try { lock.lock(); ... } finally { lock.unlock(); }`
-4. Use lock keys like `inventory:lock:{sku}` or `auth:lock:{email}`
+1. Use existing Redisson dependency (already in project)
+2. Inject `RedissonClient` and get lock via `redissonClient.getLock("prefix:" + key)`
+3. Wrap critical sections: `try { lock.lock(timeout, unit); ... } finally { lock.unlock(); }`
+4. Use lock keys like `inventory:lock:{sku}`
 5. Set reasonable timeouts (5-10 seconds) to prevent deadlocks
 
-**Example**:
-```java
-@Service
-public class InventoryService {
-    @Autowired private RedisLockService lockService;
-    
-    public void reserveStock(String sku, int quantity) {
-        RLock lock = lockService.acquireLock("inventory:" + sku);
-        try {
-            // Check and update inventory
-        } finally {
-            lock.unlock();
-        }
-    }
-}
-```
+**Reference files**: `OrderInventoryService.java`, `InventoryService.java`
 
 ### Skill 2: Implement Transactional Outbox Pattern
-**When to use**: Publishing Kafka events reliably, ensuring DB + message queue consistency
+**When to use**: Publishing Kafka events reliably, ensuring DB + message queue consistency.
 
 **Steps**:
-1. Create `OutboxEvent` entity (id, aggregate_id, event_type, payload, created_at, sent_at)
-2. In service layer: Save business entity + outbox event in same transaction
-3. Create `@Scheduled` job to poll unsent events → publish to Kafka → mark as sent
+1. Use existing `OutboxEvent` entity (id, aggregate_id, event_type, payload, status, created_at, sent_at, next_retry_at)
+2. In service layer: save business entity + outbox event in same `@Transactional` method
+3. `OutboxEventPublisher` runs `@Scheduled(fixedDelay = 5000)` to poll PENDING events → publish to Kafka → mark as SENT
 4. Add `correlation_id` to all events for tracing
 5. Implement idempotency check in consumers (store processed event IDs)
 
-**Example**:
-```java
-@Transactional
-public Order createOrder(OrderDto dto) {
-    Order order = orderRepository.save(new Order(dto));
-    outboxRepository.save(new OutboxEvent(
-        "ORDER_CREATED", order.getId(), toJson(order)
-    ));
-    return order;
-}
-```
+**Reference files**: `OutboxEvent.java`, `OutboxEventRepository.java`, `OutboxEventPublisher.java`
 
 ### Skill 3: Implement Soft Delete with Cascade
-**When to use**: Deleting categories/products, maintaining referential integrity, audit trails
+**When to use**: Deleting categories/products, maintaining referential integrity, audit trails.
 
 **Steps**:
-1. Add `deleted_at` and `deleted_by` fields to entity
-2. Override repository methods with `@Where(clause = "deleted_at IS NULL")`
-3. Add `@PreRemove` listener to cascade soft-delete to children
-4. For OrderItem: Snapshot product data (name, price, SKU) instead of FK reference
-5. Scheduled job: Delete only records not referenced by active orders
+1. `auditInfo` embedded field contains `deletedAt` (LocalDateTime) and `deletedBy` (String)
+2. In repository: add query methods with `AuditInfo_DeletedAtIsNull` condition or JPQL `WHERE e.auditInfo.deletedAt IS NULL`
+3. Use `softDeleteAllByIds(List<Long> ids, String deletedBy)` batch JPQL update pattern (already in CategoryRepository)
+4. For OrderItem: snapshot product data (productName, productSku, attributesSku, unitPrice) — already implemented
+5. Do NOT use `@Where` or `@PreRemove` — project explicitly uses query-level filtering
 
-**Example**:
-```java
-@Entity
-@Where(clause = "deleted_at IS NULL")
-public class Category {
-    @OneToMany(mappedBy = "category")
-    private List<Product> products;
-    
-    @PreRemove
-    public void cascadeSoftDelete() {
-        products.forEach(p -> p.setDeletedAt(LocalDateTime.now()));
-    }
-}
-```
+**Reference files**: `CategoryRepository.java`, `AttributesRepository.java`, `OrderItem.java`
 
 ### Skill 4: Implement JWT Refresh Token
-**When to use**: Authentication flow, token expiration handling, session management
+**When to use**: Authentication flow, token expiration handling, session management.
 
 **Steps**:
-1. Generate two tokens on login: access (15min) + refresh (7 days)
-2. Store refresh token in Redis: `refresh_token:{userId}` with TTL
-3. Create `/api/auth/refresh` endpoint: Validate refresh token → Issue new access token
-4. On logout: Delete refresh token from Redis
-5. Add `@PreAuthorize` to protected endpoints checking access token
+1. `JwtService.generateToken(userDetails, expirationTimeMillis)` already supports custom expiration
+2. Store refresh tokens in Redis — use pattern `user:refresh_tokens:{userId}` with device tracking (see `SaveDeviceInfoListener`)
+3. Create `/api/auth/refresh` endpoint — validate refresh token, issue new access token (currently only handles via device info listener)
+4. On logout or device removal: delete refresh token entries from Redis
+5. Add correlation between access and refresh tokens via device ID
 
-**Example**:
-```java
-public AuthResponse login(LoginDto dto) {
-    User user = authenticate(dto);
-    String accessToken = jwtService.generateAccessToken(user);
-    String refreshToken = jwtService.generateRefreshToken(user);
-    redisTemplate.opsForValue().set(
-        "refresh:" + user.getId(), refreshToken, 7, TimeUnit.DAYS
-    );
-    return new AuthResponse(accessToken, refreshToken);
-}
-```
+**Reference files**: `JwtService.java`, `SaveDeviceInfoListener.java`, `UserService.java`
 
-### Skill 5: Implement Order State Machine
-**When to use**: Order status transitions, payment validation, business rule enforcement
+### Skill 5: Implement Order Status Handler
+**When to use**: Order status transitions, payment validation, business rule enforcement.
 
 **Steps**:
-1. Create `OrderStateMachine` service with allowed transitions map
-2. Add `transition(Order order, OrderStatus targetStatus)` method
-3. Validate business rules before transition (e.g., payment completed for CONFIRMED)
-4. Emit Kafka event after successful transition
-5. Handle cancellation: Restore inventory + trigger refund
+1. Use existing `OrderStatusHandler` class — it has the allowed transitions map
+2. Call `transitionTo(order, targetStatus, note)` — validates transition is allowed
+3. Call `isValidTransition(current, target)` to check before transitioning
+4. Call `getCurrentStatus(order)` — reads the last status from `order.getStatus()` list
+5. Call `isTerminal(status)` — checks if status is COMPLETED, CANCELLED, FAILED, or REFUNDED
 
-**Example**:
-```java
-@Service
-public class OrderStateMachine {
-    private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = Map.of(
-        PENDING, Set.of(CONFIRMED, CANCELLED),
-        CONFIRMED, Set.of(SHIPPED, CANCELLED),
-        SHIPPED, Set.of(DELIVERED)
-    );
-    
-    public void transition(Order order, OrderStatus target) {
-        if (!TRANSITIONS.get(order.getStatus()).contains(target)) {
-            throw new InvalidTransitionException();
-        }
-        if (target == CONFIRMED && !paymentService.isCompleted(order)) {
-            throw new PaymentNotCompletedException();
-        }
-        order.setStatus(target);
-    }
-}
-```
+**Allowed transitions (full map)**:
+- PENDING → CONFIRMED, WAITING_PAYMENT, CANCELLED
+- WAITING_PAYMENT → CONFIRMED, CANCELLED, FAILED
+- CONFIRMED → PROCESSING, CANCELLED
+- PROCESSING → SHIPPING, READY_FOR_PICKUP, CANCELLED
+- SHIPPING → DELIVERED, DELAYED, RETURNING
+- DELAYED → SHIPPING, RETURNING
+- READY_FOR_PICKUP → DELIVERED, RETURNING
+- DELIVERED → COMPLETED, RETURNING
+- COMPLETED → (terminal)
+- FAILED → (terminal)
+- CANCELLED → (terminal)
+- RETURNING → RETURNED
+- RETURNED → REFUNDED
+- REFUNDED → (terminal)
 
-### Skill 6: Implement Rate Limiting
-**When to use**: Protecting sensitive endpoints (login, OTP, password reset), preventing abuse
+**Reference files**: `OrderStatusHandler.java`, `OrderService.java`
 
-**Steps**:
-1. Create `RateLimitService` using Redis sliding window algorithm
-2. Key format: `rate_limit:{endpoint}:{identifier}` (e.g., email or IP)
-3. Increment counter on each request, check against threshold
-4. Set TTL to window duration (e.g., 1 hour)
-5. Return 429 Too Many Requests when limit exceeded
+---
 
-**Example**:
-```java
-@Aspect
-@Component
-public class RateLimitAspect {
-    @Around("@annotation(rateLimit)")
-    public Object checkRateLimit(ProceedingJoinPoint pjp, RateLimit rateLimit) {
-        String key = "rate:" + rateLimit.endpoint() + ":" + getIdentifier();
-        Long count = redisTemplate.opsForValue().increment(key);
-        if (count == 1) {
-            redisTemplate.expire(key, rateLimit.duration(), TimeUnit.SECONDS);
-        }
-        if (count > rateLimit.limit()) {
-            throw new RateLimitExceededException();
-        }
-        return pjp.proceed();
-    }
-}
-```
-
-## 🔄 Workflow (Task Execution Process)
+## Workflow (Task Execution Process)
 
 ### Phase 1: Analysis & Planning
-1. **Read Audit Report**: Understand the problem, affected components, and business impact
-2. **Identify Dependencies**: Check which entities, services, and APIs are involved
-3. **Review Existing Code**: Read relevant files to understand current implementation
-4. **Create Task Breakdown**: Split into subtasks with clear acceptance criteria
-5. **Estimate Complexity**: Identify risks and potential blockers
+1. Read audit report — understand problem, affected components, business impact
+2. Identify dependencies — entities, services, APIs involved
+3. Review existing code — read relevant files to understand current implementation
+4. Create task breakdown — split into subtasks with clear acceptance criteria
+5. Estimate complexity — identify risks and potential blockers
 
 ### Phase 2: Implementation
-1. **Start with Data Layer**: Create/modify entities, add fields, indexes
-2. **Update Repository Layer**: Add custom queries, locking strategies
-3. **Implement Service Logic**: Business rules, transaction boundaries, error handling
-4. **Add Controller Endpoints**: REST APIs with validation and authorization
-5. **Integrate External Systems**: Kafka producers/consumers, Redis operations
+1. Start with data layer — create/modify entities, add fields, indexes
+2. Update repository layer — add custom queries, locking strategies
+3. Implement service logic — business rules, transaction boundaries, error handling
+4. Add controller endpoints — REST APIs with validation and authorization
+5. Integrate external systems — Kafka producers/consumers, Redis operations
 
 ### Phase 3: Testing & Verification
-1. **Unit Tests**: Test service methods with mocked dependencies
-2. **Integration Tests**: Test with real DB, Redis, Kafka (testcontainers)
-3. **Manual Testing**: Use Postman/curl to verify happy path and edge cases
-4. **Performance Testing**: Check for N+1 queries, slow transactions
-5. **Security Testing**: Verify authentication, authorization, input validation
+1. Unit tests — test service methods with mocked dependencies
+2. Integration tests — test with real DB, Redis, Kafka (testcontainers)
+3. Manual testing — use Postman/curl to verify happy path and edge cases
+4. Performance testing — check for N+1 queries, slow transactions
+5. Security testing — verify authentication, authorization, input validation
 
 ### Phase 4: Documentation & Handoff
-1. **Update API Docs**: Document new endpoints, request/response formats
-2. **Add Code Comments**: Explain complex logic, business rules, gotchas
-3. **Update README**: Add setup instructions for new dependencies
-4. **Create Migration Guide**: Document breaking changes, data migrations
-5. **Write Runbook**: Operational procedures, monitoring, troubleshooting
+1. Update API docs — document new endpoints, request/response formats
+2. Add code comments — explain complex logic, business rules, gotchas
+3. Update README — add setup instructions for new dependencies
+4. Create migration guide — document breaking changes, data migrations
+5. Write runbook — operational procedures, monitoring, troubleshooting
 
 ---
 
-## 📋 Task Priority Matrix
+## Task Priority Matrix
 
-### P0 (Critical - Do First)
-- **Task 1**: Distributed Locking for Inventory (prevents overselling)
-- **Task 2**: Transactional Outbox for Kafka (prevents data loss)
+### P0 (Critical — Do First)
+- Distributed Locking for Inventory (prevents overselling)
+- Transactional Outbox for Kafka (prevents data loss)
 
-### P1 (High - Do Next)
-- **Task 3**: Cascade Soft Delete & Snapshot OrderItems (data integrity)
-- **Task 4**: JWT Refresh Token & Rate Limiting (security)
+### P1 (High — Do Next)
+- Cascade Soft Delete & Snapshot OrderItems (data integrity)
+- JWT Refresh Token endpoint (security)
 
-### P2 (Medium - Do After)
-- **Task 5**: Order State Machine with Payment Validation (business logic)
-
----
-
-## 🎯 Success Criteria
-
-### Technical Metrics
-- ✅ Zero race conditions in inventory management (load test with 100 concurrent users)
-- ✅ 100% Kafka event delivery (no lost messages even on DB rollback)
-- ✅ Soft-deleted products don't break order history
-- ✅ JWT tokens expire correctly, refresh works without re-login
-- ✅ Order state transitions follow business rules (no invalid states)
-
-### Code Quality Metrics
-- ✅ Test coverage > 80% for critical paths
-- ✅ No N+1 query problems (check with Hibernate statistics)
-- ✅ All endpoints have rate limiting on sensitive operations
-- ✅ Proper transaction boundaries (no lazy loading exceptions)
-- ✅ Structured logging with correlation IDs for tracing
+### P2 (Medium — Do After)
+- Order Status Handler with Payment Validation (business logic)
 
 ---
 
-## 🚀 Quick Start Commands
+## Quick Start Commands
 
 ```bash
-# Build project
 ./mvnw clean install
-
-# Run with Docker Compose (Redis, Kafka, MinIO, PostgreSQL)
 docker-compose up -d
-
-# Run application
 ./mvnw spring-boot:run
-
-# Run tests
 ./mvnw test
-
-# Check code quality
 ./mvnw checkstyle:check
-
-# Generate API docs
-./mvnw springdoc-openapi:generate
 ```
 
 ---
 
-## 📞 When to Ask for Help
+## When to Ask for Help
 
-1. **Unclear Requirements**: Business rules not specified in audit report
-2. **Missing Context**: Need to understand existing code behavior
-3. **Architecture Decisions**: Trade-offs between different approaches
-4. **Breaking Changes**: Changes that affect existing APIs or data schema
-5. **Performance Concerns**: Optimization strategies for high-load scenarios
-
----
-
-*Last Updated: 2026-05-24*
-*Version: 1.0*
+1. Unclear requirements — business rules not specified in audit report
+2. Missing context — need to understand existing code behavior
+3. Architecture decisions — trade-offs between different approaches
+4. Breaking changes — changes that affect existing APIs or data schema
+5. Performance concerns — optimization strategies for high-load scenarios
