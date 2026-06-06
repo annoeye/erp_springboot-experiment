@@ -1,0 +1,21 @@
+services:
+  oracle-db:
+    image: gvenzl/oracle-xe:11.2.0.2-slim
+    container_name: oracle-db
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      ORACLE_CHARACTERSET: ${ORACLE_CHARACTERSET}
+      ORACLE_MEMORY: ${ORACLE_MEMORY}
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: [ "CMD", "tnsping", "XE", "1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 120s
+    networks:
+      - app-network
