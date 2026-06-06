@@ -24,6 +24,8 @@ services:
       INTEGRATION_MINIO_URL: http://minio:9000
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_USERNAME: app_cache
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_CACHE_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     deploy:
       resources:

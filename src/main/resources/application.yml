@@ -80,6 +80,8 @@ spring:
     redis:
       host: localhost
       port: 6379
+      username: app_cache
+      password: cache789
 
   output:
     ansi:

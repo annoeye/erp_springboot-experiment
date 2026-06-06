@@ -1,16 +1,28 @@
 services:
   redis:
-    image: "redis:8.6.4-alpine3.23"
+    image: redis:8.6.4-alpine3.23
     container_name: redis
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    env_file:
+      - ../.env
     ports:
       - "6379:6379"
-    command: ["redis-server", "--aclfile", "./etc/redis/users.acl"]
+    command: >
+      sh -c "
+      echo 'user default on >'${REDIS_DEFAULT_PASSWORD}' ~* +@all' > /etc/redis/users.acl &&
+      echo 'user app_admin on >'${REDIS_ADMIN_PASSWORD}' ~* +@all' >> /etc/redis/users.acl &&
+      echo 'user app_cache on >'${REDIS_CACHE_PASSWORD}' ~* +@read +@write -@dangerous -@admin -@slow' >> /etc/redis/users.acl &&
+      redis-server --aclfile /etc/redis/users.acl --maxmemory 256mb --maxmemory-policy allkeys-lru --maxclients 100
+      "
     volumes:
       - redis-data:/data
-      - ./users.acl:/etc/redis/users.acl:ro
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_DEFAULT_PASSWORD} ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
