@@ -16,6 +16,7 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_OPTS: "-Xmx512m -XX:+UseG1GC"
       TZ: Asia/Ho_Chi_Minh
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/XEPDB1
       SPRING_DATASOURCE_USERNAME: system
@@ -33,6 +34,12 @@ services:
         org.apache.kafka.common.security.plain.PlainLoginModule required
         username="${KAFKA_USER}"
         password="${KAFKA_PASSWORD}";
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
