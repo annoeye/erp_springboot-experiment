@@ -72,8 +72,6 @@ public class OrderDto {
     LocalDateTime completedAt;
 
     // Related entities
-    String bookingId;
-
     String shoppingCartId;
 
     AuditInfoDto auditInfo;

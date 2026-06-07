@@ -2,8 +2,8 @@ spring:
   application:
     name: ERP_SpringBoot-Experiment
 
-#  profiles:
-#    active: dev
+  config:
+    import: optional:file:.env[.properties]
 
   contact:
     name: ANNOEYE
@@ -12,7 +12,6 @@ spring:
 
   main:
     allow-bean-definition-overriding: true
-    lazy-initialization: true
 
   jackson:
     default-property-inclusion: non_null
@@ -22,24 +21,22 @@ spring:
       default-view-inclusion: true
 
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
-    username: Spring_app
-    password: ddinhnn11
+    url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/XEPDB1}
+    username: ${DB_USERNAME:Spring_app}
+    password: ${DB_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
       initialization-fail-timeout: -1
 
   kafka:
-    bootstrap-servers: localhost:9093
-
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9093}
     properties:
       security.protocol: SASL_PLAINTEXT
       sasl.mechanism: PLAIN
       sasl.jaas.config: |
         org.apache.kafka.common.security.plain.PlainLoginModule required
-        username="kafka"
-        password="kafka@2025";
-
+        username="${KAFKA_USER}"
+        password="${KAFKA_PASSWORD}";
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -47,7 +44,6 @@ spring:
       retries: 3
       properties:
         linger.ms: 5
-
     consumer:
       group-id: erp-service-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -56,7 +52,6 @@ spring:
       enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "*"
-
     listener:
       concurrency: 3
       ack-mode: manual
@@ -65,14 +60,15 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
+    show-sql: false
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: erpspringbootexperiment@gmail.com
-    password: "onfw cbkp xfmh arow"
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -86,10 +82,10 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
-      username: app_cache
-      password: cache789
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:app_cache}
+      password: ${REDIS_PASSWORD}
 
   output:
     ansi:
@@ -106,9 +102,9 @@ spring:
 
 integration:
   minio:
-    access-key: admin
-    secret-key: admin@2025
-    url: http://localhost:9000
+    access-key: ${MINIO_ACCESS_KEY:admin}
+    secret-key: ${MINIO_SECRET_KEY}
+    url: ${MINIO_URL:http://localhost:9000}
 
 server:
   port: 8080
@@ -127,13 +123,12 @@ springdoc:
     display-request-duration: true
     tags-sorter: alpha
   show-actuator: false
-#  default-consumes-media-type: multipart/form-data
   default-produces-media-type: application/json
 
 application:
   security:
     jwt:
-      secret-key: "N0pwM0VjcmV0S2V5Rm9ySlBUSXNzdWVyQW5kVmVyaWZpY2F0aW9uUHVycG9zZXM="
+      secret-key: ${JWT_SECRET}
 
 logging:
   level:
@@ -142,7 +137,6 @@ logging:
       anno:
         ERP_SpringBoot_Experiment:
           service: DEBUG
-
     org:
       springframework:
         data:
@@ -150,29 +144,13 @@ logging:
             config:
               RepositoryConfigurationExtensionSupport: WARN
       apache:
-        kafka:
-          clients:
-            admin.AdminClientConfig: WARN
-            consumer.ConsumerConfig: WARN
-            producer.ProducerConfig: WARN
+        kafka: WARN
       hibernate:
-        apache:
-          catalina:
-            loader:
-              WebappClassLoaderBase: ERROR
         tool:
           schema:
             internal:
               ExceptionHandlerLoggedImpl: ERROR
-        springframework:
-          data:
-            repository:
-              config:
-                RepositoryConfigurationExtensionSupport: ERROR
     org.hibernate: WARN
-#    org.springframework: DEBUG
-
 
   pattern:
     console: "%boldYellow(%d{HH:mm:ss.SSS}) %boldCyan(%d{yyyy-MM-dd}) %green([%thread]) %highlight(%-5level) %cyan(%logger{36}) %magenta([%file:%line]) %yellow(-) %msg%n%clr(%wEx){red}"
-

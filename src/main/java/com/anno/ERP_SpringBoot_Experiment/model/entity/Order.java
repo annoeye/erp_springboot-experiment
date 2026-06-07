@@ -280,14 +280,6 @@ public class Order extends IdentityOnly<Long> {
          * ============================ 🔗 Related Entities ============================
          */
 
-        /**
-         * Liên kết với Booking nếu order được tạo từ booking
-         * 
-         * @en Linked to Booking if order is created from booking
-         */
-        @Column(name = "booking_id")
-        String bookingId;
-
         @Column(name = "shipper_id", length = 100)
         String shipperId;
 

@@ -41,7 +41,6 @@ public class SecurityConfiguration {
                         "/api/auth/logout",
                         "/api/merchandise/**",
                         "/api/images/**",
-                        "/api/notifications/**",
                         "/api/payment/result**",
                         "/api/delivery/**",
         };

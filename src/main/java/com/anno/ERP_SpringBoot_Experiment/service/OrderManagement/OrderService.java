@@ -48,7 +48,6 @@ public class OrderService implements iOrder {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ShoppingCartRepository shoppingCartRepository;
-    private final BookingRepository bookingRepository;
     private final OrderMapper orderMapper;
     private final SecurityUtil securityUtil;
     private final OrderStatusHandler orderStatusHandler;
@@ -89,12 +88,6 @@ public class OrderService implements iOrder {
             }).toList();
             cart.getItems().clear();
             shoppingCartRepository.save(cart);
-        } else if (request.getBookingId() != null) {
-            var b = bookingRepository.findById(convertLong(request.getBookingId())).orElseThrow();
-            items = b.getProducts().stream().map(i -> {
-                var a = attributesRepository.findAttributesBySku_sku(i.getSku()).orElseThrow();
-                return buildItem(a, i.getQuantity(), order);
-            }).toList();
         } else {
             var skus = request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getAttributesSku).toList();
             var qty = request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getQuantity).toList();

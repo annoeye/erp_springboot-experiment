@@ -21,7 +21,7 @@ public class CreateOrderRequest {
 
     /**
      * Danh sách sản phẩm trong đơn hàng.
-     * Bắt buộc nếu không có cartId hoặc bookingId.
+     * Bắt buộc nếu không dùng giỏ hàng (isFromCart = false).
      */
     List<OrderItemRequest> items;
 
@@ -31,13 +31,6 @@ public class CreateOrderRequest {
      */
     @JsonProperty("is_from_cart")
     boolean isFromCart;
-
-    /**
-     * ID booking (optional).
-     * Nếu có, sẽ lấy items từ booking.
-     */
-    @JsonProperty("booking_id")
-    String bookingId;
 
     /**
      * Thông tin giao hàng (bắt buộc).

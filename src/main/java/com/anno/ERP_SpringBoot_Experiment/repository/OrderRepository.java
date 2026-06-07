@@ -112,11 +112,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     List<Order> findInProgressOrders();
 
     /**
-     * Tìm orders theo booking ID
-     */
-    Optional<Order> findByBookingId(String bookingId);
-
-    /**
      * Tìm top customers theo tổng giá trị đơn hàng
      */
     @Query("SELECT o.customer, SUM(o.totalAmount) as total FROM Order o " +
