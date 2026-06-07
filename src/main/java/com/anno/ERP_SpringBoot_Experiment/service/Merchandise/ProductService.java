@@ -104,10 +104,8 @@ public class ProductService implements iProduct {
                                                 "-" + request.getCategorySku()
                                                         .substring(request.getCategorySku().length() - 2)))
                                 .build())
-                        .auditInfo(AuditInfo.builder()
-                                .createdAt(LocalDateTime.now())
-                                .createdBy(securityUtil.getCurrentUsername())
-                                .build())
+                        .createdAt(LocalDateTime.now())
+                        .createdBy(securityUtil.getCurrentUsername())
                         .status(Stream.of(ActiveStatus.ACTIVE, ActiveStatus.LOCKED)
                                 .filter(s -> s.name().equals(request.getStatus()))
                                 .findFirst()
@@ -137,10 +135,7 @@ public class ProductService implements iProduct {
 
         productMapper.updateFromRequest(request, product);
 
-        if (product.getAuditInfo() == null) {
-            product.setAuditInfo(new AuditInfo());
-        }
-        product.getAuditInfo().addUpdateEntry("Cập nhật thông tin sản phẩm", securityUtil.getCurrentUsername());
+        product.addUpdateEntry("Cập nhật thông tin sản phẩm", securityUtil.getCurrentUsername());
 
         log.info("Đã cập nhật sản phẩm '{}' với ID {}", product.getName(), product.getId());
         productRepository.save(product);
@@ -287,7 +282,7 @@ public class ProductService implements iProduct {
 
         List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
-        product.getAuditInfo().addUpdateEntry("Thêm " + newItems.size() + " ảnh sản phẩm",
+        product.addUpdateEntry("Thêm " + newItems.size() + " ảnh sản phẩm",
                 securityUtil.getCurrentUsername());
         log.info("Đã thêm {} ảnh mới vào sản phẩm {}", newItems.size(), productId);
 
@@ -313,7 +308,7 @@ public class ProductService implements iProduct {
         }
 
         product.getMediaItems().remove(itemToDelete);
-        product.getAuditInfo().addUpdateEntry("Xóa ảnh sản phẩm: " + imageKey, securityUtil.getCurrentUsername());
+        product.addUpdateEntry("Xóa ảnh sản phẩm: " + imageKey, securityUtil.getCurrentUsername());
 
         log.info("Đã xóa ảnh {} khỏi sản phẩm {}", imageKey, productId);
 
@@ -350,7 +345,7 @@ public class ProductService implements iProduct {
 
         List<MediaItem> newItems = uploadImages(images);
         product.getMediaItems().addAll(newItems);
-        product.getAuditInfo().addUpdateEntry("Thay thế " + newItems.size() + " ảnh sản phẩm",
+        product.addUpdateEntry("Thay thế " + newItems.size() + " ảnh sản phẩm",
                 securityUtil.getCurrentUsername());
         log.info("Đã thay thế {} ảnh cho sản phẩm {}", newItems.size(), productId);
 

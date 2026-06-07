@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import java.time.LocalDateTime;
@@ -36,15 +35,6 @@ import java.util.List;
 public class Product extends BaseEntity<Long> {
         @Column(name = "name")
         String name;
-
-        /**
-         * Thông tin kiểm toán
-         * 
-         * @en Audit info
-         */
-        @Embedded
-        @Builder.Default
-        AuditInfo auditInfo = new AuditInfo();
 
         /**
          * Thông tin SKU

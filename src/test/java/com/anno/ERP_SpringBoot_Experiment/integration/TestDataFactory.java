@@ -58,7 +58,7 @@ public class TestDataFactory {
      * Tạo Attributes cho product.
      * Trả về danh sách AttributesDto.
      */
-    public List<AttributesDto> createAttributes(String productSku, String name, double price, int stockQuantity) {
+    public List<AttributesDto> createAttributes(String productSku, String name, double price) {
         CreateAttributesRequest request = new CreateAttributesRequest();
         request.setProductSku(productSku);
         request.setName(name);
@@ -66,7 +66,6 @@ public class TestDataFactory {
         com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput attrItem =
                 new com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput();
         attrItem.setPrice(BigDecimal.valueOf(price));
-        attrItem.setStockQuantity(stockQuantity);
         attrItem.setStatusProduct(StockStatus.AVAILABLE);
         request.setAttributes(List.of(attrItem));
 

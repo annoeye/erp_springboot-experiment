@@ -1,7 +1,11 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.*;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.SpecificationGroup;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.VariantOption;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.Promotion;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.MediaItem;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -64,14 +68,6 @@ public class Attributes extends BaseEntity      <Long> {
         double salePrice;
 
         /**
-         * Số lượng tồn kho
-         * 
-         * @en Stock quantity
-         */
-        @Column(name = "stock_quantity")
-        int stockQuantity;
-
-        /**
          * Các tùy chọn biến thể
          * 
          * @en Variant options
@@ -105,19 +101,11 @@ public class Attributes extends BaseEntity      <Long> {
          * 
          * @en Keywords
          */
-        @Convert(converter = com.anno.ERP_SpringBoot_Experiment.config.converter.StringSetConverter.class)
-        @Column(name = "keywords", columnDefinition = "CLOB")
+        @ElementCollection
+        @CollectionTable(name = "attribute_keywords", joinColumns = @JoinColumn(name = "attribute_id"))
+        @Column(name = "keyword", length = 100)
         @Builder.Default
         Set<String> keywords = new HashSet<>();
-
-        /**
-         * Thông tin kiểm toán
-         * 
-         * @en Audit info
-         */
-        @Embedded
-        @Builder.Default
-        AuditInfo auditInfo = new AuditInfo();
 
         /**
          * Các chương trình khuyến mãi

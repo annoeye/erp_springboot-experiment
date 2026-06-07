@@ -82,11 +82,11 @@ public class OrderService implements iOrder {
         List<OrderItem> items = new ArrayList<>();
         if (request.isFromCart()) {
             var cart = shoppingCartRepository.findByUser(customer).orElseThrow();
-            items = cart.getItems().stream().map(i -> {
+            items = cart.getCartItems().stream().map(i -> {
                 var a = attributesRepository.findAttributesBySku_sku(i.getSku()).orElseThrow();
                 return buildItem(a, i.getQuantity(), order);
             }).toList();
-            cart.getItems().clear();
+            cart.clearItems();
             shoppingCartRepository.save(cart);
         } else {
             var skus = request.getItems().stream().map(CreateOrderRequest.OrderItemRequest::getAttributesSku).toList();

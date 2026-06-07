@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuthCode;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
@@ -102,15 +101,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
     /*
      * ============================ 🧩 Embedded Fields ============================
      */
-
-    /**
-     * Thông tin kiểm toán
-     * 
-     * @en Audit info
-     */
-    @Embedded
-    @Builder.Default
-    AuditInfo auditInfo = new AuditInfo();
 
     /**
      * Mã xác thực

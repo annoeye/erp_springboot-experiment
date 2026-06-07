@@ -97,9 +97,7 @@ public class UserService implements iUser {
             user.setPassword(passwordEncoder.encode(body.getPassword()));
             user.setStatus(ActiveStatus.INACTIVE);
 
-            if (user.getAuditInfo() != null) {
-                user.getAuditInfo().setCreatedAt(LocalDateTime.now());
-            }
+            user.setCreatedAt(LocalDateTime.now());
             someCondition = false;
 
             log.info("Tạo user mới: {}", user.getName());

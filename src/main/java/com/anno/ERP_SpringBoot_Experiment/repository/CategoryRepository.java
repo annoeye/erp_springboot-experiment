@@ -39,7 +39,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
      * @param deletedAt   Thời điểm thực hiện việc xóa (thường là LocalDateTime.now())
      */
     @Modifying
-    @Query("UPDATE Category c SET c.auditInfo.deletedAt = :deletedAt, c.auditInfo.deletedBy = :deletedBy WHERE c.id IN :ids")
+    @Query("UPDATE Category c SET c.deletedAt = :deletedAt, c.deletedBy = :deletedBy WHERE c.id IN :ids")
     void softDeleteAllByIds(
             @Param("ids") List<Long> ids,
             @Param("deletedBy") String deletedBy,

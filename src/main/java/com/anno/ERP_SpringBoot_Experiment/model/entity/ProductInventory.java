@@ -31,7 +31,7 @@ public class ProductInventory extends IdentityOnly<Long> {
     @Version
     Long version;
     
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     Product product;
 }

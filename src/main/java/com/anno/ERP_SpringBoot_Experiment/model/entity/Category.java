@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -26,15 +25,6 @@ public class Category extends BaseEntity<Long> {
 
         @Column(name = "name")
         String name;
-
-        /**
-         * Thông tin kiểm toán
-         * 
-         * @en Audit info
-         */
-        @Embedded
-        @Builder.Default
-        AuditInfo auditInfo = new AuditInfo();
 
         /**
          * Thông tin SKU

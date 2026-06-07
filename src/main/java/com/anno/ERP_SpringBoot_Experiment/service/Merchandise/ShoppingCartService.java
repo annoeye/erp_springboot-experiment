@@ -1,13 +1,13 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
-import com.anno.ERP_SpringBoot_Experiment.model.entity.CartItem;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.ShoppingCart;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ShoppingCartRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ShoppingCartDto;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CartItemRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iShoppingCart;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
@@ -33,11 +33,6 @@ public class ShoppingCartService implements iShoppingCart {
     private final SecurityUtil securityUtil;
     private final Helper helper;
 
-    /**
-     * Request DTO cho thêm/xoá item.
-     */
-    public record CartItemRequest(String sku, int quantity) {}
-
     @Override
     @Transactional
     public Response<ShoppingCartDto> add(final List<CartItemRequest> items) {
@@ -53,7 +48,7 @@ public class ShoppingCartService implements iShoppingCart {
                 .orElseGet(() -> helper.createNewCart(user));
 
         List<String> skus = items.stream()
-                .map(CartItemRequest::sku)
+                .map(CartItemRequest::getSku)
                 .distinct()
                 .toList();
 
@@ -65,8 +60,8 @@ public class ShoppingCartService implements iShoppingCart {
                         a -> a));
 
         for (CartItemRequest item : items) {
-            String sku = item.sku();
-            int quantity = item.quantity();
+            String sku = item.getSku();
+            int quantity = item.getQuantity();
 
             Attributes attributes = attributesMap.get(sku);
             if (attributes == null) {

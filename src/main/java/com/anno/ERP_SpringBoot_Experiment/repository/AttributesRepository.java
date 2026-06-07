@@ -19,7 +19,8 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
 
         Optional<Attributes> findAttributesBySku_sku(String skuSku);
 
-        Optional<Attributes> findAttributesBySku_skuAndAuditInfo_DeletedAtIsNull(String skuSku);
+        @Query("SELECT a FROM Attributes a WHERE a.sku.sku = :sku AND a.deletedAt IS NULL")
+        Optional<Attributes> findAttributesBySkuNotDeleted(@Param("sku") String sku);
 
         Optional<Attributes> findAttributesById(Long id);
 
@@ -30,26 +31,28 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
 
         List<Attributes> findAllByProduct(Product product);
 
-        List<Attributes> findAllByProductAndAuditInfo_DeletedAtIsNull(Product product);
+        @Query("SELECT a FROM Attributes a WHERE a.product = :product AND a.deletedAt IS NULL")
+        List<Attributes> findAllByProductNotDeleted(@Param("product") Product product);
 
         List<Attributes> findAllByProduct_Id(Long productId);
 
-        List<Attributes> findAllByProduct_IdAndAuditInfo_DeletedAtIsNull(Long productId);
+        @Query("SELECT a FROM Attributes a WHERE a.product.id = :productId AND a.deletedAt IS NULL")
+        List<Attributes> findAllByProductIdNotDeleted(@Param("productId") Long productId);
 
         boolean existsBySku_sku(String skuSku);
 
         long countByProduct(Product product);
 
-        long countByProductAndAuditInfo_DeletedAtIsNull(Product product);
+        @Query("SELECT COUNT(a) FROM Attributes a WHERE a.product = :product AND a.deletedAt IS NULL")
+        long countByProductNotDeleted(@Param("product") Product product);
 
-        List<Attributes> findAllByNameContainingIgnoreCaseAndAuditInfo_DeletedAtIsNull(String name);
+        @Query("SELECT a FROM Attributes a WHERE LOWER(a.name) LIKE LOWER(CONCAT('%', :name, '%')) AND a.deletedAt IS NULL")
+        List<Attributes> findByNameContainingNotDeleted(@Param("name") String name);
 
-        List<Attributes> findAllByPriceBetweenAndAuditInfo_DeletedAtIsNull(Double minPrice, Double maxPrice);
+        @Query("SELECT a FROM Attributes a WHERE a.price BETWEEN :minPrice AND :maxPrice AND a.deletedAt IS NULL")
+        List<Attributes> findByPriceBetweenNotDeleted(@Param("minPrice") Double minPrice, @Param("maxPrice") Double maxPrice);
 
-        @Query("SELECT a FROM Attributes a WHERE a.stockQuantity < :threshold AND a.auditInfo.deletedAt IS NULL")
-        List<Attributes> findLowStockAttributes(@Param("threshold") Integer threshold);
-
-        @Query("SELECT a FROM Attributes a WHERE a.salePrice IS NOT NULL AND a.salePrice > 0 AND a.auditInfo.deletedAt IS NULL")
+        @Query("SELECT a FROM Attributes a WHERE a.salePrice IS NOT NULL AND a.salePrice > 0 AND a.deletedAt IS NULL")
         List<Attributes> findAllOnSale();
 
         @Modifying(clearAutomatically = true)
@@ -59,19 +62,7 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
         void deleteAllExpiredAttributes();
 
         @Modifying
-        @Query("UPDATE Attributes a SET a.stockQuantity = :quantity, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku")
-        void updateStockQuantity(@Param("sku") String sku, @Param("quantity") Integer quantity);
-
-        @Modifying
-        @Query("UPDATE Attributes a SET a.stockQuantity = a.stockQuantity + :amount, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku")
-        void increaseStockQuantity(@Param("sku") String sku, @Param("amount") Integer amount);
-
-        @Modifying
-        @Query("UPDATE Attributes a SET a.stockQuantity = a.stockQuantity - :amount, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku AND a.stockQuantity >= :amount")
-        int decreaseStockQuantity(@Param("sku") String sku, @Param("amount") Integer amount);
-
-        @Modifying
-        @Query("UPDATE Attributes a SET a.salePrice = :salePrice, a.auditInfo.updatedAt = CURRENT_TIMESTAMP WHERE a.sku.sku = :sku")
+        @Query("UPDATE Attributes a SET a.salePrice = :salePrice WHERE a.sku.sku = :sku")
         void updateSalePrice(@Param("sku") String sku, @Param("salePrice") Double salePrice);
 
         @Modifying

@@ -52,10 +52,8 @@ public class CategoryService implements iCategory {
                 Category.builder()
                         .name(name)
                         .skuInfo(new SkuInfo().createSku("ctgr-"))
-                        .auditInfo(AuditInfo.builder()
-                                .createdBy(securityUtil.getCurrentUsername())
-                                .createdAt(LocalDateTime.now())
-                                .build())
+                        .createdBy(securityUtil.getCurrentUsername())
+                        .createdAt(LocalDateTime.now())
                         .build()
         );
         log.info("Đã tạo mới danh mục {}", name);
@@ -72,7 +70,7 @@ public class CategoryService implements iCategory {
         Category category = optionalCategory
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục không tồn tại."));
         category.setName(request.getName());
-        category.getAuditInfo().addUpdateEntry("Cập nhật tên danh mục", securityUtil.getCurrentUsername());
+        category.addUpdateEntry("Cập nhật tên danh mục", securityUtil.getCurrentUsername());
         log.info("Đã sửa danh mục thành {} với mã id {}", category.getName(), category.getId());
         categoryMapper.toDto(categoryRepository.save(category));
         return Response.ok("Sửa danh mục thành công.");

@@ -60,13 +60,6 @@ public class UpdateAttributesRequest {
     List<VariantOptionDto> variantOptions;
 
     /**
-     * Số lượng tồn kho mới (optional, không được âm).
-     */
-    @JsonProperty("stock_quantity")
-    @PositiveOrZero(message = "Số lượng tồn kho không được âm")
-    Integer stockQuantity;
-
-    /**
      * Trạng thái sản phẩm (optional).
      */
     @JsonProperty("statusProduct")

@@ -23,7 +23,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     void deleteAllExpiredProducts();
 
     @Modifying
-    @Query("UPDATE Product c SET c.auditInfo.deletedAt = :deletedAt, c.auditInfo.deletedBy = :deletedBy WHERE c.id IN :ids")
+    @Query("UPDATE Product c SET c.deletedAt = :deletedAt, c.deletedBy = :deletedBy WHERE c.id IN :ids")
     void softDeleteAllByIds(
             @Param("ids") List<Long> ids,
             @Param("deletedBy") String deletedBy,

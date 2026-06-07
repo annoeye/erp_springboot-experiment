@@ -5,6 +5,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -20,8 +21,9 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
     /**
-     * Tìm order theo order number
+     * Tìm order theo order number (kèm orderItems)
      */
+    @EntityGraph(attributePaths = "orderItems")
     Optional<Order> findByOrderNumber(String orderNumber);
 
     /**
@@ -30,32 +32,37 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     boolean existsByOrderNumber(String orderNumber);
 
     /**
-     * Tìm tất cả orders của một customer
+     * Tìm tất cả orders của một customer (kèm orderItems)
      */
+    @EntityGraph(attributePaths = "orderItems")
     Page<Order> findByCustomer(User customer, Pageable pageable);
 
     /**
-     * Tìm orders theo customer ID
+     * Tìm orders theo customer ID (kèm orderItems)
      */
-    @Query("SELECT o FROM Order o WHERE o.customer.id = :customerId")
+    @Query(value = "SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.customer.id = :customerId",
+           countQuery = "SELECT COUNT(DISTINCT o) FROM Order o WHERE o.customer.id = :customerId")
     Page<Order> findByCustomerId(@Param("customerId") Long customerId, Pageable pageable);
 
     /**
-     * Tìm orders theo status
+     * Tìm orders theo status (kèm orderItems)
      */
-    @Query("SELECT o FROM Order o WHERE o.status LIKE %:status%")
+    @Query(value = "SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.status LIKE %:status%",
+           countQuery = "SELECT COUNT(DISTINCT o) FROM Order o WHERE o.status LIKE %:status%")
     Page<Order> findByStatus(@Param("status") String status, Pageable pageable);
 
     /**
-     * Tìm orders theo customer và status
+     * Tìm orders theo customer và status (kèm orderItems)
      */
-    @Query("SELECT o FROM Order o WHERE o.customer = :customer AND o.status LIKE %:status%")
+    @Query(value = "SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.customer = :customer AND o.status LIKE %:status%",
+           countQuery = "SELECT COUNT(DISTINCT o) FROM Order o WHERE o.customer = :customer AND o.status LIKE %:status%")
     Page<Order> findByCustomerAndStatus(@Param("customer") User customer, @Param("status") String status, Pageable pageable);
 
     /**
-     * Tìm orders trong khoảng thời gian
+     * Tìm orders trong khoảng thời gian (kèm orderItems)
      */
-    @Query("SELECT o FROM Order o WHERE o.auditInfo.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.auditInfo.createdAt BETWEEN :startDate AND :endDate",
+           countQuery = "SELECT COUNT(DISTINCT o) FROM Order o WHERE o.auditInfo.createdAt BETWEEN :startDate AND :endDate")
     Page<Order> findByCreatedAtBetween(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
@@ -63,9 +70,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     );
 
     /**
-     * Tìm orders theo customer trong khoảng thời gian
+     * Tìm orders theo customer trong khoảng thời gian (kèm orderItems)
      */
-    @Query("SELECT o FROM Order o WHERE o.customer.id = :customerId AND o.auditInfo.createdAt BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.customer.id = :customerId AND o.auditInfo.createdAt BETWEEN :startDate AND :endDate",
+           countQuery = "SELECT COUNT(DISTINCT o) FROM Order o WHERE o.customer.id = :customerId AND o.auditInfo.createdAt BETWEEN :startDate AND :endDate")
     Page<Order> findByCustomerIdAndCreatedAtBetween(
             @Param("customerId") Long customerId,
             @Param("startDate") LocalDateTime startDate,
@@ -100,15 +108,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     );
 
     /**
-     * Tìm orders cần xử lý (PENDING, CONFIRMED)
+     * Tìm orders cần xử lý (PENDING, CONFIRMED) — kèm orderItems
      */
-    @Query("SELECT o FROM Order o WHERE o.status LIKE '%PENDING%' OR o.status LIKE '%CONFIRMED%' ORDER BY o.auditInfo.createdAt ASC")
+    @Query("SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.status LIKE '%PENDING%' OR o.status LIKE '%CONFIRMED%' ORDER BY o.auditInfo.createdAt ASC")
     List<Order> findPendingOrders();
 
     /**
-     * Tìm orders đang giao hàng
+     * Tìm orders đang giao hàng — kèm orderItems
      */
-    @Query("SELECT o FROM Order o WHERE o.status LIKE '%PROCESSING%' OR o.status LIKE '%PACKED%' OR o.status LIKE '%SHIPPED%' ORDER BY o.auditInfo.createdAt ASC")
+    @Query("SELECT DISTINCT o FROM Order o JOIN FETCH o.orderItems WHERE o.status LIKE '%PROCESSING%' OR o.status LIKE '%PACKED%' OR o.status LIKE '%SHIPPED%' ORDER BY o.auditInfo.createdAt ASC")
     List<Order> findInProgressOrders();
 
     /**

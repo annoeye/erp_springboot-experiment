@@ -29,8 +29,6 @@ public class AttributesDto implements Serializable {
 
     double salePrice;
 
-    int stockQuantity;
-
     List<VariantOptionDto> variantOptions;
 
     /** Trang thai ton kho (IN_STOCK, OUT_OF_STOCK, LOW_STOCK) */

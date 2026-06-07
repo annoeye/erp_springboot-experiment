@@ -66,10 +66,6 @@ public class AttributesService implements iAttributes {
         List<Attributes> attributesList = new ArrayList<>();
         
         for (com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput item : request.getAttributes()) {
-            if (item.getStockQuantity() < 0) {
-                throw new BusinessException(ErrorCode.PRODUCT_OUT_OF_STOCK, "Số lượng tồn kho không thể là số âm.");
-            }
-
             Attributes attr = Attributes.builder()
                     .product(product)
                     .sku(SkuInfo.builder()
@@ -79,7 +75,6 @@ public class AttributesService implements iAttributes {
                     .name(request.getName())
                     .price(item.getPrice() != null ? item.getPrice().doubleValue() : 0.0)
                     .salePrice(item.getSalePrice() != null ? item.getSalePrice().doubleValue() : 0.0)
-                    .stockQuantity(item.getStockQuantity())
                     .variantOptions((item.getVariantOptions() != null && !item.getVariantOptions().isEmpty())
                             ? item.getVariantOptions().stream()
                                     .map(dto -> new VariantOption(dto.getName(), dto.getValues()))
@@ -151,13 +146,6 @@ public class AttributesService implements iAttributes {
             attributes.setVariantOptions(variantOptions);
         }
 
-        if (request.getStockQuantity() != null) {
-            if (request.getStockQuantity() < 0) {
-                throw new BusinessException(ErrorCode.INVALID_QUANTITY, "Số lượng tồn kho không thể là số âm.");
-            }
-            attributes.setStockQuantity(request.getStockQuantity());
-        }
-
         if (request.getKeywords() != null) {
             attributes.setKeywords(new HashSet<>(request.getKeywords()));
         }
@@ -186,9 +174,7 @@ public class AttributesService implements iAttributes {
             attributes.setStatusProduct(request.getStatus());
         }
 
-        if (attributes.getAuditInfo() != null) {
-            attributes.getAuditInfo().addUpdateEntry("Cập nhật thuộc tính sản phẩm", securityUtil.getCurrentUsername());
-        }
+        attributes.addUpdateEntry("Cập nhật thuộc tính sản phẩm", securityUtil.getCurrentUsername());
 
         attributesRepository.save(attributes);
         return Response.ok("Đã cập nhật thành công.");
@@ -223,7 +209,7 @@ public class AttributesService implements iAttributes {
 
         // Soft delete
         attributesToDelete.forEach(attr -> {
-            attr.getAuditInfo().markDeletedAfter30Days(currentUser);
+            attr.markDeletedAfter30Days(currentUser);
         });
 
         attributesRepository.saveAll(attributesToDelete);
@@ -247,7 +233,7 @@ public class AttributesService implements iAttributes {
         String currentUser = securityUtil.getCurrentUsername();
 
         attributesList.forEach(attr -> {
-            attr.getAuditInfo().markDeletedAfter30Days(currentUser);
+            attr.markDeletedAfter30Days(currentUser);
         });
 
         attributesRepository.saveAll(attributesList);
@@ -301,13 +287,6 @@ public class AttributesService implements iAttributes {
         }
         if (request.getMaxSalePrice() != null) {
             criteriaList.add(new SearchCriteria("salePrice", "<", request.getMaxSalePrice()));
-        }
-
-        if (request.getMinStockQuantity() != null) {
-            criteriaList.add(new SearchCriteria("stockQuantity", ">", request.getMinStockQuantity()));
-        }
-        if (request.getMaxStockQuantity() != null) {
-            criteriaList.add(new SearchCriteria("stockQuantity", "<", request.getMaxStockQuantity()));
         }
 
         if (request.getMinSoldQuantity() != null) {

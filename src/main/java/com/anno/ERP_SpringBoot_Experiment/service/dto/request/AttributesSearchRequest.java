@@ -17,8 +17,6 @@ public class AttributesSearchRequest {
     private Double maxPrice;
     private Double minSalePrice;
     private Double maxSalePrice;
-    private Integer minStockQuantity;
-    private Integer maxStockQuantity;
     private Integer minSoldQuantity;
     private Integer maxSoldQuantity;
     private Double minCostPrice;

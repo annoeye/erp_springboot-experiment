@@ -14,7 +14,6 @@ public class AttributeInput {
     private String value;
     private BigDecimal price;
     private BigDecimal salePrice;
-    private Integer stockQuantity;
     private List<VariantOption> variantOptions;
     private List<Promotion> promotions;
     private List<SpecificationGroup> specifications;

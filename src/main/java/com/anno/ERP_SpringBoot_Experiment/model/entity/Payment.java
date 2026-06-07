@@ -103,10 +103,4 @@ public class Payment extends IdentityOnly<UUID> {
     @Column(name = "ip_address", length = 50)
     String ipAddress;
 
-    /**
-     * Hóa đơn liên kết
-     * @en Linked bill
-     */
-    @OneToOne(mappedBy = "payment")
-    Bill bill;
 }
