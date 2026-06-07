@@ -1,13 +1,12 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ProductQuantity;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.CartItem;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.ShoppingCart;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
-import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
-import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.ShoppingCartDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -28,137 +26,40 @@ public class Helper {
     private final AttributesRepository attributesRepository;
     private static final String ALPHANUMERIC_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    UUID convertStringToUUID(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new IllegalArgumentException("ID không được để trống.");
-        }
+    // ─── Cart helpers ───
 
-        // Loại bỏ các ký tự gây nhiễu thường gặp
-        String text = id.trim().replace("[", "").replace("]", "").replace("\"", "");
-
-        // 1. Trường hợp UUID chuẩn có dấu "-" (36 ký tự)
-        if (text.length() == 36 && text.chars().filter(c -> c == '-').count() == 4) {
-            try {
-                return UUID.fromString(text);
-            } catch (IllegalArgumentException e) {
-                // Dấu "-" có thể đặt sai vị trí, sẽ xử lý bên dưới
-            }
-        }
-
-        // 2. Trường hợp UUID không có dấu "-" (32 ký tự hex)
-        if (text.length() == 32 && !text.contains("-")) {
-            return buildUUIDFromHex(text);
-        }
-
-        // 3. Trường hợp khác: xóa hết dấu "-" và rebuild
-        String raw = text.replace("-", "");
-
-        if (raw.length() != 32) {
-            throw new IllegalArgumentException(String.format(
-                    "Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID 36 ký tự, nhận được: %d ký tự (sau khi xóa dấu '-': %d ký tự).",
-                    text.length(), raw.length()));
-        }
-
-        return buildUUIDFromHex(raw);
+    public void handleAddItem(ShoppingCart cart, String sku, int quantityToAdd, Attributes attributes) {
+        cart.addItem(sku, quantityToAdd);
+        log.debug("Đã thêm/cập nhật sản phẩm {} với số lượng {} (tổng cộng)", sku, quantityToAdd);
     }
 
-    /**
-     * Build UUID từ chuỗi 32 ký tự hex
-     */
-    private UUID buildUUIDFromHex(String hex) {
-        if (hex.length() != 32) {
-            throw new IllegalArgumentException("Chuỗi hex phải có đúng 32 ký tự.");
-        }
-
-        // Validate hex characters
-        if (!hex.matches("[0-9a-fA-F]+")) {
-            throw new IllegalArgumentException("ID chứa ký tự không hợp lệ (không phải Hex).");
-        }
-
-        String formatted = String.format("%s-%s-%s-%s-%s",
-                hex.substring(0, 8),
-                hex.substring(8, 12),
-                hex.substring(12, 16),
-                hex.substring(16, 20),
-                hex.substring(20, 32));
-
-        return UUID.fromString(formatted);
-    }
-
-    public String generateKey() {
-        StringBuilder sb = new StringBuilder(5);
-
-        for (int i = 0; i < 5; i++) {
-            int randomIndex = ThreadLocalRandom.current().nextInt(ALPHANUMERIC_CHARACTERS.length());
-            sb.append(ALPHANUMERIC_CHARACTERS.charAt(randomIndex));
-        }
-
-        return sb.toString();
-    }
-
-    public void handleAddItem(ShoppingCart cart, ProductQuantity item, Attributes attributes) {
-        String sku = item.getSku();
-        int quantityToAdd = item.getQuantity();
-
-        Optional<ProductQuantity> existingItem = cart.getItems().stream()
-                .filter(i -> i.getSku().equals(sku))
-                .findFirst();
-
-        int currentQuantity = existingItem.map(ProductQuantity::getQuantity).orElse(0);
-        int newTotalQuantity = currentQuantity + quantityToAdd;
-
-        if (newTotalQuantity > attributes.getStockQuantity()) {
-            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK,
-                    String.format("Số lượng vượt quá tồn kho. Sản phẩm: %s, Tồn kho: %d, Trong giỏ: %d",
-                            attributes.getName(),
-                            attributes.getStockQuantity(),
-                            currentQuantity));
-        }
-
-        if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(newTotalQuantity);
-            log.debug("Cập nhật số lượng sản phẩm {} từ {} lên {}",
-                    sku, currentQuantity, newTotalQuantity);
-        } else {
-            cart.addItems(List.of(item));
-            log.debug("Thêm mới sản phẩm {} với số lượng {}", sku, quantityToAdd);
-        }
-    }
-
-    public void handleDecreaseItem(ShoppingCart cart, ProductQuantity item, String sku) {
-        int quantityToDecrease = Math.abs(item.getQuantity()); // Chuyển về số dương
-
-        Optional<ProductQuantity> existingItem = cart.getItems().stream()
-                .filter(i -> i.getSku().equals(sku))
-                .findFirst();
-
-        if (existingItem.isEmpty()) {
-            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND,
-                    "Sản phẩm " + sku + " không có trong giỏ hàng");
-        }
-
-        int currentQuantity = existingItem.get().getQuantity();
-        int newQuantity = currentQuantity - quantityToDecrease;
-
-        if (newQuantity <= 0) {
-            cart.getItems().removeIf(i -> i.getSku().equals(sku));
-            log.debug("Xóa sản phẩm {} khỏi giỏ hàng do số lượng <= 0", sku);
-        } else {
-            existingItem.get().setQuantity(newQuantity);
-            log.debug("Giảm số lượng sản phẩm {} từ {} xuống {}",
-                    sku, currentQuantity, newQuantity);
-        }
+    public void handleDecreaseItem(ShoppingCart cart, String sku, int quantityToDecrease) {
+        cart.getCartItems().stream()
+                .filter(ci -> ci.getSku().equals(sku))
+                .findFirst()
+                .ifPresentOrElse(ci -> {
+                    int newQty = ci.getQuantity() - quantityToDecrease;
+                    if (newQty <= 0) {
+                        cart.removeItemBySku(sku);
+                        log.debug("Xóa sản phẩm {} khỏi giỏ hàng do số lượng <= 0", sku);
+                    } else {
+                        ci.setQuantity(newQty);
+                        log.debug("Giảm số lượng sản phẩm {} xuống {}", sku, newQty);
+                    }
+                }, () -> {
+                    throw new RuntimeException("Sản phẩm " + sku + " không có trong giỏ hàng");
+                });
     }
 
     public void recalculateAndUpdateTotals(ShoppingCart cart) {
-        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+        List<CartItem> items = cart.getCartItems();
+        if (items == null || items.isEmpty()) {
             cart.updateTotals(0, 0.0, 0.0);
-            log.debug("Giỏ hàng rỗng, reset totals về 0");
             return;
         }
 
-        List<String> skus = cart.getItems().stream()
-                .map(ProductQuantity::getSku)
+        List<String> skus = items.stream()
+                .map(CartItem::getSku)
                 .toList();
 
         Map<String, Attributes> attributesMap = attributesRepository
@@ -168,33 +69,28 @@ public class Helper {
                         a -> a.getSku().getSku(),
                         a -> a));
 
-        int totalItems = cart.getItems().stream()
-                .mapToInt(ProductQuantity::getQuantity)
+        int totalItems = items.stream()
+                .mapToInt(CartItem::getQuantity)
                 .sum();
 
-        double totalPrice = cart.getItems().stream()
+        double totalPrice = items.stream()
                 .mapToDouble(item -> {
-                    Attributes attributes = attributesMap.get(item.getSku());
-                    if (attributes != null) {
-                        return attributes.getPrice() * item.getQuantity();
-                    }
-                    return 0.0;
+                    Attributes a = attributesMap.get(item.getSku());
+                    return a != null ? a.getPrice() * item.getQuantity() : 0.0;
                 })
                 .sum();
 
-        double totalDiscount = cart.getItems().stream()
+        double totalDiscount = items.stream()
                 .mapToDouble(item -> {
-                    Attributes attributes = attributesMap.get(item.getSku());
-                    if (attributes != null && attributes.getSalePrice() > 0) {
-                        return (attributes.getPrice() - attributes.getSalePrice()) * item.getQuantity();
+                    Attributes a = attributesMap.get(item.getSku());
+                    if (a != null && a.getSalePrice() > 0) {
+                        return (a.getPrice() - a.getSalePrice()) * item.getQuantity();
                     }
                     return 0.0;
                 })
                 .sum();
 
         cart.updateTotals(totalItems, totalPrice, totalDiscount);
-        log.debug("Đã tính toán lại totals: items={}, price={}, discount={}",
-                totalItems, totalPrice, totalDiscount);
     }
 
     public ShoppingCart createNewCart(User user) {
@@ -207,11 +103,63 @@ public class Helper {
         return cart;
     }
 
+    public ShoppingCartDto toDto(ShoppingCart cart) {
+        if (cart == null) return null;
+        List<ShoppingCartDto.CartItemDto> itemDtos = cart.getCartItems() == null ? List.of()
+                : cart.getCartItems().stream()
+                        .map(ci -> new ShoppingCartDto.CartItemDto(ci.getSku(), ci.getQuantity()))
+                        .toList();
+        return new ShoppingCartDto(
+                cart.getId(),
+                cart.getUser() != null ? cart.getUser().getName() : null,
+                itemDtos,
+                cart.getTotalItems(),
+                cart.getTotalPrice(),
+                cart.getTotalSalePrice(),
+                cart.getTotalDiscount());
+    }
+
+    // ─── General helpers ───
+
+    UUID convertStringToUUID(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("ID không được để trống.");
+        }
+        String text = id.trim().replace("[", "").replace("]", "").replace("\"", "");
+        if (text.length() == 36 && text.chars().filter(c -> c == '-').count() == 4) {
+            try { return UUID.fromString(text); } catch (IllegalArgumentException e) {}
+        }
+        if (text.length() == 32 && !text.contains("-")) {
+            return buildUUIDFromHex(text);
+        }
+        String raw = text.replace("-", "");
+        if (raw.length() != 32) {
+            throw new IllegalArgumentException(String.format(
+                    "Định dạng ID sai. Mong đợi 32 ký tự hex hoặc chuẩn UUID 36 ký tự, nhận được: %d ký tự.", text.length()));
+        }
+        return buildUUIDFromHex(raw);
+    }
+
+    private UUID buildUUIDFromHex(String hex) {
+        if (hex.length() != 32) throw new IllegalArgumentException("Chuỗi hex phải có đúng 32 ký tự.");
+        if (!hex.matches("[0-9a-fA-F]+")) throw new IllegalArgumentException("ID chứa ký tự không hợp lệ.");
+        String formatted = String.format("%s-%s-%s-%s-%s",
+                hex.substring(0, 8), hex.substring(8, 12), hex.substring(12, 16),
+                hex.substring(16, 20), hex.substring(20, 32));
+        return UUID.fromString(formatted);
+    }
+
+    public String generateKey() {
+        StringBuilder sb = new StringBuilder(5);
+        for (int i = 0; i < 5; i++) {
+            sb.append(ALPHANUMERIC_CHARACTERS.charAt(
+                    ThreadLocalRandom.current().nextInt(ALPHANUMERIC_CHARACTERS.length())));
+        }
+        return sb.toString();
+    }
+
     List<String> filterBlank(List<String> list) {
-        if (list == null)
-            return List.of();
-        return list.stream()
-                .filter(s -> s != null && !s.isBlank())
-                .toList();
+        if (list == null) return List.of();
+        return list.stream().filter(s -> s != null && !s.isBlank()).toList();
     }
 }

@@ -2,12 +2,12 @@ package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.IdentityOnly;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ProductQuantity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,120 +22,60 @@ import java.util.List;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ShoppingCart extends IdentityOnly<Long> {
-    
-    /**
-     * Thông tin kiểm toán
-     * @en Audit info
-     */
+
     @Embedded
     @Builder.Default
     AuditInfo auditInfo = new AuditInfo();
 
-    /**
-     * Người dùng
-     * @en User
-     */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     User user;
 
     /**
-     * Danh sách sản phẩm
-     * @en Items list
+     * Danh sách sản phẩm trong giỏ — dùng entity thay vì CLOB JSON.
+     * 
+     * @en Cart items as entities (replaces CLOB JSON).
      */
-    @Convert(converter = com.anno.ERP_SpringBoot_Experiment.config.converter.ProductQuantityListConverter.class)
-    @Column(name = "items", columnDefinition = "CLOB")
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    List<ProductQuantity> items = new ArrayList<>();
+    List<CartItem> cartItems = new ArrayList<>();
 
-    /**
-     * Tổng số sản phẩm
-     * @en Total items
-     */
     @Column(name = "total_items")
     @Builder.Default
     Integer totalItems = 0;
 
-    /**
-     * Tổng giá
-     * @en Total price
-     */
     @Column(name = "total_price")
     @Builder.Default
     Double totalPrice = 0.0;
 
-    /**
-     * Tổng giá khuyến mãi
-     * @en Total sale price
-     */
     @Column(name = "total_sale_price")
     @Builder.Default
     Double totalSalePrice = 0.0;
 
-    /**
-     * Tổng tiền giảm giá
-     * @en Total discount
-     */
     @Column(name = "total_discount")
     @Builder.Default
     Double totalDiscount = 0.0;
 
-    /**
-     * Thoi diem tuong tac cuoi cung voi gio hang.
-     * Dung de xac dinh khi nao can doc dep (theo Rank cua User).
-     *
-     * @en Last activity timestamp. Used by cleanup job based on User rank.
-     */
     @Column(name = "last_activity_at")
-    java.time.LocalDateTime lastActivityAt;
+    LocalDateTime lastActivityAt;
 
-    public void addItems(List<ProductQuantity> itemsToAdd) {
-        if (itemsToAdd == null || itemsToAdd.isEmpty()) {
-            return;
-        }
-
-        if (this.items == null) {
-            this.items = new ArrayList<>();
-        }
-
-        for (ProductQuantity itemToAdd : itemsToAdd) {
-            if (itemToAdd == null) {
-                continue;
-            }
-
-            boolean found = false;
-            for (ProductQuantity existingItem : this.items) {
-                if (existingItem.getSku().equals(itemToAdd.getSku())) {
-                    existingItem.setQuantity(existingItem.getQuantity() + itemToAdd.getQuantity());
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                this.items.add(itemToAdd);
-            }
-        }
+    public void addItem(String sku, int quantity) {
+        if (cartItems == null) cartItems = new ArrayList<>();
+        cartItems.stream()
+                .filter(ci -> ci.getSku().equals(sku))
+                .findFirst()
+                .ifPresentOrElse(
+                        ci -> ci.setQuantity(ci.getQuantity() + quantity),
+                        () -> cartItems.add(CartItem.builder()
+                                .cart(this)
+                                .sku(sku)
+                                .quantity(quantity)
+                                .build()));
     }
 
-    public void removeItems(List<ProductQuantity> itemsToRemove) {
-        if (itemsToRemove == null || itemsToRemove.isEmpty() || this.items == null) {
-            return;
-        }
-
-        for (ProductQuantity itemToRemove : itemsToRemove) {
-            this.items.removeIf(existingItem -> {
-                if (existingItem.getSku().equals(itemToRemove.getSku())) {
-                    if (itemToRemove.getQuantity() >= existingItem.getQuantity()) {
-                        return true;
-                    } else {
-                        existingItem.setQuantity(existingItem.getQuantity() - itemToRemove.getQuantity());
-                        return false;
-                    }
-                }
-                return false;
-            });
-        }
+    public void removeItemBySku(String sku) {
+        if (cartItems == null) return;
+        cartItems.removeIf(ci -> ci.getSku().equals(sku));
     }
 
     public void updateTotals(Integer totalItems, Double totalPrice, Double totalSalePrice) {
@@ -146,13 +86,11 @@ public class ShoppingCart extends IdentityOnly<Long> {
         touchActivity();
     }
 
-    /**
-     * Cap nhat thoi diem tuong tac cuoi cung.
-     * Goi moi khi gio hang co thay doi (them/xoa/cap nhat).
-     *
-     * @en Update last activity timestamp on every cart change.
-     */
+    public void clearItems() {
+        if (cartItems != null) cartItems.clear();
+    }
+
     public void touchActivity() {
-        this.lastActivityAt = java.time.LocalDateTime.now();
+        this.lastActivityAt = LocalDateTime.now();
     }
 }

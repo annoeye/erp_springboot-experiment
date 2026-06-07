@@ -1,20 +1,31 @@
 package com.anno.ERP_SpringBoot_Experiment.model.base;
 
+import com.anno.ERP_SpringBoot_Experiment.config.converter.AuditEntryListConverter;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditEntry;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.MappedSuperclass;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
-import lombok.Builder;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Base entity with audit fields + soft delete.
+ * Các entity extend class này KHÔNG cần @Embedded AuditInfo.
+ * 
+ * @en Base entity with audit + soft delete.
+ */
 @MappedSuperclass
 @Getter
 @Setter
@@ -40,4 +51,48 @@ public abstract class BaseEntity<T extends Serializable> extends IdentityOnly<T>
   @Builder.Default
   @Column(name = "is_deleted")
   Boolean isDeleted = false;
+
+  // ─── Soft delete fields (từ AuditInfo cũ) ───
+
+  @Column(name = "deleted_at")
+  LocalDateTime deletedAt;
+
+  @Column(name = "deleted_by")
+  String deletedBy;
+
+  @Convert(converter = AuditEntryListConverter.class)
+  @Column(name = "update_history", columnDefinition = "CLOB")
+  @Builder.Default
+  List<AuditEntry> updateHistory = new ArrayList<>();
+
+  // ─── Helper methods (từ AuditInfo cũ) ───
+
+  public void addUpdateEntry(String action, String updatedBy) {
+    if (this.updateHistory == null) this.updateHistory = new ArrayList<>();
+    this.updateHistory.add(AuditEntry.builder()
+        .action(action)
+        .updatedBy(updatedBy)
+        .updatedAt(LocalDateTime.now())
+        .build());
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public void markDeletedAfter30Days(String deletedByUser) {
+    this.deletedAt = LocalDateTime.now().plusDays(30);
+    this.deletedBy = deletedByUser;
+  }
+
+  public void markDeletedNow(String deletedByUser) {
+    this.deletedAt = LocalDateTime.now();
+    this.deletedBy = deletedByUser;
+  }
+
+  public void restore() {
+    this.deletedAt = null;
+    this.deletedBy = null;
+  }
+
+  public boolean isSoftDeleted() {
+    return deletedAt != null;
+  }
 }

@@ -1,8 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
-import com.anno.ERP_SpringBoot_Experiment.mapper.ShoppingCartMapper;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.ProductQuantity;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
+import com.anno.ERP_SpringBoot_Experiment.model.entity.CartItem;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.ShoppingCart;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
@@ -19,10 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-
 import java.util.stream.Collectors;
 
 @Service
@@ -34,12 +31,16 @@ public class ShoppingCartService implements iShoppingCart {
     private final AttributesRepository attributesRepository;
     private final UserRepository userRepository;
     private final SecurityUtil securityUtil;
-    private final ShoppingCartMapper shoppingCartMapper;
     private final Helper helper;
+
+    /**
+     * Request DTO cho thêm/xoá item.
+     */
+    public record CartItemRequest(String sku, int quantity) {}
 
     @Override
     @Transactional
-    public Response<ShoppingCartDto> add(final List<ProductQuantity> items) {
+    public Response<ShoppingCartDto> add(final List<CartItemRequest> items) {
         if (items == null || items.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Danh sách sản phẩm không được rỗng");
         }
@@ -52,7 +53,7 @@ public class ShoppingCartService implements iShoppingCart {
                 .orElseGet(() -> helper.createNewCart(user));
 
         List<String> skus = items.stream()
-                .map(ProductQuantity::getSku)
+                .map(CartItemRequest::sku)
                 .distinct()
                 .toList();
 
@@ -63,9 +64,9 @@ public class ShoppingCartService implements iShoppingCart {
                         a -> a.getSku().getSku(),
                         a -> a));
 
-        for (ProductQuantity item : items) {
-            String sku = item.getSku();
-            int quantity = item.getQuantity();
+        for (CartItemRequest item : items) {
+            String sku = item.sku();
+            int quantity = item.quantity();
 
             Attributes attributes = attributesMap.get(sku);
             if (attributes == null) {
@@ -74,29 +75,25 @@ public class ShoppingCartService implements iShoppingCart {
             }
 
             if (quantity == 0) {
-                cart.getItems().removeIf(i -> i.getSku().equals(sku));
+                cart.removeItemBySku(sku);
                 log.info("Đã xóa sản phẩm {} khỏi giỏ hàng của user {}", sku, username);
 
             } else if (quantity > 0) {
-                helper.handleAddItem(cart, item, attributes);
+                helper.handleAddItem(cart, sku, quantity, attributes);
 
             } else {
-                helper.handleDecreaseItem(cart, item, sku);
+                helper.handleDecreaseItem(cart, sku, Math.abs(quantity));
             }
         }
 
         helper.recalculateAndUpdateTotals(cart);
-
-        if (cart.getAuditInfo() == null) {
-            cart.setAuditInfo(new com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo());
-        }
         cart.getAuditInfo().addUpdateEntry("Cập nhật giỏ hàng", username);
 
         ShoppingCart savedCart = shoppingCartRepository.save(cart);
         log.info("User {} đã cập nhật giỏ hàng với {} items", username, items.size());
 
         return Response.ok(
-                shoppingCartMapper.toDto(savedCart),
+                helper.toDto(savedCart),
                 "Cập nhật giỏ hàng thành công");
     }
 
@@ -116,11 +113,8 @@ public class ShoppingCartService implements iShoppingCart {
 
         int removedCount = 0;
         for (String sku : skus) {
-            boolean removed = cart.getItems().removeIf(
-                    item -> item.getSku().equals(sku));
-            if (removed) {
-                removedCount++;
-            }
+            boolean removed = cart.getCartItems().removeIf(ci -> ci.getSku().equals(sku));
+            if (removed) removedCount++;
         }
 
         if (removedCount == 0) {
@@ -128,17 +122,13 @@ public class ShoppingCartService implements iShoppingCart {
         }
 
         helper.recalculateAndUpdateTotals(cart);
-
-        if (cart.getAuditInfo() == null) {
-            cart.setAuditInfo(new com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo());
-        }
         cart.getAuditInfo().addUpdateEntry("Xóa sản phẩm khỏi giỏ hàng", username);
 
         ShoppingCart savedCart = shoppingCartRepository.save(cart);
         log.info("User {} đã xóa {} sản phẩm khỏi giỏ hàng", username, removedCount);
 
         return Response.ok(
-                shoppingCartMapper.toDto(savedCart),
+                helper.toDto(savedCart),
                 String.format("Đã xóa %d sản phẩm khỏi giỏ hàng", removedCount));
     }
 }

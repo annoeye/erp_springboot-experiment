@@ -1,1 +1,0 @@
-// DELETED - Booking module removed
