@@ -32,6 +32,14 @@ spring:
   kafka:
     bootstrap-servers: localhost:9093
 
+    properties:
+      security.protocol: SASL_PLAINTEXT
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="kafka"
+        password="kafka@2025";
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

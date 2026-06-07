@@ -1,7 +1,6 @@
 include:
   - compose/oracle-db.yml
   - compose/redis.yml
-  - compose/zookeeper.yml
   - compose/kafka.yml
   - compose/minio.yml
   - compose/spring-app.yml
@@ -9,8 +8,6 @@ include:
 volumes:
   oracle-data:
   redis-data:
-  zookeeper-data:
-  zookeeper-logs:
   kafka-data:
   minio-data:
 

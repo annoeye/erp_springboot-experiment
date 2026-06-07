@@ -1,6 +1,6 @@
 services:
   minio:
-    image: minio/minio:latest
+    image: bitnamicharts/minio:sha256-f651556c9adf011d17e3e1646079f34906ecce43aaf73deeafa08d7a25872db4
     container_name: minio
     restart: unless-stopped
     environment:
