@@ -36,6 +36,7 @@ public class SecurityConfiguration {
         private static final String[] REQUEST_PERMIT_ALL = {
                         "/api/auth/register",
                         "/api/auth/login",
+                        "/api/auth/refresh-token",
                         "/api/auth/verify**",
                         "/api/auth/test-response",
                         "/api/auth/logout",

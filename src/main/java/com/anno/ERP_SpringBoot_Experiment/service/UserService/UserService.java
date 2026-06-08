@@ -9,8 +9,10 @@ import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.KafkaService.ActiveLogService;
+import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
@@ -26,6 +28,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,6 +63,8 @@ public class UserService implements iUser {
     private final UserMapper userMapper;
     private final ActiveLogService activeLogService;
     private final RedisService redisService;
+    private final JwtService jwtService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -91,7 +98,6 @@ public class UserService implements iUser {
         } else {
             user = new User();
             user.setFullName(body.getFullName());
-            user.setName(body.getName());
             user.setEmail(body.getEmail());
             user.setRoles(Collections.singleton(RoleType.USER));
             user.setPassword(passwordEncoder.encode(body.getPassword()));
@@ -186,78 +192,73 @@ public class UserService implements iUser {
 
     @Override
     @Transactional
-    public Response<?> verifyAccount(
-            @NonNull final String code,
-            @NonNull final ActiveStatus type,
-            final AccountVerificationRequest request) {
+    public Response<String> verifyEmail(@NonNull final String code) {
 
         User user = userRepository.findByAuthCode(code)
                 .orElseThrow(
                         () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
 
-        return switch (type) {
+        boolean isCodeValid = Objects.equals(code, user.getAuthCode().getCode()) &&
+                user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
+                user.getAuthCode().getPurpose() == ActiveStatus.EMAIL_VERIFICATION;
 
-            case ActiveStatus.EMAIL_VERIFICATION -> {
+        if (isCodeValid) {
+            user.getAuthCode().setCode(null);
+            user.getAuthCode().setExpiryDate(null);
+            user.getAuthCode().setPurpose(null);
+            user.setStatus(ActiveStatus.ACTIVE);
 
-                boolean isCodeValid = Objects.equals(code, user.getAuthCode().getCode()) &&
-                        user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
-                        user.getAuthCode().getPurpose() == ActiveStatus.EMAIL_VERIFICATION;
+            userRepository.save(user);
+            log.info("Xác thực email thành công cho user: {}", user.getUsername());
 
-                if (isCodeValid) {
-                    user.getAuthCode().setCode(null);
-                    user.getAuthCode().setExpiryDate(null);
-                    user.getAuthCode().setPurpose(null);
-                    user.setStatus(ActiveStatus.ACTIVE);
-
-                    userRepository.save(user);
-                    String local = frontendUrl + "/verify?token=" + type;
-                    log.info("Xác thực tài khoản user chưa active thành công: {}", user.getUsername());
-
-                    yield Response.found(local);
-                } else {
-                    throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
-                            "Mã xác thực email không hợp lệ hoặc đã hết hạn.");
-                }
-            }
-
-            case ActiveStatus.CHANGE_PASSWORD -> {
-
-                boolean isCodeValid = Objects.equals(code, user.getAuthCode().getCode()) &&
-                        user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
-                        user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
-
-                if (isCodeValid) {
-                    if (request == null || request.getNewPassword() == null || request.getConfirmPassword() == null) {
-                        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Dữ liệu mật khẩu mới bị thiếu.");
-                    }
-                    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-                        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
-                                "Mật khẩu xác nhận không trùng khớp.");
-                    }
-
-                    user.getAuthCode().setCode(null);
-                    user.getAuthCode().setExpiryDate(null);
-                    user.getAuthCode().setPurpose(null);
-                    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
-                    userRepository.save(user);
-                    String local = frontendUrl + "/verify?token=" + type;
-                    log.info("Đổi mật khẩu thành công cho user: {}", user.getUsername());
-                    yield Response.found(local);
-                } else {
-                    throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
-                            "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
-                }
-            }
-
-            default -> throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Loại xác thực không hợp lệ.")
-                    .with("type", type);
-        };
+            return Response.ok("Xác thực email thành công. Tài khoản của bạn đã được kích hoạt.");
+        } else {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                    "Mã xác thực email không hợp lệ hoặc đã hết hạn.");
+        }
     }
 
     @Override
     @Transactional
-    public Response<?> sendCodeResetPassword(String email) {
+    public Response<String> resetPassword(
+            @NonNull final String code,
+            @NonNull final AccountVerificationRequest request) {
+
+        User user = userRepository.findByAuthCode(code)
+                .orElseThrow(
+                        () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
+
+        boolean isCodeValid = Objects.equals(code, user.getAuthCode().getCode()) &&
+                user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
+                user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
+
+        if (!isCodeValid) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                    "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
+        }
+
+        if (request.getNewPassword() == null || request.getConfirmPassword() == null) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Dữ liệu mật khẩu mới bị thiếu.");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                    "Mật khẩu xác nhận không trùng khớp.");
+        }
+
+        user.getAuthCode().setCode(null);
+        user.getAuthCode().setExpiryDate(null);
+        user.getAuthCode().setPurpose(null);
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+        userRepository.save(user);
+        log.info("Đổi mật khẩu thành công cho user: {}", user.getUsername());
+
+        return Response.ok("Mật khẩu đã được thay đổi thành công.");
+    }
+
+    @Override
+    @Transactional
+    public Response<String> sendCodeResetPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại"));
 
@@ -280,6 +281,72 @@ public class UserService implements iUser {
 //        return userRepository.findAll(request.specification(), request.getPaging()
 //                .pageable()).map(userMapper::toDto);
 //    }
+
+    @Override
+    @Transactional
+    public Response<AuthResponse> refreshToken(@NonNull final RefreshTokenRequest request) {
+        final String refreshToken = request.getRefreshToken();
+        final String username = jwtService.extractUsername(refreshToken);
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
+                        "Người dùng không tồn tại."));
+
+        if (!jwtService.isTokenValid(refreshToken, user)) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                    "Refresh token không hợp lệ hoặc đã hết hạn.");
+        }
+
+        String refreshTokenKey = "user:refresh_tokens:" + user.getId();
+        Map<Object, Object> allDeviceTokens = redisService.hGetAll(refreshTokenKey);
+
+        if (allDeviceTokens == null || allDeviceTokens.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                    "Refresh token không tồn tại hoặc đã bị thu hồi.");
+        }
+
+        String matchedDeviceId = null;
+        Map<String, Object> matchedTokenData = null;
+
+        for (Map.Entry<Object, Object> entry : allDeviceTokens.entrySet()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> tokenData = objectMapper.convertValue(
+                        entry.getValue(), new TypeReference<Map<String, Object>>() {});
+                if (refreshToken.equals(tokenData.get("token"))) {
+                    matchedDeviceId = (String) entry.getKey();
+                    matchedTokenData = tokenData;
+                    break;
+                }
+            } catch (Exception e) {
+                log.warn("Không thể parse token data cho device: {}", entry.getKey());
+            }
+        }
+
+        if (matchedDeviceId == null || matchedTokenData == null) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+                    "Refresh token không khớp với bất kỳ thiết bị nào.");
+        }
+
+        // Generate new tokens
+        DeviceInfoResponse result = deviceInfoEventListener
+                .handleDeviceInfo(new SaveDeviceInfo(user, request.getDeviceInfo(), ActiveStatus.LOGIN_VERIFICATION));
+
+        log.info("Refresh token thành công cho user: {}", user.getUsername());
+
+        return Response.ok(AuthResponse.builder()
+                .message("Tạo mới token thành công.")
+                .accessToken(result.getAccessToken())
+                .refreshToken(result.getFinalRefreshTokenString())
+                .userId(String.valueOf(user.getId()))
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .avatarUrl(user.getAvatarUrl())
+                .gender(user.getGender())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build());
+    }
 
     @Override
     public void logoutUser(HttpServletRequest request) {

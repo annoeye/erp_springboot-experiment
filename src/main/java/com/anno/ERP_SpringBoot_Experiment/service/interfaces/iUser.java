@@ -1,21 +1,22 @@
 package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
 
-import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
-import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface iUser {
-    Response<RegisterResponse> createUser(final UserRegisterRequest body) throws MessagingException;
-    Response<AuthResponse> loginUser(final UserLoginRequest body) throws MessagingException;
-    Response<?> verifyAccount(final String code, final ActiveStatus type, final AccountVerificationRequest request);
-    Response<?> sendCodeResetPassword(final String email) throws MessagingException;
+    Response<RegisterResponse> createUser(final UserRegisterRequest body);
+    Response<AuthResponse> loginUser(final UserLoginRequest body);
+    Response<String> verifyEmail(final String code);
+    Response<String> resetPassword(final String code, final AccountVerificationRequest request);
+    Response<String> sendCodeResetPassword(final String email);
+    Response<AuthResponse> refreshToken(final RefreshTokenRequest request);
 //    Page<UserDto> search(final UserSearchRequest request);
 //    Page<UserSearchRequest> search(final UserSearchRequest request);
     void logoutUser(HttpServletRequest request);
