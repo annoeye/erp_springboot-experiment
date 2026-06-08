@@ -39,7 +39,7 @@ public class EmailService {
         helper.setTo(to);
         helper.setSubject("Xác thực tài khoản");
 
-        Map<String, Object> variables = Map.of("username", username, "verificationUrl", verificationUrl);
+        Map<String, Object> variables = Map.of("subject", "Xác thực tài khoản", "username", username, "verificationUrl", verificationUrl);
         String htmlContent = processHtmlTemplate("verification-email.html", variables);
         helper.setText(htmlContent, true);
 
