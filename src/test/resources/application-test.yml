@@ -5,7 +5,6 @@ spring:
 
   autoconfigure:
     exclude:
-      - org.redisson.spring.starter.RedissonAutoConfigurationV2
       - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.mail.MailHealthContributorAutoConfiguration
 

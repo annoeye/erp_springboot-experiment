@@ -2,6 +2,10 @@ spring:
   application:
     name: ERP_SpringBoot-Experiment
 
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+
   config:
     import: optional:file:.env[.properties]
 
@@ -84,8 +88,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      username: ${REDIS_USERNAME:app_cache}
-      password: ${REDIS_PASSWORD}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
 
   output:
     ansi:

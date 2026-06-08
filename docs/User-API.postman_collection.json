@@ -1,0 +1,289 @@
+{
+  "info": {
+    "name": "ERP User API",
+    "description": "Collection các API quản lý người dùng - Authentication & User Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "erp-springboot"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Các API xác thực người dùng",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', json.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn A\",\n  \"name\": \"nguyenvana\",\n  \"email\": \"nguyenvana@example.com\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Đăng ký tài khoản mới. Gửi email xác thực về địa chỉ email đã đăng ký."
+          },
+          "response": [
+            {
+              "name": "Register Success",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": {\n    \"code\": 200\n  },\n  \"data\": {\n    \"message\": \"Một email xác thực đã được gửi đến n********a@example.com. Vui lòng kiểm tra.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', json.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"nguyenvana@example.com\",\n  \"password\": \"123456\",\n  \"deviceInfo\": {\n    \"deviceType\": \"Desktop\",\n    \"osName\": \"Windows\",\n    \"osVersion\": \"11\",\n    \"browserName\": \"Chrome\",\n    \"browserVersion\": \"120\",\n    \"screenWidth\": 1920,\n    \"screenHeight\": 1080,\n    \"userAgent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\",\n    \"ipAddress\": \"127.0.0.1\",\n    \"language\": \"vi-VN\",\n    \"timeZone\": \"Asia/Ho_Chi_Minh\",\n    \"deviceId\": \"device-001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Đăng nhập với tên đăng nhập hoặc email. Trả về JWT access token + refresh token."
+          },
+          "response": [
+            {
+              "name": "Login Success",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": {\n    \"code\": 200\n  },\n  \"data\": {\n    \"message\": \"Đăng nhập thành công.\",\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9...\",\n    \"username\": \"nguyenvana\",\n    \"email\": \"nguyenvana@example.com\",\n    \"userId\": \"1\",\n    \"avatarUrl\": null,\n    \"gender\": null,\n    \"phoneNumber\": null,\n    \"roles\": [\"USER\"]\n  }\n}"
+            },
+            {
+              "name": "Login Unverified",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": {\n    \"code\": 401\n  },\n  \"data\": {\n    \"message\": \"Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến n********a@example.com. Vui lòng kiểm tra.\",\n    \"email\": \"nguyenvana@example.com\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify Account",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify?token={{verification_token}}&purpose=EMAIL_VERIFICATION",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verification_token}}",
+                  "description": "Mã xác thực nhận từ email"
+                },
+                {
+                  "key": "purpose",
+                  "value": "EMAIL_VERIFICATION",
+                  "description": "Mục đích: EMAIL_VERIFICATION | CHANGE_PASSWORD"
+                }
+              ]
+            },
+            "description": "Xác thực tài khoản qua mã token gửi từ email. Redirect về frontend nếu thành công."
+          },
+          "response": [
+            {
+              "name": "Verify Success",
+              "status": "Found",
+              "code": 302,
+              "header": [],
+              "body": "{\n  \"status\": {\n    \"code\": 302,\n    \"title\": \"http://localhost:3000/verify?token=EMAIL_VERIFICATION\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Send Reset Password Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/send-reset-code/nguyenvana@example.com",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "send-reset-code", "nguyenvana@example.com"]
+            },
+            "description": "Gửi mã OTP đặt lại mật khẩu qua email."
+          },
+          "response": [
+            {
+              "name": "Send Code Success",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": {\n    \"code\": 200\n  },\n  \"data\": {\n    \"message\": \"Mã xác thực đổi mật khẩu đã được gửi đến n********a@example.com. Vui lòng kiểm tra.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify Reset Password Code",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"654321\",\n  \"confirm_password\": \"654321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify?token={{otp_code}}&purpose=CHANGE_PASSWORD",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{otp_code}}",
+                  "description": "Mã OTP 6 số nhận từ email"
+                },
+                {
+                  "key": "purpose",
+                  "value": "CHANGE_PASSWORD",
+                  "description": "Mục đích đổi mật khẩu"
+                }
+              ]
+            },
+            "description": "Xác thực mã OTP và đặt lại mật khẩu mới."
+          },
+          "response": [
+            {
+              "name": "Reset Password Success",
+              "status": "Found",
+              "code": 302,
+              "header": [],
+              "body": "{\n  \"status\": {\n    \"code\": 302,\n    \"title\": \"http://localhost:3000/verify?token=CHANGE_PASSWORD\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Đăng xuất. Token hiện tại sẽ bị vô hiệu hóa."
+          },
+          "response": [
+            {
+              "name": "Logout Success",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Đăng xuất thành công.\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

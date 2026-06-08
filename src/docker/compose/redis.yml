@@ -8,10 +8,10 @@ services:
         limits:
           memory: 256M
           cpus: "0.5"
-    env_file:
-      - ../.env
     ports:
       - "6379:6379"
+    env_file:
+      - ../.env
     command: >
       sh -c "
       echo 'user default on >'${REDIS_DEFAULT_PASSWORD}' ~* +@all' > /etc/redis/users.acl &&
