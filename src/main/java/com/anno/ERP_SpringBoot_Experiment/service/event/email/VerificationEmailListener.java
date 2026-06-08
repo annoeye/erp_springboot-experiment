@@ -17,20 +17,22 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 public class VerificationEmailListener extends BaseEventListener {
 
+    private final String frontendUrl;
+
     public VerificationEmailListener(EmailService emailService,
                                      JwtService jwtService,
                                      UserDetailsServiceImpl userDetailsService,
-                                     @Value("${server.port}") String serverPort) {
+                                     @Value("${frontend.url}") String frontendUrl) {
         super(emailService, jwtService, userDetailsService);
-        this.serverPort = serverPort;
+        this.frontendUrl = frontendUrl;
     }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleVerificationEmail(VerificationEmailEvent body) {
         try {
-            String verificationUrl = "http://localhost:" + serverPort + "/api/auth/verify?token="
-                    + body.emailVerificationToken() + "&purpose=" + body.purpose();
+            String verificationUrl = frontendUrl + "/verify-email?token="
+                    + body.emailVerificationToken();
 
             emailService.sendVerificationEmail(
                     body.email(),
