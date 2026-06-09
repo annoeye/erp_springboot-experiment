@@ -1,10 +1,32 @@
+# =============================================================================
+# Spring Boot Application
+# =============================================================================
+
 services:
   spring-app:
     build:
       context: ../../../
       dockerfile: Dockerfile
+      args:
+        JAVA_OPTS: "-Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication"
     container_name: spring-app
     restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - NET_ADMIN
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
     ports:
       - "8080:8080"
     depends_on:
@@ -14,37 +36,37 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Load shared env vars from the docker env file
+    # These are consumed directly by Spring Boot via application.yml placeholders
+    env_file:
+      - ../.env
     environment:
+      # Spring profile
       SPRING_PROFILES_ACTIVE: docker
-      JAVA_OPTS: "-Xmx512m -XX:+UseG1GC"
       TZ: Asia/Ho_Chi_Minh
+
+      # Docker service discovery overrides (Spring defaults are localhost)
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/XEPDB1
       SPRING_DATASOURCE_USERNAME: system
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      INTEGRATION_MINIO_URL: http://minio:9000
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_USERNAME: app_cache
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_CACHE_PASSWORD}
+      INTEGRATION_MINIO_URL: http://minio:9000
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
-      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
-      SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: |
-        org.apache.kafka.common.security.plain.PlainLoginModule required
-        username="${KAFKA_USER}"
-        password="${KAFKA_PASSWORD}";
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "curl", "-sf", "http://localhost:8080/actuator/health" ]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - app-network
+      frontend:
+        aliases:
+          - spring-app
+      backend: {}

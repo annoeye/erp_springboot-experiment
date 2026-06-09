@@ -1,15 +1,74 @@
+# Git
 .git
 .gitignore
+.gitattributes
+.gitmodules
+
+# Build output
 target
+*.jar
+*.war
+*.ear
+
+# IDE files
 .idea
 .vscode
 *.iml
-*.md
-*.txt
-*.log
+*.ipr
+*.iws
+.project
+.classpath
+.settings
+.factorypath
+
+# OS files
 .DS_Store
 Thumbs.db
-src/docker
+*.swp
+*.swo
+*~
+
+# Docker files (not needed in build context)
+Dockerfile
 .dockerignore
-logs
+docker/
+src/docker/
+
+# Logs
+*.log
+logs/
+
+# Node/npm (for k6 testing)
+node_modules
+package.json
+package-lock.json
+
+# Environment files
+.env
+.env.*
+!.env.template
+
+# Agent/IDE config
+.agent
+.agents
+.aider-desk
+.aider.*
+.cursor
+.cline
+
+# Documents
+*.md
+*.txt
+docs/
+
+# Python (any scripts)
 *.py
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+
+# Temp files
+tmp/
+temp/

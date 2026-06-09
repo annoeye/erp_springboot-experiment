@@ -1,3 +1,7 @@
+# =============================================================================
+# ERP SpringBoot Experiment - Docker Compose (Development)
+# =============================================================================
+
 include:
   - compose/oracle-db.yml
   - compose/redis.yml
@@ -7,10 +11,23 @@ include:
 
 volumes:
   oracle-data:
+    driver: local
   redis-data:
+    driver: local
   kafka-data:
+    driver: local
   minio-data:
+    driver: local
 
 networks:
-  app-network:
+  # Frontend network: accessible from host
+  frontend:
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "erp_frontend"
+  # Backend network: internal only (no external access)
+  backend:
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: "erp_backend"

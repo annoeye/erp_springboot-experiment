@@ -1,27 +1,62 @@
-FROM eclipse-temurin:21-jdk AS builder
+# =============================================================================
+# Stage 1: Build dependencies (layer caching optimization)
+# =============================================================================
+FROM eclipse-temurin:21-jdk AS deps
 WORKDIR /app
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
-COPY src/ src/
-RUN ./mvnw clean package -DskipTests -B
+RUN chmod +x mvnw
 
-FROM eclipse-temurin:21-jre
+# Download dependencies (layer cached unless pom.xml changes)
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw dependency:go-offline -B
+
+# =============================================================================
+# Stage 2: Build the application
+# =============================================================================
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
+COPY --from=deps /root/.m2 /root/.m2
+COPY --from=deps /app/.mvn .mvn/
+COPY --from=deps /app/mvnw .
+COPY --from=deps /app/pom.xml .
+COPY src/ src/
+
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw clean package -DskipTests -B
+
+# =============================================================================
+# Stage 3: Production runtime (minimal image)
+# =============================================================================
+FROM eclipse-temurin:21-jre AS production
+WORKDIR /app
+
+# Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-ARG JAVA_OPTS="-Xmx512m -XX:+UseG1GC"
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# JVM options (configurable via environment)
+ARG JAVA_OPTS="-Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication"
 ENV JAVA_OPTS=${JAVA_OPTS}
 ENV SPRING_PROFILES_ACTIVE=docker
 
-COPY --from=builder /app/target/*.jar app.jar
-RUN chown appuser:appuser app.jar
+# Copy only the JAR from build stage
+COPY --from=build --chown=appuser:appuser /app/target/*.jar app.jar
+
 USER appuser
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+  CMD curl -sSf http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS --enable-preview -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
