@@ -43,23 +43,25 @@ class RefreshTokenFlowTest extends AbstractIntegrationTest {
     private String testUsername;
     private final String testPassword = "Pass123!";
 
+    private String testEmail;
+
     @BeforeAll
     void setUp() {
         testUsername = "RefreshUser" + System.nanoTime();
+        testEmail = testUsername + "@test.com";
         User user = new User();
-        user.setEmail(testUsername + "@test.com");
+        user.setEmail(testEmail);
+        user.setFullName("Refresh User");
         user.setPassword(passwordEncoder.encode(testPassword));
         user.setStatus(ActiveStatus.ACTIVE);
         user.setRoles(Set.of(RoleType.USER));
-        user.setName(testUsername);
-        user.setFullName("Refresh User");
         userRepository.save(user);
     }
 
     private String login() throws Exception {
         String loginJson = String.format(
                 "{\"usernameOrEmail\":\"%s\",\"password\":\"%s\",\"deviceInfo\":{\"deviceName\":\"TestDevice\",\"ipAddress\":\"127.0.0.1\",\"userAgent\":\"JUnit\"}}",
-                testUsername, testPassword);
+                testEmail, testPassword);
 
         var result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +91,7 @@ class RefreshTokenFlowTest extends AbstractIntegrationTest {
     void tokens_AreDifferentJwts() throws Exception {
         String loginJson = String.format(
                 "{\"usernameOrEmail\":\"%s\",\"password\":\"%s\",\"deviceInfo\":{\"deviceName\":\"TestDevice\",\"ipAddress\":\"127.0.0.1\",\"userAgent\":\"JUnit\"}}",
-                testUsername, testPassword);
+                testEmail, testPassword);
 
         var result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -118,7 +120,7 @@ class RefreshTokenFlowTest extends AbstractIntegrationTest {
         // Login → lấy token
         String loginJson = String.format(
                 "{\"usernameOrEmail\":\"%s\",\"password\":\"%s\",\"deviceInfo\":{\"deviceName\":\"TestDevice\",\"ipAddress\":\"127.0.0.1\",\"userAgent\":\"JUnit\"}}",
-                testUsername, testPassword);
+                testEmail, testPassword);
 
         var loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -127,6 +129,8 @@ class RefreshTokenFlowTest extends AbstractIntegrationTest {
                 .andReturn();
 
         String json = loginResult.getResponse().getContentAsString();
+
+        // Fix for display purpose - same approach
         var responseType = objectMapper.getTypeFactory()
                 .constructParametricType(Response.class, AuthResponse.class);
         Response<AuthResponse> response = objectMapper.readValue(json, responseType);

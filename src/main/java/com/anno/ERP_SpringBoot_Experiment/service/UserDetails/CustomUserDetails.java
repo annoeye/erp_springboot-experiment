@@ -18,7 +18,7 @@ public class CustomUserDetails implements UserDetails{
 
     public CustomUserDetails(User user, Collection<? extends GrantedAuthority> authorities) {
         this.id = String.valueOf(user.getId());
-        this.username = user.getName();
+        this.username = user.getUsername();
         this.email = user.getEmail();
         this.password = user.getPassword();
         this.authorities = authorities;

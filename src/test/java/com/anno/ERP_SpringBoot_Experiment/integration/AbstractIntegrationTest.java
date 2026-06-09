@@ -109,7 +109,6 @@ public abstract class AbstractIntegrationTest {
             return userRepository.findByName(name).get();
         }
         User user = new User();
-        user.setName(name);
         user.setFullName(fullName);
         user.setEmail(name + "@test.com");
         user.setPassword(passwordEncoder.encode("Pass123!"));
