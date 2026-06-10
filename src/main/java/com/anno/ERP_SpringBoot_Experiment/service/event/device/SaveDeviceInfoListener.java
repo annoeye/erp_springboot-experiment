@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.data.redis.RedisSystemException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,17 +49,26 @@ public class SaveDeviceInfoListener extends BaseEventListener {
         String deviceId = createDeviceId(newDeviceInfo);
         String refreshTokenKey = "user:refresh_tokens:" + user.getId();
 
-        Object existingTokenData = redisService.hGet(refreshTokenKey, deviceId);
+        Object existingTokenData = null;
+        try {
+            existingTokenData = redisService.hGet(refreshTokenKey, deviceId);
+        } catch (RedisSystemException ex) {
+            log.warn("Redis unavailable while reading device token data for user {}. Continuing login without Redis update.", user.getUsername(), ex);
+        }
 
         if (existingTokenData != null) {
-            Map<String, Object> tokenMap = objectMapper.convertValue(existingTokenData, Map.class);
-            DeviceInfo oldDeviceInfo = objectMapper.convertValue(tokenMap.get("deviceInfo"), DeviceInfo.class);
+            try {
+                Map<String, Object> tokenMap = objectMapper.convertValue(existingTokenData, Map.class);
+                DeviceInfo oldDeviceInfo = objectMapper.convertValue(tokenMap.get("deviceInfo"), DeviceInfo.class);
 
-            if (!Objects.equals(oldDeviceInfo.getIpAddress(), newDeviceInfo.getIpAddress())) {
-                log.info("Cập nhật IP cho thiết bị của user {}: {} -> {}", user.getUsername(), oldDeviceInfo.getIpAddress(), newDeviceInfo.getIpAddress());
-                oldDeviceInfo.setIpAddress(newDeviceInfo.getIpAddress());
-                tokenMap.put("deviceInfo", oldDeviceInfo);
-                redisService.hSet(refreshTokenKey, deviceId, tokenMap);
+                if (!Objects.equals(oldDeviceInfo.getIpAddress(), newDeviceInfo.getIpAddress())) {
+                    log.info("Cập nhật IP cho thiết bị của user {}: {} -> {}", user.getUsername(), oldDeviceInfo.getIpAddress(), newDeviceInfo.getIpAddress());
+                    oldDeviceInfo.setIpAddress(newDeviceInfo.getIpAddress());
+                    tokenMap.put("deviceInfo", oldDeviceInfo);
+                    redisService.hSet(refreshTokenKey, deviceId, tokenMap);
+                }
+            } catch (RedisSystemException ex) {
+                log.warn("Redis unavailable while updating device token data for user {}. Continuing login without Redis update.", user.getUsername(), ex);
             }
         }
 
@@ -72,14 +82,22 @@ public class SaveDeviceInfoListener extends BaseEventListener {
         refreshTokenData.put("token", refreshToken);
         refreshTokenData.put("deviceInfo", newDeviceInfo);
 
-        redisService.hSet(refreshTokenKey, deviceId, refreshTokenData);
-        redisService.getExpire(refreshTokenKey, TimeUnit.DAYS);
+        try {
+            redisService.hSet(refreshTokenKey, deviceId, refreshTokenData);
+            redisService.getExpire(refreshTokenKey, TimeUnit.DAYS);
+        } catch (RedisSystemException ex) {
+            log.warn("Redis unavailable while storing refresh token for user {}. Returning tokens without persisting Redis state.", user.getUsername(), ex);
+        }
 
         log.info("Đã lưu/cập nhật Refresh Token cho user: {}, thiết bị: {}", user.getUsername(), deviceId);
 
         String accessTokenKey = "access_token:" + accessToken;
-        redisService.setValueWithExpiry(accessTokenKey, user.getUsername(), ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
-        log.info("Đã lưu Access Token cho user: {}", user.getUsername());
+        try {
+            redisService.setValueWithExpiry(accessTokenKey, user.getUsername(), ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+            log.info("Đã lưu Access Token cho user: {}", user.getUsername());
+        } catch (RedisSystemException ex) {
+            log.warn("Redis unavailable while storing access token for user {}. Returning token to client anyway.", user.getUsername(), ex);
+        }
 
         return DeviceInfoResponse.builder().accessToken(accessToken).finalRefreshTokenString(refreshToken).build();
     }
