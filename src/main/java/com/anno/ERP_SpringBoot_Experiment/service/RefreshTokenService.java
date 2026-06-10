@@ -34,7 +34,7 @@ public class RefreshTokenService {
         String refreshTokenKey = "user:refresh_tokens:" + user.getId();
 
         // 1. Kiểm tra xem đã có accessToken trong profile chưa và có hợp lệ không
-        String existingAccessToken = (String) redisService.getValue(profileKey);
+        String existingAccessToken = (String) redisService.hGet(profileKey, "accessToken");
         boolean accessTokenExists = false;
         if (existingAccessToken != null) {
             try {
@@ -75,7 +75,8 @@ public class RefreshTokenService {
             finalRefreshToken = jwtService.generateToken(userDetails, refreshTokenExpiryMs);
 
             // Cập nhật profile
-            redisService.setValueWithExpiry(profileKey, finalAccessToken, ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+            redisService.hSet(profileKey, "accessToken", finalAccessToken);
+            redisService.expire(profileKey, ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
 
             // Cập nhật refresh token
             Map<String, Object> refreshTokenData = new HashMap<>();
@@ -93,7 +94,8 @@ public class RefreshTokenService {
             finalRefreshToken = jwtService.generateToken(userDetails, refreshTokenExpiryMs);
 
             // Lưu profile
-            redisService.setValueWithExpiry(profileKey, finalAccessToken, ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+            redisService.hSet(profileKey, "accessToken", finalAccessToken);
+            redisService.expire(profileKey, ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
 
             // Lưu refresh token
             Map<String, Object> refreshTokenData = new HashMap<>();
@@ -129,7 +131,8 @@ public class RefreshTokenService {
         }
 
         // Cập nhật profile (accessToken)
-        redisService.setValueWithExpiry(profileKey, finalAccessToken, ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+        redisService.hSet(profileKey, "accessToken", finalAccessToken);
+        redisService.expire(profileKey, ACCESS_TOKEN_EXPIRATION_MINUTES, TimeUnit.MINUTES);
 
         // Cập nhật refresh token cho thiết bị mới
         Map<String, Object> refreshTokenData = new HashMap<>();
