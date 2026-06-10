@@ -32,6 +32,11 @@ public class RedisService implements iRedis {
     }
 
     @Override
+    public void expire(String key, long timeout, TimeUnit timeUnit) {
+        redisTemplate.expire(key, timeout, timeUnit);
+    }
+
+    @Override
     public void setValue(String key, Object value) {
         redisTemplate.opsForValue().set(key, value);
     }

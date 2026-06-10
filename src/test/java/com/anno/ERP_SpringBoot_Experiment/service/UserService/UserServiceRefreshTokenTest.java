@@ -13,7 +13,9 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.DeviceInfoResponse;
 import com.anno.ERP_SpringBoot_Experiment.mapper.UserMapper;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
-import com.anno.ERP_SpringBoot_Experiment.service.event.device.SaveDeviceInfoListener;
+import com.anno.ERP_SpringBoot_Experiment.service.DeviceInfoService;
+import com.anno.ERP_SpringBoot_Experiment.service.RefreshTokenService;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -44,7 +46,11 @@ class UserServiceRefreshTokenTest {
     @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock
-    private SaveDeviceInfoListener deviceInfoEventListener;
+    private DeviceInfoService deviceInfoService;
+    @Mock
+    private RefreshTokenService refreshTokenService;
+    @Mock
+    private UserDetailsService userDetailsService;
     @Mock
     private UserMapper userMapper;
     @Mock
@@ -70,7 +76,8 @@ class UserServiceRefreshTokenTest {
         // Use reflection or constructor to inject mocks
         userService = new UserService(
                 userRepository, passwordEncoder, helper, eventPublisher,
-                deviceInfoEventListener, userMapper, activeLogService,
+                deviceInfoService, refreshTokenService, userDetailsService,
+                userMapper, activeLogService,
                 redisService, jwtService, objectMapper
         );
 
@@ -107,12 +114,15 @@ class UserServiceRefreshTokenTest {
         when(redisService.hGetAll("user:refresh_tokens:" + USER_ID)).thenReturn(deviceTokens);
         when(objectMapper.convertValue(any(), any(TypeReference.class))).thenReturn(tokenData);
 
+        when(deviceInfoService.createDeviceId(any())).thenReturn("windows:desktop");
+        when(userDetailsService.loadUserByUsername(anyString())).thenReturn(testUser);
+
         // Mock new token generation
         DeviceInfoResponse deviceInfoResponse = DeviceInfoResponse.builder()
                 .accessToken(NEW_ACCESS_TOKEN)
                 .finalRefreshTokenString(NEW_REFRESH_TOKEN)
                 .build();
-        when(deviceInfoEventListener.handleDeviceInfo(any(SaveDeviceInfo.class)))
+        when(refreshTokenService.refreshSessionTokens(any(), any(), any(), anyString(), anyString()))
                 .thenReturn(deviceInfoResponse);
 
         // Act
@@ -130,7 +140,9 @@ class UserServiceRefreshTokenTest {
         verify(userRepository).findByEmail(TEST_EMAIL);
         verify(jwtService).isTokenValid(REFRESH_TOKEN, testUser);
         verify(redisService).hGetAll("user:refresh_tokens:" + USER_ID);
-        verify(deviceInfoEventListener).handleDeviceInfo(any(SaveDeviceInfo.class));
+        verify(deviceInfoService).createDeviceId(any());
+        verify(userDetailsService).loadUserByUsername(anyString());
+        verify(refreshTokenService).refreshSessionTokens(any(), any(), any(), anyString(), anyString());
     }
 
     @Test

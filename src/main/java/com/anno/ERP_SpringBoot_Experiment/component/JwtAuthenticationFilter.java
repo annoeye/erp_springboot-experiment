@@ -1,7 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.component;
 
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
-import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -30,7 +29,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final RedisService redisService;
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
@@ -58,27 +56,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userName);
 
-                String accessToken = "access_token:" + jwt;
-                boolean isTokenActiveInRedis = redisService.hasKey(accessToken);
-
-                if (jwtService.isTokenValid(jwt, userDetails) && isTokenActiveInRedis) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-                            null, userDetails.getAuthorities());
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    logger.debug("Người dùng '{}' đã xác thực thành công qua JWT và Redis.", userName);
+                    logger.debug("Người dùng '{}' đã xác thực thành công qua JWT.", userName);
                 } else {
-                    String errorMessage;
-                    if (!isTokenActiveInRedis) {
-                        errorMessage = "Mã thông báo không tìm thấy trong Redis (có thể đã đăng xuất).";
-                        logger.warn(
-                                "Mã thông báo JWT hợp lệ nhưng không tìm thấy trong Redis (đã đăng xuất): {}. Yêu cầu bị chặn.",
-                                userName);
-                    } else {
-                        errorMessage = "Mã thông báo không hợp lệ.";
-                        logger.warn("Mã thông báo JWT không hợp lệ đối với người dùng: {}. Yêu cầu bị chặn.", userName);
-                    }
-                    handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, errorMessage);
+                    logger.warn("JWT không hợp lệ đối với người dùng: {}. Yêu cầu bị chặn.", userName);
+                    handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Mã thông báo không hợp lệ.");
                     return;
                 }
             }

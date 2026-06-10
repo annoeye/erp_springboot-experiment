@@ -12,6 +12,8 @@ public interface iRedis {
 
     void getExpire(String key, TimeUnit timeUnit);
 
+    void expire(String key, long timeout, TimeUnit timeUnit);
+
     void setValue(String key, Object value);
 
     void setValueWithExpiry(String key, Object value, long time, TimeUnit timeUnit);
