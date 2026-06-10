@@ -50,7 +50,7 @@ public class Order extends IdentityOnly<Long> {
          *     Current status is the last element.
          */
         @Convert(converter = OrderStatusListConverter.class)
-        @Column(name = "order_status", nullable = false, columnDefinition = "TEXT")
+        @Column(name = "order_status", nullable = false, columnDefinition = "CLOB")
         @Builder.Default
         List<OrderStatus> status = new ArrayList<>();
 

@@ -68,7 +68,7 @@ public class OutboxEvent extends IdentityOnly<Long> {
      * Payload JSON của event
      * @en Event payload as JSON
      */
-    @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "payload", nullable = false, columnDefinition = "CLOB")
     String payload;
 
     /**
@@ -111,7 +111,7 @@ public class OutboxEvent extends IdentityOnly<Long> {
      * Lỗi cuối cùng (nếu có)
      * @en Last error message
      */
-    @Column(name = "last_error", columnDefinition = "TEXT")
+    @Column(name = "last_error", columnDefinition = "CLOB")
     String lastError;
 
     /**

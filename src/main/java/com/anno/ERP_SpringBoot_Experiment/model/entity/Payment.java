@@ -72,7 +72,7 @@ public class Payment extends IdentityOnly<UUID> {
      * Phản hồi gốc
      * @en Raw response
      */
-    @Column(name = "raw_response", columnDefinition = "TEXT")
+    @Column(name = "raw_response", columnDefinition = "CLOB")
     String rawResponse;
 
     /**
