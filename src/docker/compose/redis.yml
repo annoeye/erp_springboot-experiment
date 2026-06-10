@@ -40,7 +40,7 @@ services:
       mkdir -p /etc/redis &&
       echo 'user default on >'$${REDIS_DEFAULT_PASSWORD}' ~* +@all' > /etc/redis/users.acl &&
       echo 'user app_admin on >'$${REDIS_ADMIN_PASSWORD}' ~* +@all' >> /etc/redis/users.acl &&
-      echo 'user app_cache on >'$${REDIS_CACHE_PASSWORD}' ~* +@read +@write -@dangerous -@admin -@slow' >> /etc/redis/users.acl &&
+      echo 'user app_cache on >'$${REDIS_CACHE_PASSWORD}' ~* +@read +@write +set +get +del +exists +expire +ttl +hset +hget +hdel +hexists +hgetall +hmget +hmset -@dangerous -@admin -@slow' >> /etc/redis/users.acl &&
       exec redis-server --aclfile /etc/redis/users.acl --maxmemory 256mb --maxmemory-policy allkeys-lru --maxclients 100
       "
     logging:
