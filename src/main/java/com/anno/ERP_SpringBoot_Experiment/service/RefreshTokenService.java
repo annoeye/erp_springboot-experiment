@@ -64,6 +64,7 @@ public class RefreshTokenService {
 
         String finalAccessToken;
         String finalRefreshToken;
+        String finalMessage;
 
         // 3. Nếu đã tồn tại hết -> thực hiện refresh theo refreshToken (kèm check hạn)
         if (accessTokenExists && refreshTokenExists) {
@@ -84,6 +85,7 @@ public class RefreshTokenService {
             refreshTokenData.put("deviceInfo", deviceInfo);
             redisService.hSet(refreshTokenKey, deviceId, refreshTokenData);
             redisService.expire(refreshTokenKey, REFRESH_TOKEN_EXPIRATION_DAYS, TimeUnit.DAYS);
+            finalMessage = "Đăng nhập thành công (Đã làm mới phiên hoạt động).";
         } else {
             // 4. Nếu chưa tồn tại đầy đủ -> tạo mới cả 2
             log.info("Chưa tồn tại đủ session/refresh token cho user: {}, thiết bị: {}. Tạo mới toàn bộ.", user.getUsername(), deviceId);
@@ -103,11 +105,13 @@ public class RefreshTokenService {
             refreshTokenData.put("deviceInfo", deviceInfo);
             redisService.hSet(refreshTokenKey, deviceId, refreshTokenData);
             redisService.expire(refreshTokenKey, REFRESH_TOKEN_EXPIRATION_DAYS, TimeUnit.DAYS);
+            finalMessage = "Đăng nhập thành công.";
         }
 
         return DeviceInfoResponse.builder()
                 .accessToken(finalAccessToken)
                 .finalRefreshTokenString(finalRefreshToken)
+                .message(finalMessage)
                 .build();
     }
 
@@ -144,6 +148,7 @@ public class RefreshTokenService {
         return DeviceInfoResponse.builder()
                 .accessToken(finalAccessToken)
                 .finalRefreshTokenString(finalRefreshToken)
+                .message("Tạo mới token thành công.")
                 .build();
     }
 

@@ -11,4 +11,5 @@ import lombok.experimental.FieldDefaults;
 public class DeviceInfoResponse {
     String finalRefreshTokenString;
     String accessToken;
+    String message;
 }

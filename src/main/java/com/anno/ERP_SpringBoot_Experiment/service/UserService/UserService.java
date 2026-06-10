@@ -178,7 +178,7 @@ public class UserService implements iUser {
     DeviceInfoResponse result = refreshTokenService.handleLoginTokens(user, userDetails, body.getDeviceInfo(), deviceId);
 
     return Response.ok(AuthResponse.builder()
-        .message("Đăng nhập thành công.")
+        .message(result.getMessage() != null ? result.getMessage() : "Đăng nhập thành công.")
         .username(user.getUsername()).email(user.getEmail())
         .accessToken(result.getAccessToken())
         .refreshToken(result.getFinalRefreshTokenString())
@@ -337,7 +337,7 @@ public class UserService implements iUser {
     log.info("Refresh token thành công cho user: {}", user.getUsername());
 
     return Response.ok(AuthResponse.builder()
-        .message("Tạo mới token thành công.")
+        .message(result.getMessage() != null ? result.getMessage() : "Tạo mới token thành công.")
         .accessToken(result.getAccessToken())
         .refreshToken(result.getFinalRefreshTokenString())
         .userId(String.valueOf(user.getId()))
