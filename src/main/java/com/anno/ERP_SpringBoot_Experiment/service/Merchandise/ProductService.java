@@ -53,6 +53,7 @@ public class ProductService implements iProduct {
     private final Helper featureMerchandiseHelper;
     private final MinioService minioService;
     private final ProductMapper productMapper;
+    private final com.anno.ERP_SpringBoot_Experiment.service.CacheSyncService cacheSyncService;
 
     private List<MediaItem> uploadImages(List<MultipartFile> images) {
         List<MediaItem> mediaItems = new ArrayList<>();
@@ -139,13 +140,17 @@ public class ProductService implements iProduct {
 
         log.info("Đã cập nhật sản phẩm '{}' với ID {}", product.getName(), product.getId());
         productRepository.save(product);
+
+        // Hook: Báo hiệu cho luồng đồng bộ chạy ngầm cập nhật cache RAM
+        cacheSyncService.markProductDirty(product.getId());
+
         return Response.ok("Cập nhật sản phẩm thành công.");
     }
 
     @Override
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "productDetails", allEntries = true)
     public Response<?> deleteProduct(@NonNull final List<Long> ids) {
-        // xóa 1 list
+        // Xóa mềm danh sách sản phẩm
         productRepository.softDeleteAllByIds(ids, securityUtil.getCurrentUsername());
         return Response.noContent();
     }
@@ -249,6 +254,23 @@ public class ProductService implements iProduct {
                         .id(null)
                         .isExiting(false)
                         .build());
+    }
+
+    /**
+     * Lazy Load: Lấy chi tiết sản phẩm theo ID từ cache RAM.
+     *
+     * <p>Lần đầu gọi (Cache Miss) sẽ query DB bằng JOIN FETCH để tải Product + Category
+     * trong 1 câu SQL rồi lưu vào RAM. Những lần sau lấy thẳng từ RAM.
+     *
+     * @param id ID của sản phẩm cần lấy
+     * @return ProductDto của sản phẩm
+     */
+    @Cacheable(value = "productDetails", key = "#id")
+    public ProductDto getProductById(Long id) {
+        log.info("Cache miss! Query DB lấy thông tin sản phẩm ID: {}", id);
+        return productRepository.findByIdWithDetails(id)
+                .map(productMapper::toDto)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
     }
 
     @Override

@@ -35,11 +35,11 @@ public class OutboxEventPublisher {
 
     /**
      * Poll và gửi events đang chờ đến Kafka.
-     * Chạy mỗi 5 giây.
+     * Chạy mỗi 30 giây (giảm tần suất để tránh query DB quá nhiều).
      * 
      * @en Poll and publish pending events to Kafka
      */
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 30000)
     @Transactional
     public void publishPendingEvents() {
         List<OutboxEvent> events = outboxEventRepository.findEventsReadyToSend(LocalDateTime.now());

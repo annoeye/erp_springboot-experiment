@@ -28,7 +28,7 @@ public class CacheConfig {
     public CacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
 
-        // Product cache: 10 phút, tối đa 1000 sản phẩm
+        // Product cache: 10 phút, tối đa 1000 sản phẩm (dùng cho search cache)
         cacheManager.registerCustomCache("products",
                 Caffeine.newBuilder()
                         .expireAfterWrite(10, TimeUnit.MINUTES)
@@ -36,19 +36,27 @@ public class CacheConfig {
                         .recordStats()
                         .build());
 
-        // Product detail cache: 10 phút, tối đa 500 sản phẩm
+        // Product detail cache: 10 phút, tối đa 1000 sản phẩm (dùng cho lazy load + background sync)
         cacheManager.registerCustomCache("productDetails",
                 Caffeine.newBuilder()
                         .expireAfterWrite(10, TimeUnit.MINUTES)
-                        .maximumSize(500)
+                        .maximumSize(1000)
                         .recordStats()
                         .build());
 
-        // Category cache: 30 phút, tối đa 100 danh mục
+        // Category cache: 30 phút, tối đa 200 danh mục (dùng cho search cache)
         cacheManager.registerCustomCache("categories",
                 Caffeine.newBuilder()
                         .expireAfterWrite(30, TimeUnit.MINUTES)
-                        .maximumSize(100)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build());
+
+        // Category detail cache: 30 phút, tối đa 200 danh mục (dùng cho lazy load)
+        cacheManager.registerCustomCache("categoryDetails",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(30, TimeUnit.MINUTES)
+                        .maximumSize(200)
                         .recordStats()
                         .build());
 

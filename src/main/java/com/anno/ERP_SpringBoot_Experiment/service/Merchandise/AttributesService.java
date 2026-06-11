@@ -220,6 +220,7 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional
+    @CacheEvict(value = "attributes", key = "#productId")
     public Response<?> deleteByProduct(@NonNull String productId) {
         Product product = productRepository.findById(Long.valueOf(productId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
@@ -333,4 +334,23 @@ public class AttributesService implements iAttributes {
 
     // Removed mapSpecificationGroups as it is no longer needed
 
+    /**
+     * Lazy Loading: Lấy danh sách thuộc tính theo Product ID.
+     *
+     * <p>Dữ liệu được nạp vào RAM khi lần đầu gọi (Cache Miss) và tự hết hạn sau 5 phút
+     * ({@code expireAfterWrite} cấu hình trong {@code CacheConfig}).
+     *
+     * @param productId ID của sản phẩm
+     * @return Danh sách thuộc tính không bị xóa (soft delete)
+     */
+    @Override
+    @Cacheable(value = "attributes", key = "#productId")
+    public List<AttributesDto> getAttributesByProductId(String productId) {
+        log.info("Cache miss! Query DB lấy thuộc tính cho sản phẩm ID: {}", productId);
+        return attributesRepository
+                .findAllByProductIdNotDeleted(Long.valueOf(productId))
+                .stream()
+                .map(attributesMapper::toDto)
+                .toList();
+    }
 }

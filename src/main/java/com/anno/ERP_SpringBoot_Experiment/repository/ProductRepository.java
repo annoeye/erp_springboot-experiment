@@ -62,4 +62,11 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Product> findProductByName(String name);
 
     Optional<Product> findProductBySkuInfo_Sku(String skuInfoSku);
+
+    /**
+     * Eager Load: Tải sản phẩm cùng Category trong 1 câu SQL (chống N+1 query).
+     * Dùng cho CacheSyncService khi đồng bộ chạy ngầm.
+     */
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.id = :id")
+    Optional<Product> findByIdWithDetails(@org.springframework.data.repository.query.Param("id") Long id);
 }
