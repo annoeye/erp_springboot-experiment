@@ -23,12 +23,7 @@ public interface iAttributes {
 
     Page<AttributesDto> search(@NonNull AttributesSearchRequest request);
 
-    /**
-     * Lazy Load: Lấy danh sách thuộc tính của 1 sản phẩm từ cache.
-     * Dữ liệu được nạp vào RAM khi lần đầu gọi và tự hết hạn sau 5 phút (TTL).
-     *
-     * @param productId ID của sản phẩm cần lấy thuộc tính
-     * @return Danh sách AttributesDto của sản phẩm
-     */
+    // Lazy Load: Lấy danh sách thuộc tính của 1 sản phẩm từ cache.
+    // Dữ liệu được nạp vào RAM khi lần đầu gọi và tự hết hạn sau 5 phút (TTL).
     List<AttributesDto> getAttributesByProductId(String productId);
 }

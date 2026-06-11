@@ -13,20 +13,12 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Dịch vụ đồng bộ hóa cache chạy ngầm (Background Cache Sync Service).
- *
- * <p>Cơ chế hoạt động:
- * <ol>
- *   <li>Khi dữ liệu sản phẩm thay đổi ở DB (thêm/sửa/xóa), Service gọi
- *       {@link #markProductDirty(Long)} để đánh dấu ID đó là "bẩn" (dirty).</li>
- *   <li>Tiến trình {@link #syncDirtyProductCaches()} chạy định kỳ (mỗi 5 phút), duyệt
- *       qua danh sách dirty IDs, query DB bằng JOIN FETCH (Eager Loading), và nạp đè
- *       dữ liệu mới vào RAM cache một cách từ từ (nghỉ 100ms giữa mỗi bản ghi).</li>
- *   <li>Kiểm soát tải hệ thống: RAM/CPU tăng không quá 10-15% nhờ cơ chế nghỉ giữa
- *       các lần đọc-ghi cache.</li>
- * </ol>
- */
+// Dịch vụ đồng bộ hóa cache chạy ngầm (Background Cache Sync Service).
+//
+// Cơ chế hoạt động:
+// 1. Khi dữ liệu sản phẩm thay đổi ở DB (thêm/sửa/xóa), Service gọi markProductDirty(Long) để đánh dấu ID đó là "bẩn" (dirty).
+// 2. Tiến trình syncDirtyProductCaches() chạy định kỳ (mỗi 5 phút), duyệt qua danh sách dirty IDs, query DB bằng JOIN FETCH, và nạp đè dữ liệu mới vào RAM cache một cách từ từ (nghỉ 100ms giữa mỗi bản ghi).
+// 3. Kiểm soát tải hệ thống: RAM/CPU tăng không quá 10-15% nhờ cơ chế nghỉ giữa các lần đọc-ghi cache.
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -36,30 +28,22 @@ public class CacheSyncService {
     private final ProductMapper productMapper;
     private final CacheManager cacheManager;
 
-    /** Tập hợp các Product ID đã bị thay đổi ở DB, chờ được đồng bộ vào cache RAM. */
+    // Tập hợp các Product ID đã bị thay đổi ở DB, chờ được đồng bộ vào cache RAM.
     private final Set<Long> dirtyProductIds = ConcurrentHashMap.newKeySet();
 
-    /**
-     * Đánh dấu một sản phẩm đã thay đổi ở DB.
-     * Được gọi bởi các Service nghiệp vụ sau khi thực hiện Thêm / Sửa / Xóa sản phẩm.
-     *
-     * @param id ID của sản phẩm vừa thay đổi
-     */
+    // Đánh dấu một sản phẩm đã thay đổi ở DB.
+    // Được gọi bởi các Service nghiệp vụ sau khi thực hiện Thêm / Sửa / Xóa sản phẩm.
     public void markProductDirty(Long id) {
         dirtyProductIds.add(id);
         log.debug("Đã đánh dấu Product ID={} cần đồng bộ cache.", id);
     }
 
-    /**
-     * Tiến trình đồng bộ chạy ngầm, thực thi mỗi 5 phút.
-     *
-     * <p>Duyệt qua danh sách dirty IDs và:
-     * <ul>
-     *   <li>Nếu sản phẩm vẫn tồn tại ở DB: nạp đè DTO mới vào cache RAM.</li>
-     *   <li>Nếu sản phẩm đã bị xóa khỏi DB: xóa key tương ứng khỏi cache RAM.</li>
-     * </ul>
-     * Nghỉ 100ms giữa mỗi bản ghi để kiểm soát tải RAM/CPU không tăng đột biến.
-     */
+    // Tiến trình đồng bộ chạy ngầm, thực thi mỗi 5 phút.
+    //
+    // Duyệt qua danh sách dirty IDs và:
+    // - Nếu sản phẩm vẫn tồn tại ở DB: nạp đè DTO mới vào cache RAM.
+    // - Nếu sản phẩm đã bị xóa khỏi DB: xóa key tương ứng khỏi cache RAM.
+    // Nghỉ 100ms giữa mỗi bản ghi để kiểm soát tải RAM/CPU không tăng đột biến.
     @Scheduled(cron = "0 */5 * * * *")
     public void syncDirtyProductCaches() {
         if (dirtyProductIds.isEmpty()) {

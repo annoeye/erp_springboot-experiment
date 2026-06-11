@@ -334,15 +334,8 @@ public class AttributesService implements iAttributes {
 
     // Removed mapSpecificationGroups as it is no longer needed
 
-    /**
-     * Lazy Loading: Lấy danh sách thuộc tính theo Product ID.
-     *
-     * <p>Dữ liệu được nạp vào RAM khi lần đầu gọi (Cache Miss) và tự hết hạn sau 5 phút
-     * ({@code expireAfterWrite} cấu hình trong {@code CacheConfig}).
-     *
-     * @param productId ID của sản phẩm
-     * @return Danh sách thuộc tính không bị xóa (soft delete)
-     */
+    // Lazy Loading: Lấy danh sách thuộc tính theo Product ID.
+    // Dữ liệu được nạp vào RAM khi lần đầu gọi (Cache Miss) và tự hết hạn sau 5 phút (cấu hình trong CacheConfig).
     @Override
     @Cacheable(value = "attributes", key = "#productId")
     public List<AttributesDto> getAttributesByProductId(String productId) {

@@ -11,18 +11,12 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/**
- * Tự động nạp trước (Warm-up) dữ liệu vào RAM Cache khi ứng dụng khởi động thành công.
- *
- * <p>Chiến lược:
- * <ul>
- *   <li>{@code Category}: Nạp toàn bộ (số lượng nhỏ, thay đổi ít, cần tốc độ cao).</li>
- *   <li>{@code Product}: Nạp trước các sản phẩm phổ biến nhất (trang đầu tiên, sắp xếp
- *       theo lượt xem hoặc doanh thu).</li>
- *   <li>{@code Attributes}: KHÔNG nạp khi startup (dữ liệu rất lớn). Sử dụng
- *       Lazy Loading — được nạp vào cache khi có request gọi đến và tự hết hạn sau 5 phút.</li>
- * </ul>
- */
+// Tự động nạp trước (Warm-up) dữ liệu vào RAM Cache khi ứng dụng khởi động thành công.
+//
+// Chiến lược:
+// - Category: Nạp toàn bộ (số lượng nhỏ, thay đổi ít, cần tốc độ cao).
+// - Product: Nạp trước các sản phẩm phổ biến nhất (trang đầu tiên, sắp xếp theo lượt xem hoặc doanh thu).
+// - Attributes: KHÔNG nạp khi startup (dữ liệu rất lớn). Sử dụng Lazy Loading — được nạp vào cache khi có request gọi đến và tự hết hạn sau 5 phút.
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -39,7 +33,7 @@ public class CacheWarmupListener {
         log.info("=== Warm-up Cache hoàn tất ===");
     }
 
-    /** Nạp toàn bộ danh mục vào RAM (tối đa 200 bản ghi). */
+    // Nạp toàn bộ danh mục vào RAM (tối đa 200 bản ghi).
     private void warmupCategories() {
         try {
             CategorySearchRequest request = new CategorySearchRequest();
@@ -55,10 +49,8 @@ public class CacheWarmupListener {
         }
     }
 
-    /**
-     * Nạp trước 500 sản phẩm đầu tiên vào RAM.
-     * Sau này có thể tinh chỉnh để chỉ warm-up các sản phẩm "hot" (lượt xem cao nhất).
-     */
+    // Nạp trước 500 sản phẩm đầu tiên vào RAM.
+    // Sau này có thể tinh chỉnh để chỉ warm-up các sản phẩm "hot" (lượt xem cao nhất).
     private void warmupProducts() {
         try {
             GetProductRequest request = new GetProductRequest();

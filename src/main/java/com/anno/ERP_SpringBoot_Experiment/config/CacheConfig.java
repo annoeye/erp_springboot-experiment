@@ -8,22 +8,16 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * Cấu hình Spring Cache với Caffeine (in-memory cache).
- * Cache cho các đối tượng đọc nhiều, ghi ít:
- * - products: thông tin sản phẩm (TTL 10 phút, max 1000 entries)
- * - categories: danh mục (TTL 30 phút, max 100 entries)
- * - attributes: biến thể SKU (TTL 5 phút, max 2000 entries)
- *
- * @en Caffeine cache configuration for hot objects
- */
+// Cấu hình Spring Cache với Caffeine (in-memory cache).
+// Cache cho các đối tượng đọc nhiều, ghi ít:
+// - products: thông tin sản phẩm (TTL 10 phút, max 1000 entries)
+// - categories: danh mục (TTL 30 phút, max 100 entries)
+// - attributes: biến thể SKU (TTL 5 phút, max 2000 entries)
 @Configuration
 public class CacheConfig {
 
-    /**
-     * CacheManager với Caffeine làm backend.
-     * Mỗi cache region có cấu hình riêng.
-     */
+    // CacheManager với Caffeine làm backend.
+    // Mỗi cache region có cấu hình riêng.
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();

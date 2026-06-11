@@ -256,15 +256,8 @@ public class ProductService implements iProduct {
                         .build());
     }
 
-    /**
-     * Lazy Load: Lấy chi tiết sản phẩm theo ID từ cache RAM.
-     *
-     * <p>Lần đầu gọi (Cache Miss) sẽ query DB bằng JOIN FETCH để tải Product + Category
-     * trong 1 câu SQL rồi lưu vào RAM. Những lần sau lấy thẳng từ RAM.
-     *
-     * @param id ID của sản phẩm cần lấy
-     * @return ProductDto của sản phẩm
-     */
+    // Lazy Load: Lấy chi tiết sản phẩm theo ID từ cache RAM.
+    // Lần đầu gọi (Cache Miss) sẽ query DB bằng JOIN FETCH để tải Product + Category trong 1 câu SQL rồi lưu vào RAM. Những lần sau lấy thẳng từ RAM.
     @Cacheable(value = "productDetails", key = "#id")
     public ProductDto getProductById(Long id) {
         log.info("Cache miss! Query DB lấy thông tin sản phẩm ID: {}", id);
