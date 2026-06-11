@@ -242,14 +242,23 @@ public class ProductService implements iProduct {
     @Transactional
     @Cacheable(value = "products", key = "#request.hashCode()")
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
+        List<Long> ids = searchProductIds(request);
+        List<ProductDto> content = getProductsByIds(ids).getData();
+
         List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
         SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
         Specification<Product> spec = builder.build();
 
         Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
 
-        return productRepository.findAll(spec, pageable)
-                .map(productMapper::toDto);
+        long total;
+        if (spec != null) {
+            total = productRepository.count(spec);
+        } else {
+            total = productRepository.count();
+        }
+
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
 
     @Override
@@ -422,20 +431,21 @@ public class ProductService implements iProduct {
     }
 
     @Override
+    @Transactional
     public Response<List<ProductDto>> getProductsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Response.ok(new java.util.ArrayList<>());
         }
 
         org.springframework.cache.Cache cache = cacheManager.getCache("productDetails");
-        List<ProductDto> result = new java.util.ArrayList<>();
+        java.util.Map<Long, ProductDto> dtoMap = new java.util.HashMap<>();
         List<Long> missingIds = new java.util.ArrayList<>();
 
         // 1. Check RAM cache first
         for (Long id : ids) {
             ProductDto cached = cache != null ? cache.get(id, ProductDto.class) : null;
             if (cached != null) {
-                result.add(cached);
+                dtoMap.put(id, cached);
             } else {
                 missingIds.add(id);
             }
@@ -449,11 +459,39 @@ public class ProductService implements iProduct {
                 if (cache != null) {
                     cache.put(p.getId(), dto);
                 }
-                result.add(dto);
+                dtoMap.put(p.getId(), dto);
+            }
+        }
+
+        // 3. Reconstruct list preserving the original requested order
+        List<ProductDto> result = new java.util.ArrayList<>();
+        for (Long id : ids) {
+            ProductDto dto = dtoMap.get(id);
+            if (dto != null) {
+                result.add(copyProductDto(dto));
             }
         }
 
         return Response.ok(result);
     }
 
+    private ProductDto copyProductDto(ProductDto original) {
+        if (original == null) {
+            return null;
+        }
+        ProductDto copy = new ProductDto();
+        copy.setId(original.getId());
+        copy.setName(original.getName());
+        copy.setSkuInfo(original.getSkuInfo());
+        copy.setMediaItems(original.getMediaItems());
+        copy.setStatus(original.getStatus());
+        copy.setViewCount(original.getViewCount());
+        copy.setTotalSoldQuantity(original.getTotalSoldQuantity());
+        copy.setTotalRevenue(original.getTotalRevenue());
+        copy.setDiscountPercent(original.getDiscountPercent());
+        copy.setDiscountStartDate(original.getDiscountStartDate());
+        copy.setDiscountEndDate(original.getDiscountEndDate());
+        copy.setCategoryName(original.getCategoryName());
+        return copy;
+    }
 }

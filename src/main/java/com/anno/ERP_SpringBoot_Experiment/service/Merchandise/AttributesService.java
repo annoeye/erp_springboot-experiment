@@ -336,14 +336,23 @@ public class AttributesService implements iAttributes {
     @Transactional
     @Cacheable(value = "attributes", key = "#request.hashCode()")
     public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
+        List<Long> ids = searchAttributesIds(request);
+        List<AttributesDto> content = getAttributesByIds(ids).getData();
+
         List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
         Specification<Attributes> spec = builder.build();
 
         Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
 
-        return attributesRepository.findAll(spec, pageable)
-                .map(attributesMapper::toDto);
+        long total;
+        if (spec != null) {
+            total = attributesRepository.count(spec);
+        } else {
+            total = attributesRepository.count();
+        }
+
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
 
     @Override
@@ -401,14 +410,14 @@ public class AttributesService implements iAttributes {
         }
 
         org.springframework.cache.Cache cache = cacheManager.getCache("attributes");
-        List<AttributesDto> result = new java.util.ArrayList<>();
+        java.util.Map<Long, AttributesDto> dtoMap = new java.util.HashMap<>();
         List<Long> missingIds = new java.util.ArrayList<>();
 
         // 1. Check RAM cache first
         for (Long id : ids) {
             AttributesDto cached = cache != null ? cache.get(id, AttributesDto.class) : null;
             if (cached != null) {
-                result.add(cached);
+                dtoMap.put(id, cached);
             } else {
                 missingIds.add(id);
             }
@@ -422,10 +431,39 @@ public class AttributesService implements iAttributes {
                 if (cache != null) {
                     cache.put(a.getId(), dto);
                 }
-                result.add(dto);
+                dtoMap.put(a.getId(), dto);
+            }
+        }
+
+        // 3. Reconstruct list preserving the original requested order
+        List<AttributesDto> result = new java.util.ArrayList<>();
+        for (Long id : ids) {
+            AttributesDto dto = dtoMap.get(id);
+            if (dto != null) {
+                result.add(copyAttributesDto(dto));
             }
         }
 
         return Response.ok(result);
+    }
+
+    private AttributesDto copyAttributesDto(AttributesDto original) {
+        if (original == null) {
+            return null;
+        }
+        AttributesDto copy = new AttributesDto();
+        copy.setId(original.getId());
+        copy.setName(original.getName());
+        copy.setSku(original.getSku());
+        copy.setPrice(original.getPrice());
+        copy.setSalePrice(original.getSalePrice());
+        copy.setVariantOptions(original.getVariantOptions());
+        copy.setStatusProduct(original.getStatusProduct());
+        copy.setSpecifications(original.getSpecifications());
+        copy.setPromotions(original.getPromotions());
+        copy.setKeywords(original.getKeywords());
+        copy.setAuditInfo(original.getAuditInfo());
+        copy.setProduct(original.getProduct());
+        return copy;
     }
 }
