@@ -26,4 +26,6 @@ public interface iProduct {
     Response<?> deleteProductImage(String productId, String imageKey);
     Response<?> replaceProductImages(String productId, List<MultipartFile> images);
     byte[] getProductImage(String imageName);
+
+    Response<List<ProductDto>> getProductsByIds(List<Long> ids);
 }

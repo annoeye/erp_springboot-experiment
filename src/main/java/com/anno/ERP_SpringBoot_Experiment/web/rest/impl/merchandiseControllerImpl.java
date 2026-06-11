@@ -68,11 +68,17 @@ public class merchandiseControllerImpl implements MerchandiseController {
         return productService.deleteProduct(longList);
     }
 
-     @Override
-     @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
-     public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request) {
-         return productService.searchProducts(request);
-     }
+      @Override
+      @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
+      public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request) {
+          return productService.searchProducts(request);
+      }
+
+      @Override
+      @Operation(summary = "Lấy danh sách sản phẩm theo IDs", description = "Lấy chi tiết các sản phẩm từ cache hoặc DB dựa trên danh sách IDs")
+      public Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids) {
+          return productService.getProductsByIds(ids);
+      }
 
     /************* Product Images Management *****************/
 
@@ -151,6 +157,12 @@ public class merchandiseControllerImpl implements MerchandiseController {
     }
 
     @Override
+    @Operation(summary = "Lấy danh sách danh mục theo IDs", description = "Lấy chi tiết các danh mục từ cache hoặc DB dựa trên danh sách IDs")
+    public Response<List<CategoryDto>> getCategoriesByIds(@RequestParam List<Long> ids) {
+        return categoryService.getCategoriesByIds(ids);
+    }
+
+    @Override
     public CategoryExitingResponse check(String name) {
         return categoryService.isExiting(name);
     }
@@ -190,6 +202,12 @@ public class merchandiseControllerImpl implements MerchandiseController {
                         .contents(attributes.getContent())
                         .paging(PageableData.from(attributes))
                         .build());
+    }
+
+    @Override
+    @Operation(summary = "Lấy danh sách thuộc tính theo IDs", description = "Lấy chi tiết các thuộc tính từ cache hoặc DB dựa trên danh sách IDs")
+    public Response<List<AttributesDto>> getAttributesByIds(@RequestParam List<Long> ids) {
+        return attributesService.getAttributesByIds(ids);
     }
 
     @Operation(summary = "Upload file", description = "Upload file lên MinIO storage")

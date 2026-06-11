@@ -54,6 +54,7 @@ public class ProductService implements iProduct {
     private final MinioService minioService;
     private final ProductMapper productMapper;
     private final com.anno.ERP_SpringBoot_Experiment.service.CacheSyncService cacheSyncService;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     private List<MediaItem> uploadImages(List<MultipartFile> images) {
         List<MediaItem> mediaItems = new ArrayList<>();
@@ -377,6 +378,41 @@ public class ProductService implements iProduct {
             log.error("Lỗi khi đọc ảnh {}: {}", imageName, e.getMessage());
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể đọc dữ liệu ảnh: " + imageName);
         }
+    }
+
+    @Override
+    public Response<List<ProductDto>> getProductsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        org.springframework.cache.Cache cache = cacheManager.getCache("productDetails");
+        List<ProductDto> result = new java.util.ArrayList<>();
+        List<Long> missingIds = new java.util.ArrayList<>();
+
+        // 1. Check RAM cache first
+        for (Long id : ids) {
+            ProductDto cached = cache != null ? cache.get(id, ProductDto.class) : null;
+            if (cached != null) {
+                result.add(cached);
+            } else {
+                missingIds.add(id);
+            }
+        }
+
+        // 2. Fetch missing from DB
+        if (!missingIds.isEmpty()) {
+            List<Product> products = productRepository.findAllById(missingIds);
+            for (Product p : products) {
+                ProductDto dto = productMapper.toDto(p);
+                if (cache != null) {
+                    cache.put(p.getId(), dto);
+                }
+                result.add(dto);
+            }
+        }
+
+        return Response.ok(result);
     }
 
 }

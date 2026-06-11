@@ -26,4 +26,6 @@ public interface iAttributes {
     // Lazy Load: Lấy danh sách thuộc tính của 1 sản phẩm từ cache.
     // Dữ liệu được nạp vào RAM khi lần đầu gọi và tự hết hạn sau 5 phút (TTL).
     List<AttributesDto> getAttributesByProductId(String productId);
+
+    Response<List<AttributesDto>> getAttributesByIds(List<Long> ids);
 }

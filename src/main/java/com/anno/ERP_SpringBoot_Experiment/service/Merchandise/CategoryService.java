@@ -40,6 +40,7 @@ public class CategoryService implements iCategory {
     private final CategoryMapper categoryMapper;
     private final SecurityUtil securityUtil;
     private final Helper featureMerchandiseHelper;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     @Override
     @CacheEvict(value = "categories", allEntries = true)
@@ -150,5 +151,40 @@ public class CategoryService implements iCategory {
                         .id(null)
                         .isExiting(false)
                         .build());
+    }
+
+    @Override
+    public Response<List<CategoryDto>> getCategoriesByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        org.springframework.cache.Cache cache = cacheManager.getCache("categoryDetails");
+        List<CategoryDto> result = new java.util.ArrayList<>();
+        List<Long> missingIds = new java.util.ArrayList<>();
+
+        // 1. Check RAM cache first
+        for (Long id : ids) {
+            CategoryDto cached = cache != null ? cache.get(id, CategoryDto.class) : null;
+            if (cached != null) {
+                result.add(cached);
+            } else {
+                missingIds.add(id);
+            }
+        }
+
+        // 2. Fetch missing from DB
+        if (!missingIds.isEmpty()) {
+            List<Category> categories = categoryRepository.findAllById(missingIds);
+            for (Category c : categories) {
+                CategoryDto dto = categoryMapper.toDto(c);
+                if (cache != null) {
+                    cache.put(c.getId(), dto);
+                }
+                result.add(dto);
+            }
+        }
+
+        return Response.ok(result);
     }
 }

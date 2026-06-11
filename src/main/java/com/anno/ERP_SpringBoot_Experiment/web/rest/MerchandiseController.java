@@ -39,6 +39,10 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
 
+        @GetMapping("/products")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids);
+
         /************* Product Images Management *****************/
 
         @PostMapping(value = "/add-Product-Images/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -88,6 +92,10 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<PagingResponse<CategoryDto>> searchCategory(@Valid @RequestBody CategorySearchRequest request);
 
+        @GetMapping("/categories")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<CategoryDto>> getCategoriesByIds(@RequestParam List<Long> ids);
+
         @GetMapping("/checkCategory/{name}")
         CategoryExitingResponse check(@RequestParam String name);
 
@@ -112,4 +120,8 @@ public interface MerchandiseController {
         @PostMapping("/search-Attributes")
         @ResponseStatus(HttpStatus.OK)
         Response<PagingResponse<AttributesDto>> searchAttributes(@Valid @RequestBody AttributesSearchRequest request);
+
+        @GetMapping("/attributes")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<AttributesDto>> getAttributesByIds(@RequestParam List<Long> ids);
 }

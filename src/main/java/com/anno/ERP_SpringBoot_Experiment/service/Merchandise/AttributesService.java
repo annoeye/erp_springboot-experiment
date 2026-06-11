@@ -54,6 +54,7 @@ public class AttributesService implements iAttributes {
     private final PromotionMapper promotionMapper;
     private final AttributesMapper attributesMapper;
     private final SecurityUtil securityUtil;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     @Override
     @Transactional
@@ -345,5 +346,40 @@ public class AttributesService implements iAttributes {
                 .stream()
                 .map(attributesMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public Response<List<AttributesDto>> getAttributesByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        org.springframework.cache.Cache cache = cacheManager.getCache("attributes");
+        List<AttributesDto> result = new java.util.ArrayList<>();
+        List<Long> missingIds = new java.util.ArrayList<>();
+
+        // 1. Check RAM cache first
+        for (Long id : ids) {
+            AttributesDto cached = cache != null ? cache.get(id, AttributesDto.class) : null;
+            if (cached != null) {
+                result.add(cached);
+            } else {
+                missingIds.add(id);
+            }
+        }
+
+        // 2. Fetch missing from DB
+        if (!missingIds.isEmpty()) {
+            List<Attributes> attributesList = attributesRepository.getQuantityAttributesById(missingIds);
+            for (Attributes a : attributesList) {
+                AttributesDto dto = attributesMapper.toDto(a);
+                if (cache != null) {
+                    cache.put(a.getId(), dto);
+                }
+                result.add(dto);
+            }
+        }
+
+        return Response.ok(result);
     }
 }

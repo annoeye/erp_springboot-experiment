@@ -16,4 +16,6 @@ public interface iCategory {
     Response<?> delete(@NonNull final List<String> ids);
     Page<CategoryDto> search(@NonNull final CategorySearchRequest request);
     CategoryExitingResponse isExiting(String name);
+
+    Response<List<CategoryDto>> getCategoriesByIds(List<Long> ids);
 }
