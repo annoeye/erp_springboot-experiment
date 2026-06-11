@@ -124,7 +124,7 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.data.contents").isArray())
                     .andExpect(jsonPath("$.data.contents[0].id").exists())
                     .andExpect(jsonPath("$.data.contents[0].name").exists())
-                    .andExpect(jsonPath("$.data.contents[0].skuInfo").doesNotExist());
+                    .andExpect(jsonPath("$.data.contents[0].skuInfo").exists());
         }
 
         @Test
@@ -137,7 +137,7 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.contents[0].id").exists())
                     .andExpect(jsonPath("$.data.contents[0].name").exists())
-                    .andExpect(jsonPath("$.data.contents[0].skuInfo").doesNotExist());
+                    .andExpect(jsonPath("$.data.contents[0].skuInfo").exists());
         }
 
         @Test
@@ -170,9 +170,9 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content[0].id").exists())
                     .andExpect(jsonPath("$.content[0].name").exists())
-                    .andExpect(jsonPath("$.content[0].status").doesNotExist())
-                    .andExpect(jsonPath("$.content[0].totalSoldQuantity").doesNotExist())
-                    .andExpect(jsonPath("$.content[0].totalRevenue").doesNotExist());
+                    .andExpect(jsonPath("$.content[0].status").exists())
+                    .andExpect(jsonPath("$.content[0].totalSoldQuantity").exists())
+                    .andExpect(jsonPath("$.content[0].totalRevenue").exists());
         }
 
         @Test
@@ -185,9 +185,9 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content[0].id").exists())
                     .andExpect(jsonPath("$.content[0].name").exists())
-                    .andExpect(jsonPath("$.content[0].status").doesNotExist())
-                    .andExpect(jsonPath("$.content[0].totalSoldQuantity").doesNotExist())
-                    .andExpect(jsonPath("$.content[0].totalRevenue").doesNotExist());
+                    .andExpect(jsonPath("$.content[0].status").exists())
+                    .andExpect(jsonPath("$.content[0].totalSoldQuantity").exists())
+                    .andExpect(jsonPath("$.content[0].totalRevenue").exists());
         }
 
         @Test

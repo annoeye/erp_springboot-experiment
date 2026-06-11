@@ -72,15 +72,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
       @Override
       @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
       public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request) {
-          Page<ProductDto> page = productService.searchProducts(request);
-          if (!securityUtil.hasRole("ADMIN")) {
-              page.forEach(dto -> {
-                  dto.setStatus(null);
-                  dto.setTotalSoldQuantity(null);
-                  dto.setTotalRevenue(null);
-              });
-          }
-          return page;
+          return productService.searchProducts(request);
       }
 
       @Override
@@ -93,15 +85,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
       @Override
       @Operation(summary = "Lấy danh sách sản phẩm theo IDs", description = "Lấy chi tiết các sản phẩm từ cache hoặc DB dựa trên danh sách IDs")
       public Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids) {
-          Response<List<ProductDto>> response = productService.getProductsByIds(ids);
-          if (!securityUtil.hasRole("ADMIN") && response.getData() != null) {
-              response.getData().forEach(dto -> {
-                  dto.setStatus(null);
-                  dto.setTotalSoldQuantity(null);
-                  dto.setTotalRevenue(null);
-              });
-          }
-          return response;
+          return productService.getProductsByIds(ids);
       }
 
     /************* Product Images Management *****************/
@@ -172,9 +156,6 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Operation(summary = "Tìm kiếm danh mục", description = "Tìm kiếm danh mục theo các tiêu chí với phân trang")
     public Response<PagingResponse<CategoryDto>> searchCategory(@RequestBody CategorySearchRequest request) {
         final Page<CategoryDto> categories = categoryService.search(request);
-        if (!securityUtil.hasRole("ADMIN")) {
-            categories.forEach(dto -> dto.setSkuInfo(null));
-        }
         return Response.ok(
                 PagingResponse.<CategoryDto>builder()
                         .contents(categories.getContent())
@@ -185,11 +166,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Override
     @Operation(summary = "Lấy danh sách danh mục theo IDs", description = "Lấy chi tiết các danh mục từ cache hoặc DB dựa trên danh sách IDs")
     public Response<List<CategoryDto>> getCategoriesByIds(@RequestParam List<Long> ids) {
-        Response<List<CategoryDto>> response = categoryService.getCategoriesByIds(ids);
-        if (!securityUtil.hasRole("ADMIN") && response.getData() != null) {
-            response.getData().forEach(dto -> dto.setSkuInfo(null));
-        }
-        return response;
+        return categoryService.getCategoriesByIds(ids);
     }
 
     @Override

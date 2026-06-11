@@ -468,30 +468,10 @@ public class ProductService implements iProduct {
         for (Long id : ids) {
             ProductDto dto = dtoMap.get(id);
             if (dto != null) {
-                result.add(copyProductDto(dto));
+                result.add(dto);
             }
         }
 
         return Response.ok(result);
-    }
-
-    private ProductDto copyProductDto(ProductDto original) {
-        if (original == null) {
-            return null;
-        }
-        ProductDto copy = new ProductDto();
-        copy.setId(original.getId());
-        copy.setName(original.getName());
-        copy.setSkuInfo(original.getSkuInfo());
-        copy.setMediaItems(original.getMediaItems());
-        copy.setStatus(original.getStatus());
-        copy.setViewCount(original.getViewCount());
-        copy.setTotalSoldQuantity(original.getTotalSoldQuantity());
-        copy.setTotalRevenue(original.getTotalRevenue());
-        copy.setDiscountPercent(original.getDiscountPercent());
-        copy.setDiscountStartDate(original.getDiscountStartDate());
-        copy.setDiscountEndDate(original.getDiscountEndDate());
-        copy.setCategoryName(original.getCategoryName());
-        return copy;
     }
 }

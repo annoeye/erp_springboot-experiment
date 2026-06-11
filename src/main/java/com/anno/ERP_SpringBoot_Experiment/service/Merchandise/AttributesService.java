@@ -440,30 +440,10 @@ public class AttributesService implements iAttributes {
         for (Long id : ids) {
             AttributesDto dto = dtoMap.get(id);
             if (dto != null) {
-                result.add(copyAttributesDto(dto));
+                result.add(dto);
             }
         }
 
         return Response.ok(result);
-    }
-
-    private AttributesDto copyAttributesDto(AttributesDto original) {
-        if (original == null) {
-            return null;
-        }
-        AttributesDto copy = new AttributesDto();
-        copy.setId(original.getId());
-        copy.setName(original.getName());
-        copy.setSku(original.getSku());
-        copy.setPrice(original.getPrice());
-        copy.setSalePrice(original.getSalePrice());
-        copy.setVariantOptions(original.getVariantOptions());
-        copy.setStatusProduct(original.getStatusProduct());
-        copy.setSpecifications(original.getSpecifications());
-        copy.setPromotions(original.getPromotions());
-        copy.setKeywords(original.getKeywords());
-        copy.setAuditInfo(original.getAuditInfo());
-        copy.setProduct(original.getProduct());
-        return copy;
     }
 }
