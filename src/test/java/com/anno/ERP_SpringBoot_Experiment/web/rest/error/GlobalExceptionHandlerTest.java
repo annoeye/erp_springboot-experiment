@@ -1,5 +1,10 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest.error;
 
+import com.anno.ERP_SpringBoot_Experiment.component.JwtAuthenticationFilter;
+import com.anno.ERP_SpringBoot_Experiment.common.interceptor.SmartRequestInterceptor;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +20,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Unit tests for {@link GlobalExceptionHandler}.
- * <p>
- * Uses a minimal test controller to trigger each exception path.
- */
+// Unit tests for GlobalExceptionHandler.
+//
+// Uses a minimal test controller to trigger each exception path.
 @WebMvcTest(GlobalExceptionHandlerTest.TestController.class)
+@org.springframework.context.annotation.Import(GlobalExceptionHandlerTest.TestController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("GlobalExceptionHandler Unit Tests")
 class GlobalExceptionHandlerTest {
 
@@ -29,6 +34,24 @@ class GlobalExceptionHandlerTest {
 
     @MockitoBean
     private TestService testService;
+
+    @MockitoBean
+    private com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil securityUtil;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private SmartRequestInterceptor smartRequestInterceptor;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() throws Exception {
+        org.mockito.Mockito.when(smartRequestInterceptor.preHandle(
+                org.mockito.Mockito.any(),
+                org.mockito.Mockito.any(),
+                org.mockito.Mockito.any()
+        )).thenReturn(true);
+    }
 
     @RestController
     @RequestMapping("/api/test")

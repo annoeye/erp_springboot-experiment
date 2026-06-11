@@ -109,7 +109,7 @@ public class SpecificationBuilder<T> {
     private Predicate buildLike(CriteriaBuilder cb, Path<?> path, Object value) {
         if (value instanceof String strValue) {
             Path<String> strPath = (Path<String>) path;
-            return cb.like(strPath, "%" + strValue + "%");
+            return cb.like(cb.lower(strPath), "%" + strValue.toLowerCase() + "%", '\\');
         }
         if (value instanceof List<?> listValue && !listValue.isEmpty()) {
             return path.in(listValue);
@@ -124,7 +124,7 @@ public class SpecificationBuilder<T> {
     private Predicate buildStartsWith(CriteriaBuilder cb, Path<?> path, Object value) {
         if (value instanceof String strValue) {
             Path<String> strPath = (Path<String>) path;
-            return cb.like(cb.lower(strPath), strValue.toLowerCase() + "%");
+            return cb.like(cb.lower(strPath), strValue.toLowerCase() + "%", '\\');
         }
         return cb.equal(path, value);
     }
@@ -133,7 +133,7 @@ public class SpecificationBuilder<T> {
     private Predicate buildEndsWith(CriteriaBuilder cb, Path<?> path, Object value) {
         if (value instanceof String strValue) {
             Path<String> strPath = (Path<String>) path;
-            return cb.like(cb.lower(strPath), "%" + strValue.toLowerCase());
+            return cb.like(cb.lower(strPath), "%" + strValue.toLowerCase(), '\\');
         }
         return cb.equal(path, value);
     }
@@ -142,7 +142,7 @@ public class SpecificationBuilder<T> {
     private Predicate buildContains(CriteriaBuilder cb, Path<?> path, Object value) {
         if (value instanceof String strValue) {
             Path<String> strPath = (Path<String>) path;
-            return cb.like(cb.lower(strPath), "%" + strValue.toLowerCase() + "%");
+            return cb.like(cb.lower(strPath), "%" + strValue.toLowerCase() + "%", '\\');
         }
         return cb.equal(path, value);
     }

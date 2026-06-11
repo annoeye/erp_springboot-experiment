@@ -113,7 +113,7 @@ public class CategoryService implements iCategory {
         }
         
         if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
-            list.add(new SearchCriteria("name", ":", request.getKeyword()));
+            list.add(new SearchCriteria("name", "~", request.getKeyword()));
         }
 
         if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {

@@ -35,6 +35,7 @@ class UserRepositoryTest {
         User user = User.builder()
                 .fullName("Nguyen Van A")
                 .email("nguyenvana@example.com")
+                .password("test-password")
                 .status(ActiveStatus.ACTIVE)
                 .build();
 
@@ -64,6 +65,7 @@ class UserRepositoryTest {
         User user = User.builder()
                 .fullName("Tran Thi B")
                 .email("tranthib@example.com")
+                .password("test-password")
                 .status(ActiveStatus.INACTIVE)
                 .build();
         user.getAuthCode().setCode("abc-123-def");
@@ -94,6 +96,7 @@ class UserRepositoryTest {
         User user = User.builder()
                 .fullName("Le Van C")
                 .email("levanc@example.com")
+                .password("test-password")
                 .status(ActiveStatus.ACTIVE)
                 .build();
 

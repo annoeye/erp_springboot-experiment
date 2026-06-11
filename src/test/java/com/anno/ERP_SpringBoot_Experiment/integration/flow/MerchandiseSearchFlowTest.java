@@ -25,6 +25,10 @@ import static org.hamcrest.Matchers.containsString;
  *   <li>Kiểm tra field visibility: USER vs ADMIN</li>
  * </ul>
  */
+import com.anno.ERP_SpringBoot_Experiment.service.Merchandise.AttributesService;
+import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
+import java.math.BigDecimal;
+
 @DisplayName("Merchandise Search - Real Login Flow")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
@@ -34,6 +38,9 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private AttributesService attributesService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -58,6 +65,12 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
             createProd("MacBook Pro", cat2Sku);
             createProd("Dell XPS 15", cat2Sku);
         }
+
+        var prods = productService.searchProducts(new GetProductRequest()).getContent();
+        if (!prods.isEmpty()) {
+            String prodSku = prods.get(0).getSkuInfo().getSku();
+            createAttr(prodSku, "Màu Đỏ", 1000.0);
+        }
     }
 
     @BeforeEach
@@ -78,6 +91,20 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
         req.setCategorySku(sku);
         req.setStatus("ACTIVE");
         productService.addProduct(req);
+    }
+
+    private void createAttr(String productSku, String name, double price) {
+        CreateAttributesRequest request = new CreateAttributesRequest();
+        request.setProductSku(productSku);
+        request.setName(name);
+
+        com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput attrItem =
+                new com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributeInput();
+        attrItem.setPrice(BigDecimal.valueOf(price));
+        attrItem.setStatusProduct(StockStatus.AVAILABLE);
+        request.setAttributes(java.util.List.of(attrItem));
+
+        attributesService.create(request);
     }
 
     // ==================== CATEGORY SEARCH ====================
@@ -192,6 +219,38 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
         }
 
         @Test
+        @DisplayName("Search product IDs by keyword với USER token")
+        void userToken_SearchProductIdsByKeyword() throws Exception {
+            var req = new GetProductRequest();
+            req.setKeyword("iPhone");
+            req.setPaging(paging(10));
+
+            mockMvc.perform(postJson("/api/merchandise/search-Product/ids", req, userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1));
+        }
+
+        @Test
+        @DisplayName("Search product IDs by categoryId với USER token")
+        void userToken_SearchProductIdsByCategoryId() throws Exception {
+            var catList = categoryService.search(searchReq("Điện thoại")).getContent();
+            org.junit.jupiter.api.Assertions.assertFalse(catList.isEmpty());
+            String catId = String.valueOf(catList.get(0).getId());
+
+            var req = new GetProductRequest();
+            req.setCategoryId(catId);
+            req.setPaging(paging(10));
+
+            mockMvc.perform(postJson("/api/merchandise/search-Product/ids", req, userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(2));
+        }
+
+        @Test
         @DisplayName("Keyword không match → empty")
         void keywordNoMatch_ReturnsEmpty() throws Exception {
             var req = new GetProductRequest();
@@ -229,6 +288,64 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content.length()").value(2))
                     .andExpect(jsonPath("$.number").value(1));
+        }
+    }
+
+    @Nested
+    @DisplayName("Attributes Search")
+    class AttributesSearchTest {
+
+        @Test
+        @DisplayName("Search attributes IDs by keyword với USER token")
+        void userToken_SearchAttributesIdsByKeyword() throws Exception {
+            var req = new AttributesSearchRequest();
+            req.setKeyword("Màu Đỏ");
+            req.setPaging(paging(10));
+
+            mockMvc.perform(postJson("/api/merchandise/search-Attributes/ids", req, userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1));
+        }
+
+        @Test
+        @DisplayName("Search attributes IDs by productId với USER token")
+        void userToken_SearchAttributesIdsByProductId() throws Exception {
+            var prods = productService.searchProducts(new GetProductRequest()).getContent();
+            org.junit.jupiter.api.Assertions.assertFalse(prods.isEmpty());
+            String prodId = String.valueOf(prods.get(0).getId());
+
+            var req = new AttributesSearchRequest();
+            req.setProductId(prodId);
+            req.setPaging(paging(10));
+
+            mockMvc.perform(postJson("/api/merchandise/search-Attributes/ids", req, userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1));
+        }
+
+        @Test
+        @DisplayName("Search attributes IDs by ids list với USER token")
+        void userToken_SearchAttributesIdsByIdsList() throws Exception {
+            var reqSearch = new AttributesSearchRequest();
+            reqSearch.setKeyword("Màu Đỏ");
+            java.util.List<Long> existingIds = attributesService.searchAttributesIds(reqSearch);
+            org.junit.jupiter.api.Assertions.assertFalse(existingIds.isEmpty());
+            String attrId = String.valueOf(existingIds.get(0));
+
+            var req = new AttributesSearchRequest();
+            req.setIds(java.util.List.of(attrId));
+            req.setPaging(paging(10));
+
+            mockMvc.perform(postJson("/api/merchandise/search-Attributes/ids", req, userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0]").value(Long.valueOf(attrId)));
         }
     }
 

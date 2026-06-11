@@ -28,4 +28,6 @@ public interface iProduct {
     byte[] getProductImage(String imageName);
 
     Response<List<ProductDto>> getProductsByIds(List<Long> ids);
+
+    List<Long> searchProductIds(GetProductRequest request);
 }

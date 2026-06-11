@@ -4,7 +4,7 @@
 
 services:
   oracle-db:
-    image: gvenzl/oracle-xe:11.2.0.2-slim
+    image: gvenzl/oracle-xe:21-slim-faststart
     container_name: oracle-db
     restart: unless-stopped
     init: true
@@ -53,3 +53,4 @@ services:
       backend:
         aliases:
           - oracle-db
+      frontend: {}

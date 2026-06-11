@@ -55,6 +55,7 @@ public class ProductService implements iProduct {
     private final ProductMapper productMapper;
     private final com.anno.ERP_SpringBoot_Experiment.service.CacheSyncService cacheSyncService;
     private final org.springframework.cache.CacheManager cacheManager;
+    private final jakarta.persistence.EntityManager entityManager;
 
     private List<MediaItem> uploadImages(List<MultipartFile> images) {
         List<MediaItem> mediaItems = new ArrayList<>();
@@ -156,15 +157,12 @@ public class ProductService implements iProduct {
         return Response.noContent();
     }
 
-    @Override
-    @Transactional
-    @Cacheable(value = "products", key = "#request.hashCode()")
-    public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
+    private List<SearchCriteria> buildProductSearchCriteria(GetProductRequest request) {
         List<SearchCriteria> criteriaList = new ArrayList<>();
 
         if (StringUtils.hasText(request.getKeyword())) {
             // Default "keyword" to search within name
-            criteriaList.add(new SearchCriteria("name", ":", request.getKeyword()));
+            criteriaList.add(new SearchCriteria("name", "~", request.getKeyword()));
         }
 
         if (StringUtils.hasText(request.getCreatedBy())) {
@@ -187,6 +185,10 @@ public class ProductService implements iProduct {
                     .map(Long::valueOf)
                     .toList();
             criteriaList.add(new SearchCriteria("category.id", "~", uuidList));
+        }
+
+        if (StringUtils.hasText(request.getCategoryId())) {
+            criteriaList.add(new SearchCriteria("category.id", ":", Long.valueOf(request.getCategoryId().trim())));
         }
 
         if (request.getMinSoldQuantity() != null) {
@@ -233,6 +235,14 @@ public class ProductService implements iProduct {
             criteriaList.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
         }
 
+        return criteriaList;
+    }
+
+    @Override
+    @Transactional
+    @Cacheable(value = "products", key = "#request.hashCode()")
+    public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
+        List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
         SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
         Specification<Product> spec = builder.build();
 
@@ -240,6 +250,37 @@ public class ProductService implements iProduct {
 
         return productRepository.findAll(spec, pageable)
                 .map(productMapper::toDto);
+    }
+
+    @Override
+    @Transactional
+    public List<Long> searchProductIds(@NonNull GetProductRequest request) {
+        List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
+        SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
+        Specification<Product> spec = builder.build();
+
+        jakarta.persistence.criteria.CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        jakarta.persistence.criteria.CriteriaQuery<Long> query = cb.createQuery(Long.class);
+        jakarta.persistence.criteria.Root<Product> root = query.from(Product.class);
+
+        query.select(root.get("id"));
+
+        if (spec != null) {
+            jakarta.persistence.criteria.Predicate predicate = spec.toPredicate(root, query, cb);
+            if (predicate != null) {
+                query.where(predicate);
+            }
+        }
+
+        // Apply paging if specified
+        jakarta.persistence.TypedQuery<Long> typedQuery = entityManager.createQuery(query);
+        if (request.getPaging() != null) {
+            Pageable pageable = request.getPaging().pageable();
+            typedQuery.setFirstResult((int) pageable.getOffset());
+            typedQuery.setMaxResults(pageable.getPageSize());
+        }
+
+        return typedQuery.getResultList();
     }
 
     @Override

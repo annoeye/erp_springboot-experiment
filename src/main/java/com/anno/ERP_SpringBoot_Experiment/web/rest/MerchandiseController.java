@@ -39,6 +39,10 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
 
+        @PostMapping("/search-Product/ids")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<Long>> searchProductIds(@Valid @RequestBody GetProductRequest request);
+
         @GetMapping("/products")
         @ResponseStatus(HttpStatus.OK)
         Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids);
@@ -120,6 +124,10 @@ public interface MerchandiseController {
         @PostMapping("/search-Attributes")
         @ResponseStatus(HttpStatus.OK)
         Response<PagingResponse<AttributesDto>> searchAttributes(@Valid @RequestBody AttributesSearchRequest request);
+
+        @PostMapping("/search-Attributes/ids")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<Long>> searchAttributesIds(@Valid @RequestBody AttributesSearchRequest request);
 
         @GetMapping("/attributes")
         @ResponseStatus(HttpStatus.OK)

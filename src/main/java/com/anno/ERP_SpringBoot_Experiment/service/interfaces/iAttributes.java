@@ -28,4 +28,6 @@ public interface iAttributes {
     List<AttributesDto> getAttributesByProductId(String productId);
 
     Response<List<AttributesDto>> getAttributesByIds(List<Long> ids);
+
+    List<Long> searchAttributesIds(AttributesSearchRequest request);
 }

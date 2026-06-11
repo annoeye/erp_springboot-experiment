@@ -55,6 +55,7 @@ public class AttributesService implements iAttributes {
     private final AttributesMapper attributesMapper;
     private final SecurityUtil securityUtil;
     private final org.springframework.cache.CacheManager cacheManager;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Override
     @Transactional
@@ -250,23 +251,29 @@ public class AttributesService implements iAttributes {
                 String.format("Đã xóa thành công %d danh mục của sản phẩm.", attributesList.size()));
     }
 
-    @Override
-    @Transactional
-    @Cacheable(value = "attributes", key = "#request.hashCode()")
-    public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
+    private List<SearchCriteria> buildAttributesSearchCriteria(AttributesSearchRequest request) {
         List<SearchCriteria> criteriaList = new ArrayList<>();
 
         if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
-            criteriaList.add(new SearchCriteria("name", ":", request.getKeyword()));
+            criteriaList.add(new SearchCriteria("name", "~", request.getKeyword()));
         }
 
-
+        if (request.getIds() != null && !request.getIds().isEmpty()) {
+            List<Long> attrIds = request.getIds().stream()
+                    .map(Long::valueOf)
+                    .toList();
+            criteriaList.add(new SearchCriteria("id", "~", attrIds));
+        }
 
         if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
             List<Long> prodIds = request.getProductIds().stream()
                     .map(Long::valueOf)
                     .toList();
             criteriaList.add(new SearchCriteria("product.id", "~", prodIds));
+        }
+
+        if (request.getProductId() != null && !request.getProductId().isBlank()) {
+            criteriaList.add(new SearchCriteria("product.id", ":", Long.valueOf(request.getProductId().trim())));
         }
 
         if (request.getSkus() != null && !request.getSkus().isEmpty()) {
@@ -322,6 +329,14 @@ public class AttributesService implements iAttributes {
             criteriaList.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
         }
 
+        return criteriaList;
+    }
+
+    @Override
+    @Transactional
+    @Cacheable(value = "attributes", key = "#request.hashCode()")
+    public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
+        List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
         Specification<Attributes> spec = builder.build();
 
@@ -329,6 +344,37 @@ public class AttributesService implements iAttributes {
 
         return attributesRepository.findAll(spec, pageable)
                 .map(attributesMapper::toDto);
+    }
+
+    @Override
+    @Transactional
+    public List<Long> searchAttributesIds(@NonNull AttributesSearchRequest request) {
+        List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
+        SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
+        Specification<Attributes> spec = builder.build();
+
+        jakarta.persistence.criteria.CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        jakarta.persistence.criteria.CriteriaQuery<Long> query = cb.createQuery(Long.class);
+        jakarta.persistence.criteria.Root<Attributes> root = query.from(Attributes.class);
+
+        query.select(root.get("id"));
+
+        if (spec != null) {
+            jakarta.persistence.criteria.Predicate predicate = spec.toPredicate(root, query, cb);
+            if (predicate != null) {
+                query.where(predicate);
+            }
+        }
+
+        // Apply paging if specified
+        jakarta.persistence.TypedQuery<Long> typedQuery = entityManager.createQuery(query);
+        if (request.getPaging() != null) {
+            Pageable pageable = request.getPaging().pageable();
+            typedQuery.setFirstResult((int) pageable.getOffset());
+            typedQuery.setMaxResults(pageable.getPageSize());
+        }
+
+        return typedQuery.getResultList();
     }
 
 

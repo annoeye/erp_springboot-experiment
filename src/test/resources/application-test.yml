@@ -82,6 +82,6 @@ springdoc:
 logging:
   level:
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.orm.jdbc.bind: TRACE
     org.springframework.test: INFO
     com.anno.ERP_SpringBoot_Experiment: DEBUG

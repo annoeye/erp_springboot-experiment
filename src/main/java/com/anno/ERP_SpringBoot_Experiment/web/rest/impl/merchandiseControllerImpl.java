@@ -39,6 +39,7 @@ public class merchandiseControllerImpl implements MerchandiseController {
     private final CategoryService categoryService;
     private final AttributesService attributesService;
     private final MinioService minioService;
+    private final com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil securityUtil;
 
     /************* Product CRUD *****************/
 
@@ -71,13 +72,36 @@ public class merchandiseControllerImpl implements MerchandiseController {
       @Override
       @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
       public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request) {
-          return productService.searchProducts(request);
+          Page<ProductDto> page = productService.searchProducts(request);
+          if (!securityUtil.hasRole("ADMIN")) {
+              page.forEach(dto -> {
+                  dto.setStatus(null);
+                  dto.setTotalSoldQuantity(null);
+                  dto.setTotalRevenue(null);
+              });
+          }
+          return page;
+      }
+
+      @Override
+      @Operation(summary = "Tìm kiếm ID sản phẩm", description = "Tìm kiếm danh sách ID sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
+      public Response<List<Long>> searchProductIds(@RequestBody GetProductRequest request) {
+          List<Long> ids = productService.searchProductIds(request);
+          return Response.ok(ids);
       }
 
       @Override
       @Operation(summary = "Lấy danh sách sản phẩm theo IDs", description = "Lấy chi tiết các sản phẩm từ cache hoặc DB dựa trên danh sách IDs")
       public Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids) {
-          return productService.getProductsByIds(ids);
+          Response<List<ProductDto>> response = productService.getProductsByIds(ids);
+          if (!securityUtil.hasRole("ADMIN") && response.getData() != null) {
+              response.getData().forEach(dto -> {
+                  dto.setStatus(null);
+                  dto.setTotalSoldQuantity(null);
+                  dto.setTotalRevenue(null);
+              });
+          }
+          return response;
       }
 
     /************* Product Images Management *****************/
@@ -148,7 +172,9 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Operation(summary = "Tìm kiếm danh mục", description = "Tìm kiếm danh mục theo các tiêu chí với phân trang")
     public Response<PagingResponse<CategoryDto>> searchCategory(@RequestBody CategorySearchRequest request) {
         final Page<CategoryDto> categories = categoryService.search(request);
-
+        if (!securityUtil.hasRole("ADMIN")) {
+            categories.forEach(dto -> dto.setSkuInfo(null));
+        }
         return Response.ok(
                 PagingResponse.<CategoryDto>builder()
                         .contents(categories.getContent())
@@ -159,7 +185,11 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Override
     @Operation(summary = "Lấy danh sách danh mục theo IDs", description = "Lấy chi tiết các danh mục từ cache hoặc DB dựa trên danh sách IDs")
     public Response<List<CategoryDto>> getCategoriesByIds(@RequestParam List<Long> ids) {
-        return categoryService.getCategoriesByIds(ids);
+        Response<List<CategoryDto>> response = categoryService.getCategoriesByIds(ids);
+        if (!securityUtil.hasRole("ADMIN") && response.getData() != null) {
+            response.getData().forEach(dto -> dto.setSkuInfo(null));
+        }
+        return response;
     }
 
     @Override
@@ -202,6 +232,13 @@ public class merchandiseControllerImpl implements MerchandiseController {
                         .contents(attributes.getContent())
                         .paging(PageableData.from(attributes))
                         .build());
+    }
+
+    @Override
+    @Operation(summary = "Tìm kiếm ID thuộc tính sản phẩm", description = "Tìm kiếm danh sách ID thuộc tính/biến thể theo các tiêu chí")
+    public Response<List<Long>> searchAttributesIds(@RequestBody AttributesSearchRequest request) {
+        List<Long> ids = attributesService.searchAttributesIds(request);
+        return Response.ok(ids);
     }
 
     @Override
