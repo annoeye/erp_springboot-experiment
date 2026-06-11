@@ -25,7 +25,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -333,7 +333,7 @@ public class AttributesService implements iAttributes {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     @Cacheable(value = "attributes", key = "#request.hashCode()")
     public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
         List<Long> ids = searchAttributesIds(request);
@@ -356,7 +356,7 @@ public class AttributesService implements iAttributes {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Long> searchAttributesIds(@NonNull AttributesSearchRequest request) {
         List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
@@ -404,6 +404,7 @@ public class AttributesService implements iAttributes {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Response<List<AttributesDto>> getAttributesByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Response.ok(new java.util.ArrayList<>());

@@ -24,7 +24,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -239,7 +239,7 @@ public class ProductService implements iProduct {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     @Cacheable(value = "products", key = "#request.hashCode()")
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
         List<Long> ids = searchProductIds(request);
@@ -262,7 +262,7 @@ public class ProductService implements iProduct {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Long> searchProductIds(@NonNull GetProductRequest request) {
         List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
         SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
@@ -431,7 +431,7 @@ public class ProductService implements iProduct {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public Response<List<ProductDto>> getProductsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Response.ok(new java.util.ArrayList<>());
