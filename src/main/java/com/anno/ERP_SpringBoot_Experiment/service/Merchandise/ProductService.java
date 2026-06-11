@@ -438,32 +438,31 @@ public class ProductService implements iProduct {
         }
 
         org.springframework.cache.Cache cache = cacheManager.getCache("productDetails");
-        java.util.Map<Long, ProductDto> dtoMap = new java.util.HashMap<>();
-        List<Long> missingIds = new java.util.ArrayList<>();
+        java.util.Map<Long, ProductDto> dtoMap;
 
-        // 1. Check RAM cache first
-        for (Long id : ids) {
-            ProductDto cached = cache != null ? cache.get(id, ProductDto.class) : null;
-            if (cached != null) {
-                dtoMap.put(id, cached);
-            } else {
-                missingIds.add(id);
-            }
-        }
+        if (cache != null) {
+            @SuppressWarnings("unchecked")
+            com.github.benmanes.caffeine.cache.Cache<Long, ProductDto> nativeCache =
+                    (com.github.benmanes.caffeine.cache.Cache<Long, ProductDto>) cache.getNativeCache();
 
-        // 2. Fetch missing from DB
-        if (!missingIds.isEmpty()) {
-            List<Product> products = productRepository.findAllById(missingIds);
-            for (Product p : products) {
-                ProductDto dto = productMapper.toDto(p);
-                if (cache != null) {
-                    cache.put(p.getId(), dto);
+            dtoMap = nativeCache.getAll(ids, missingIds -> {
+                List<Long> missingList = new java.util.ArrayList<>(missingIds);
+                List<Product> products = productRepository.findAllById(missingList);
+                java.util.Map<Long, ProductDto> loaded = new java.util.HashMap<>();
+                for (Product p : products) {
+                    loaded.put(p.getId(), productMapper.toDto(p));
                 }
-                dtoMap.put(p.getId(), dto);
+                return loaded;
+            });
+        } else {
+            List<Product> products = productRepository.findAllById(ids);
+            dtoMap = new java.util.HashMap<>();
+            for (Product p : products) {
+                dtoMap.put(p.getId(), productMapper.toDto(p));
             }
         }
 
-        // 3. Reconstruct list preserving the original requested order
+        // Reconstruct list preserving the original requested order
         List<ProductDto> result = new java.util.ArrayList<>();
         for (Long id : ids) {
             ProductDto dto = dtoMap.get(id);

@@ -410,32 +410,31 @@ public class AttributesService implements iAttributes {
         }
 
         org.springframework.cache.Cache cache = cacheManager.getCache("attributes");
-        java.util.Map<Long, AttributesDto> dtoMap = new java.util.HashMap<>();
-        List<Long> missingIds = new java.util.ArrayList<>();
+        java.util.Map<Long, AttributesDto> dtoMap;
 
-        // 1. Check RAM cache first
-        for (Long id : ids) {
-            AttributesDto cached = cache != null ? cache.get(id, AttributesDto.class) : null;
-            if (cached != null) {
-                dtoMap.put(id, cached);
-            } else {
-                missingIds.add(id);
-            }
-        }
+        if (cache != null) {
+            @SuppressWarnings("unchecked")
+            com.github.benmanes.caffeine.cache.Cache<Long, AttributesDto> nativeCache =
+                    (com.github.benmanes.caffeine.cache.Cache<Long, AttributesDto>) cache.getNativeCache();
 
-        // 2. Fetch missing from DB
-        if (!missingIds.isEmpty()) {
-            List<Attributes> attributesList = attributesRepository.getQuantityAttributesById(missingIds);
-            for (Attributes a : attributesList) {
-                AttributesDto dto = attributesMapper.toDto(a);
-                if (cache != null) {
-                    cache.put(a.getId(), dto);
+            dtoMap = nativeCache.getAll(ids, missingIds -> {
+                List<Long> missingList = new java.util.ArrayList<>(missingIds);
+                List<Attributes> attributesList = attributesRepository.getQuantityAttributesById(missingList);
+                java.util.Map<Long, AttributesDto> loaded = new java.util.HashMap<>();
+                for (Attributes a : attributesList) {
+                    loaded.put(a.getId(), attributesMapper.toDto(a));
                 }
-                dtoMap.put(a.getId(), dto);
+                return loaded;
+            });
+        } else {
+            List<Attributes> attributesList = attributesRepository.getQuantityAttributesById(ids);
+            dtoMap = new java.util.HashMap<>();
+            for (Attributes a : attributesList) {
+                dtoMap.put(a.getId(), attributesMapper.toDto(a));
             }
         }
 
-        // 3. Reconstruct list preserving the original requested order
+        // Reconstruct list preserving the original requested order
         List<AttributesDto> result = new java.util.ArrayList<>();
         for (Long id : ids) {
             AttributesDto dto = dtoMap.get(id);
