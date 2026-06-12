@@ -473,4 +473,69 @@ public class ProductService implements iProduct {
 
         return Response.ok(result);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<ProductDto> getProductBySku(String sku) {
+        if (!org.springframework.util.StringUtils.hasText(sku)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU không được để trống.");
+        }
+        Long id = productRepository.findIdBySku(sku)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm với SKU '" + sku + "' không tồn tại."));
+        return Response.ok(getProductById(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<List<ProductDto>> getProductsBySkus(List<String> skus) {
+        if (skus == null || skus.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        List<Object[]> rows = productRepository.findIdsAndSkusBySkus(skus);
+        java.util.Map<String, Long> skuToIdMap = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            Long id = (Long) row[0];
+            String s = (String) row[1];
+            skuToIdMap.put(s, id);
+        }
+
+        List<Long> ids = new java.util.ArrayList<>();
+        for (String s : skus) {
+            Long id = skuToIdMap.get(s);
+            if (id != null) {
+                ids.add(id);
+            }
+        }
+
+        List<ProductDto> dtos = getProductsByIds(ids).getData();
+
+        java.util.Map<String, ProductDto> skuToDtoMap = new java.util.HashMap<>();
+        for (ProductDto dto : dtos) {
+            if (dto.getSkuInfo() != null && dto.getSkuInfo().getSku() != null) {
+                skuToDtoMap.put(dto.getSkuInfo().getSku(), dto);
+            }
+        }
+
+        List<ProductDto> result = new java.util.ArrayList<>();
+        for (String s : skus) {
+            ProductDto dto = skuToDtoMap.get(s);
+            if (dto != null) {
+                result.add(dto);
+            }
+        }
+
+        return Response.ok(result);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<ProductDto> getProductByName(String name) {
+        if (!org.springframework.util.StringUtils.hasText(name)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Tên sản phẩm không được để trống.");
+        }
+        Long id = productRepository.findIdByName(name)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm với tên '" + name + "' không tồn tại."));
+        return Response.ok(getProductById(id));
+    }
 }

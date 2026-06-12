@@ -16,7 +16,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,7 +89,7 @@ public class CategoryService implements iCategory {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     @Cacheable(value = "categories", key = "#request.hashCode()")
     public Page<CategoryDto> search(@NonNull final CategorySearchRequest request) {
         categoryRepository.deleteAllExpiredCategories();
@@ -154,33 +154,100 @@ public class CategoryService implements iCategory {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Response<List<CategoryDto>> getCategoriesByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Response.ok(new java.util.ArrayList<>());
         }
 
         org.springframework.cache.Cache cache = cacheManager.getCache("categoryDetails");
-        List<CategoryDto> result = new java.util.ArrayList<>();
-        List<Long> missingIds = new java.util.ArrayList<>();
+        java.util.Map<Long, CategoryDto> dtoMap;
 
-        // 1. Check RAM cache first
-        for (Long id : ids) {
-            CategoryDto cached = cache != null ? cache.get(id, CategoryDto.class) : null;
-            if (cached != null) {
-                result.add(cached);
-            } else {
-                missingIds.add(id);
+        if (cache != null) {
+            @SuppressWarnings("unchecked")
+            com.github.benmanes.caffeine.cache.Cache<Long, CategoryDto> nativeCache =
+                    (com.github.benmanes.caffeine.cache.Cache<Long, CategoryDto>) cache.getNativeCache();
+
+            dtoMap = nativeCache.getAll(ids, missingIds -> {
+                List<Long> missingList = new java.util.ArrayList<>(missingIds);
+                List<Category> categories = categoryRepository.findAllById(missingList);
+                java.util.Map<Long, CategoryDto> loaded = new java.util.HashMap<>();
+                for (Category c : categories) {
+                    loaded.put(c.getId(), categoryMapper.toDto(c));
+                }
+                return loaded;
+            });
+        } else {
+            List<Category> categories = categoryRepository.findAllById(ids);
+            dtoMap = new java.util.HashMap<>();
+            for (Category c : categories) {
+                dtoMap.put(c.getId(), categoryMapper.toDto(c));
             }
         }
 
-        // 2. Fetch missing from DB
-        if (!missingIds.isEmpty()) {
-            List<Category> categories = categoryRepository.findAllById(missingIds);
-            for (Category c : categories) {
-                CategoryDto dto = categoryMapper.toDto(c);
-                if (cache != null) {
-                    cache.put(c.getId(), dto);
-                }
+        // Reconstruct list preserving the original requested order
+        List<CategoryDto> result = new java.util.ArrayList<>();
+        for (Long id : ids) {
+            CategoryDto dto = dtoMap.get(id);
+            if (dto != null) {
+                result.add(dto);
+            }
+        }
+
+        return Response.ok(result);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<CategoryDto> getCategoryBySku(String sku) {
+        if (!org.springframework.util.StringUtils.hasText(sku)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU không được để trống.");
+        }
+        Long id = categoryRepository.findIdBySku(sku)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục với SKU '" + sku + "' không tồn tại."));
+        List<CategoryDto> list = getCategoriesByIds(java.util.List.of(id)).getData();
+        if (list.isEmpty()) {
+            throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục với SKU '" + sku + "' không tồn tại.");
+        }
+        return Response.ok(list.getFirst());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<List<CategoryDto>> getCategoriesBySkus(List<String> skus) {
+        if (skus == null || skus.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        List<Object[]> rows = categoryRepository.findIdsAndSkusBySkus(skus);
+        java.util.Map<String, Long> skuToIdMap = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            Long id = (Long) row[0];
+            String s = (String) row[1];
+            skuToIdMap.put(s, id);
+        }
+
+        List<Long> ids = new java.util.ArrayList<>();
+        for (String s : skus) {
+            Long id = skuToIdMap.get(s);
+            if (id != null) {
+                ids.add(id);
+            }
+        }
+
+        List<CategoryDto> dtos = getCategoriesByIds(ids).getData();
+
+        java.util.Map<String, CategoryDto> skuToDtoMap = new java.util.HashMap<>();
+        for (CategoryDto dto : dtos) {
+            if (dto.getSkuInfo() != null && dto.getSkuInfo().getSku() != null) {
+                skuToDtoMap.put(dto.getSkuInfo().getSku(), dto);
+            }
+        }
+
+        List<CategoryDto> result = new java.util.ArrayList<>();
+        for (String s : skus) {
+            CategoryDto dto = skuToDtoMap.get(s);
+            if (dto != null) {
                 result.add(dto);
             }
         }

@@ -88,6 +88,24 @@ public class merchandiseControllerImpl implements MerchandiseController {
           return productService.getProductsByIds(ids);
       }
 
+      @Override
+      @Operation(summary = "Lấy sản phẩm theo SKU", description = "Lấy chi tiết sản phẩm dựa trên mã SKU duy nhất công khai")
+      public Response<ProductDto> getProductBySku(@PathVariable String sku) {
+          return productService.getProductBySku(sku);
+      }
+
+      @Override
+      @Operation(summary = "Lấy danh sách sản phẩm theo SKUs", description = "Lấy chi tiết danh sách sản phẩm dựa trên danh sách mã SKUs")
+      public Response<List<ProductDto>> getProductsBySkus(@RequestParam List<String> skus) {
+          return productService.getProductsBySkus(skus);
+      }
+
+      @Override
+      @Operation(summary = "Lấy sản phẩm theo Tên", description = "Lấy chi tiết sản phẩm dựa trên tên sản phẩm")
+      public Response<ProductDto> getProductByName(@PathVariable String name) {
+          return productService.getProductByName(name);
+      }
+
     /************* Product Images Management *****************/
 
     @Override
@@ -170,6 +188,18 @@ public class merchandiseControllerImpl implements MerchandiseController {
     }
 
     @Override
+    @Operation(summary = "Lấy danh mục theo SKU", description = "Lấy chi tiết danh mục dựa trên mã SKU")
+    public Response<CategoryDto> getCategoryBySku(@PathVariable String sku) {
+        return categoryService.getCategoryBySku(sku);
+    }
+
+    @Override
+    @Operation(summary = "Lấy danh sách danh mục theo SKUs", description = "Lấy chi tiết danh sách danh mục dựa trên danh sách mã SKUs")
+    public Response<List<CategoryDto>> getCategoriesBySkus(@RequestParam List<String> skus) {
+        return categoryService.getCategoriesBySkus(skus);
+    }
+
+    @Override
     public CategoryExitingResponse check(String name) {
         return categoryService.isExiting(name);
     }
@@ -222,6 +252,18 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Operation(summary = "Lấy danh sách thuộc tính theo IDs", description = "Lấy chi tiết các thuộc tính từ cache hoặc DB dựa trên danh sách IDs")
     public Response<List<AttributesDto>> getAttributesByIds(@RequestParam List<Long> ids) {
         return attributesService.getAttributesByIds(ids);
+    }
+
+    @Override
+    @Operation(summary = "Lấy thuộc tính theo SKU", description = "Lấy chi tiết thuộc tính dựa trên mã SKU")
+    public Response<AttributesDto> getAttributesBySku(@PathVariable String sku) {
+        return attributesService.getAttributesBySku(sku);
+    }
+
+    @Override
+    @Operation(summary = "Lấy danh sách thuộc tính theo SKUs", description = "Lấy chi tiết danh sách thuộc tính dựa trên danh sách mã SKUs")
+    public Response<List<AttributesDto>> getAttributesBySkus(@RequestParam List<String> skus) {
+        return attributesService.getAttributesBySkus(skus);
     }
 
     @Operation(summary = "Upload file", description = "Upload file lên MinIO storage")

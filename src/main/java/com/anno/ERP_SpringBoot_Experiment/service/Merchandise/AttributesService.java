@@ -446,4 +446,62 @@ public class AttributesService implements iAttributes {
 
         return Response.ok(result);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<AttributesDto> getAttributesBySku(String sku) {
+        if (!org.springframework.util.StringUtils.hasText(sku)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU không được để trống.");
+        }
+        Long id = attributesRepository.findIdBySkuNotDeleted(sku)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính với SKU '" + sku + "' không tồn tại."));
+        List<AttributesDto> list = getAttributesByIds(java.util.List.of(id)).getData();
+        if (list.isEmpty()) {
+            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính với SKU '" + sku + "' không tồn tại.");
+        }
+        return Response.ok(list.getFirst());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
+        if (skus == null || skus.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        List<Object[]> rows = attributesRepository.findIdsAndSkusBySkus(skus);
+        java.util.Map<String, Long> skuToIdMap = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            Long id = (Long) row[0];
+            String s = (String) row[1];
+            skuToIdMap.put(s, id);
+        }
+
+        List<Long> ids = new java.util.ArrayList<>();
+        for (String s : skus) {
+            Long id = skuToIdMap.get(s);
+            if (id != null) {
+                ids.add(id);
+            }
+        }
+
+        List<AttributesDto> dtos = getAttributesByIds(ids).getData();
+
+        java.util.Map<String, AttributesDto> skuToDtoMap = new java.util.HashMap<>();
+        for (AttributesDto dto : dtos) {
+            if (dto.getSku() != null && dto.getSku().getSku() != null) {
+                skuToDtoMap.put(dto.getSku().getSku(), dto);
+            }
+        }
+
+        List<AttributesDto> result = new java.util.ArrayList<>();
+        for (String s : skus) {
+            AttributesDto dto = skuToDtoMap.get(s);
+            if (dto != null) {
+                result.add(dto);
+            }
+        }
+
+        return Response.ok(result);
+    }
 }

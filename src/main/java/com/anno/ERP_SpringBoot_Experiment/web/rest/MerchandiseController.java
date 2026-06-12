@@ -47,6 +47,18 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids);
 
+        @GetMapping("/products/by-sku/{sku}")
+        @ResponseStatus(HttpStatus.OK)
+        Response<ProductDto> getProductBySku(@PathVariable String sku);
+
+        @GetMapping("/products/by-skus")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<ProductDto>> getProductsBySkus(@RequestParam List<String> skus);
+
+        @GetMapping("/products/by-name/{name}")
+        @ResponseStatus(HttpStatus.OK)
+        Response<ProductDto> getProductByName(@PathVariable String name);
+
         /************* Product Images Management *****************/
 
         @PostMapping(value = "/add-Product-Images/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -100,6 +112,14 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<List<CategoryDto>> getCategoriesByIds(@RequestParam List<Long> ids);
 
+        @GetMapping("/categories/by-sku/{sku}")
+        @ResponseStatus(HttpStatus.OK)
+        Response<CategoryDto> getCategoryBySku(@PathVariable String sku);
+
+        @GetMapping("/categories/by-skus")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<CategoryDto>> getCategoriesBySkus(@RequestParam List<String> skus);
+
         @GetMapping("/checkCategory/{name}")
         CategoryExitingResponse check(@RequestParam String name);
 
@@ -132,4 +152,12 @@ public interface MerchandiseController {
         @GetMapping("/attributes")
         @ResponseStatus(HttpStatus.OK)
         Response<List<AttributesDto>> getAttributesByIds(@RequestParam List<Long> ids);
+
+        @GetMapping("/attributes/by-sku/{sku}")
+        @ResponseStatus(HttpStatus.OK)
+        Response<AttributesDto> getAttributesBySku(@PathVariable String sku);
+
+        @GetMapping("/attributes/by-skus")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<AttributesDto>> getAttributesBySkus(@RequestParam List<String> skus);
 }

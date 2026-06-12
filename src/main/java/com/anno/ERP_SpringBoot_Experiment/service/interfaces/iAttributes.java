@@ -30,4 +30,7 @@ public interface iAttributes {
     Response<List<AttributesDto>> getAttributesByIds(List<Long> ids);
 
     List<Long> searchAttributesIds(AttributesSearchRequest request);
+
+    Response<AttributesDto> getAttributesBySku(String sku);
+    Response<List<AttributesDto>> getAttributesBySkus(List<String> skus);
 }

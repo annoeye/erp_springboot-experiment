@@ -30,4 +30,8 @@ public interface iProduct {
     Response<List<ProductDto>> getProductsByIds(List<Long> ids);
 
     List<Long> searchProductIds(GetProductRequest request);
+
+    Response<ProductDto> getProductBySku(String sku);
+    Response<List<ProductDto>> getProductsBySkus(List<String> skus);
+    Response<ProductDto> getProductByName(String name);
 }

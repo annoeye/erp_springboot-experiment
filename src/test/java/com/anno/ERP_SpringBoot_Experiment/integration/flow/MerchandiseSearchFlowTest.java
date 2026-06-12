@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.containsString;
@@ -152,6 +153,36 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.data.contents[0].name").exists())
                     .andExpect(jsonPath("$.data.contents[0].skuInfo").exists());
         }
+
+        @Test
+        @DisplayName("Get category by SKU với USER token")
+        void userToken_GetCategoryBySku() throws Exception {
+            var cats = categoryService.search(searchReq("Điện thoại")).getContent();
+            org.junit.jupiter.api.Assertions.assertFalse(cats.isEmpty());
+            String sku = cats.get(0).getSkuInfo().getSku();
+
+            mockMvc.perform(get("/api/merchandise/categories/by-sku/" + sku).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data.skuInfo.sku").value(sku));
+        }
+
+        @Test
+        @DisplayName("Get categories by SKUs với USER token")
+        void userToken_GetCategoriesBySkus() throws Exception {
+            var cats1 = categoryService.search(searchReq("Điện thoại")).getContent();
+            var cats2 = categoryService.search(searchReq("Laptop")).getContent();
+            org.junit.jupiter.api.Assertions.assertFalse(cats1.isEmpty());
+            org.junit.jupiter.api.Assertions.assertFalse(cats2.isEmpty());
+            String sku1 = cats1.get(0).getSkuInfo().getSku();
+            String sku2 = cats2.get(0).getSkuInfo().getSku();
+
+            mockMvc.perform(get("/api/merchandise/categories/by-skus?skus=" + sku1 + "," + sku2).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(2));
+        }
     }
 
     // ==================== PRODUCT SEARCH ====================
@@ -289,6 +320,47 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.content.length()").value(2))
                     .andExpect(jsonPath("$.number").value(1));
         }
+
+        @Test
+        @DisplayName("Get product by SKU với USER token")
+        void userToken_GetProductBySku() throws Exception {
+            var prods = productService.searchProducts(new GetProductRequest()).getContent();
+            org.junit.jupiter.api.Assertions.assertFalse(prods.isEmpty());
+            String sku = prods.get(0).getSkuInfo().getSku();
+
+            mockMvc.perform(get("/api/merchandise/products/by-sku/" + sku).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data.skuInfo.sku").value(sku));
+        }
+
+        @Test
+        @DisplayName("Get products by SKUs với USER token")
+        void userToken_GetProductsBySkus() throws Exception {
+            var prods = productService.searchProducts(new GetProductRequest()).getContent();
+            org.junit.jupiter.api.Assertions.assertTrue(prods.size() >= 2);
+            String sku1 = prods.get(0).getSkuInfo().getSku();
+            String sku2 = prods.get(1).getSkuInfo().getSku();
+
+            mockMvc.perform(get("/api/merchandise/products/by-skus?skus=" + sku1 + "," + sku2).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(2));
+        }
+
+        @Test
+        @DisplayName("Get product by Name với USER token")
+        void userToken_GetProductByName() throws Exception {
+            var prods = productService.searchProducts(new GetProductRequest()).getContent();
+            org.junit.jupiter.api.Assertions.assertFalse(prods.isEmpty());
+            String name = prods.get(0).getName();
+
+            mockMvc.perform(get("/api/merchandise/products/by-name/" + name).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data.name").value(name));
+        }
     }
 
     @Nested
@@ -346,6 +418,41 @@ class MerchandiseSearchFlowTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.data").isArray())
                     .andExpect(jsonPath("$.data.length()").value(1))
                     .andExpect(jsonPath("$.data[0]").value(Long.valueOf(attrId)));
+        }
+
+        @Test
+        @DisplayName("Get attributes by SKU với USER token")
+        void userToken_GetAttributesBySku() throws Exception {
+            var reqSearch = new AttributesSearchRequest();
+            reqSearch.setKeyword("Màu Đỏ");
+            java.util.List<Long> ids = attributesService.searchAttributesIds(reqSearch);
+            org.junit.jupiter.api.Assertions.assertFalse(ids.isEmpty());
+            var attrs = attributesService.getAttributesByIds(ids).getData();
+            org.junit.jupiter.api.Assertions.assertFalse(attrs.isEmpty());
+            String sku = attrs.get(0).getSku().getSku();
+
+            mockMvc.perform(get("/api/merchandise/attributes/by-sku/" + sku).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data.sku.sku").value(sku));
+        }
+
+        @Test
+        @DisplayName("Get attributes by SKUs với USER token")
+        void userToken_GetAttributesBySkus() throws Exception {
+            var reqSearch = new AttributesSearchRequest();
+            reqSearch.setKeyword("Màu Đỏ");
+            java.util.List<Long> ids = attributesService.searchAttributesIds(reqSearch);
+            org.junit.jupiter.api.Assertions.assertFalse(ids.isEmpty());
+            var attrs = attributesService.getAttributesByIds(ids).getData();
+            org.junit.jupiter.api.Assertions.assertFalse(attrs.isEmpty());
+            String sku = attrs.get(0).getSku().getSku();
+
+            mockMvc.perform(get("/api/merchandise/attributes/by-skus?skus=" + sku).header("Authorization", "Bearer " + userAccessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status.code").value(200))
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1));
         }
     }
 

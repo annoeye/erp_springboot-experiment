@@ -57,4 +57,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
 
     Optional<Category> findCategoryByName(String name);
 
+    @Query("SELECT c.id, c.skuInfo.sku FROM Category c WHERE c.skuInfo.sku IN :skus")
+    List<Object[]> findIdsAndSkusBySkus(@org.springframework.data.repository.query.Param("skus") List<String> skus);
+
+    @Query("SELECT c.id FROM Category c WHERE c.skuInfo.sku = :sku")
+    Optional<Long> findIdBySku(@org.springframework.data.repository.query.Param("sku") String sku);
 }

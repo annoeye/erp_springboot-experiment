@@ -75,4 +75,9 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
         @Query("UPDATE Attributes a SET a.totalOrders = COALESCE(a.totalOrders, 0) + 1 WHERE a.id = :id")
         void updateTotalOrders(@Param("id") Long id);
 
+        @Query("SELECT a.id, a.sku.sku FROM Attributes a WHERE a.sku.sku IN :skus")
+        List<Object[]> findIdsAndSkusBySkus(@Param("skus") List<String> skus);
+
+        @Query("SELECT a.id FROM Attributes a WHERE a.sku.sku = :sku AND a.deletedAt IS NULL")
+        Optional<Long> findIdBySkuNotDeleted(@Param("sku") String sku);
 }
