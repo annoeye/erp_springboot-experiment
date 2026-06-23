@@ -37,6 +37,7 @@ public class OrderStatusHandler {
             throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION,
                     "Không thể chuyển từ " + current.getDisplayName() + " sang " + target.getDisplayName());
         order.getStatus().add(target);
+        order.setCurrentStatus(target);
     }
 
     public OrderStatus getCurrentStatus(Order order) {

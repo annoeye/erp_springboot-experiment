@@ -12,7 +12,6 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRe
 
 public interface iAttributes {
 
-    // Smart create: returns List (works for both single and batch)
     Response<List<AttributesDto>> create(@NonNull CreateAttributesRequest request);
 
     Response<?> update(@NonNull UpdateAttributesRequest request);
@@ -23,14 +22,11 @@ public interface iAttributes {
 
     Page<AttributesDto> search(@NonNull AttributesSearchRequest request);
 
-    // Lazy Load: Lấy danh sách thuộc tính của 1 sản phẩm từ cache.
-    // Dữ liệu được nạp vào RAM khi lần đầu gọi và tự hết hạn sau 5 phút (TTL).
     List<AttributesDto> getAttributesByProductId(String productId);
 
     Response<List<AttributesDto>> getAttributesByIds(List<Long> ids);
 
     List<Long> searchAttributesIds(AttributesSearchRequest request);
 
-    Response<AttributesDto> getAttributesBySku(String sku);
     Response<List<AttributesDto>> getAttributesBySkus(List<String> skus);
 }

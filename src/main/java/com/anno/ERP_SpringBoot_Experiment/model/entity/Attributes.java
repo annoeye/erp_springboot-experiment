@@ -23,7 +23,6 @@ import java.util.Set;
 @Entity
 @Table(name = "Attributes", indexes = {
                 @Index(name = "idx_attributes_product", columnList = "product_id"),
-                @Index(name = "idx_attributes_status", columnList = "status_product"),
                 @Index(name = "idx_attributes_sku", columnList = "sku_name")
 })
 @Getter

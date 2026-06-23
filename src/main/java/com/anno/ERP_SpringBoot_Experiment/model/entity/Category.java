@@ -12,9 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "Category", indexes = {
-                @Index(name = "idx_category_id", columnList = "id", unique = true),
-})
+@Table(name = "Category")
 @Getter
 @Setter
 @SuperBuilder

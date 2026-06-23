@@ -1,6 +1,8 @@
 spring:
   application:
     name: ERP_SpringBoot-Experiment
+  cache:
+    type: caffeine
 
   autoconfigure:
     exclude:
@@ -35,7 +37,9 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9093}
     properties:
-      security.protocol: PLAINTEXT
+      security.protocol: SASL_PLAINTEXT
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_USER:kafka}" password="${KAFKA_PASSWORD:kafka@2025}";
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -111,6 +115,27 @@ server:
 
 frontend:
   url: http://localhost:5173/berry-vue
+
+# MCP (Model Context Protocol) Configuration
+mcp:
+  enabled: true
+  endpoint: /mcp
+  server-name: ERP-MCP-Server
+  server-version: 1.0.0
+  protocol-version: 2025-06-18
+  session:
+    timeout-minutes: 30
+  servers:
+    kafka:
+      enabled: true
+    redis:
+      enabled: true
+    database:
+      enabled: true
+    minio:
+      enabled: true
+    frontend:
+      enabled: true
 
 springdoc:
   api-docs:

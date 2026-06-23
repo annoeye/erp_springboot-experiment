@@ -17,17 +17,16 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${spring.contact.name}")
-    private String contactName;
-    @Value("${spring.contact.url}")
-    private String contactUrl;
-    @Value("${spring.contact.email}")
-    private String contactEmail;
-    @Value("${server.url}")
-    private String serverUrl;
+    @Value("${spring.contact.name}") private String contactName;
+    
+    @Value("${spring.contact.url}") private String contactUrl;
+    
+    @Value("${spring.contact.email}") private String contactEmail;
 
-    @Bean
-    public OpenAPI openAPI() {
+    @Value("${server.url}") private String serverUrl;
+    
+@Bean
+public OpenAPI openAPI() {
         final String securitySchemeName = "bearerAuth";
 
         return new OpenAPI()

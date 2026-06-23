@@ -22,8 +22,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var user = userRepository.findByNameOrEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng email: " + username));
+        var userOptional = username.contains("@") 
+                ? userRepository.findByEmail(username)
+                : userRepository.findByName(username);
+                
+        var user = userOptional.orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
 
         Collection<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(roleType -> new SimpleGrantedAuthority("ROLE_" + roleType.name()))

@@ -24,7 +24,7 @@ public class RefreshTokenService {
     private final ObjectMapper objectMapper;
 
     private static final long REFRESH_TOKEN_EXPIRATION_DAYS = 30;
-    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 15;
+    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 60;
 
     /**
      * Xử lý kiểm tra và tạo Token khi Đăng nhập thành công.

@@ -57,39 +57,6 @@ public class ProductService implements iProduct {
     private final org.springframework.cache.CacheManager cacheManager;
     private final jakarta.persistence.EntityManager entityManager;
 
-    private List<MediaItem> uploadImages(List<MultipartFile> images) {
-        List<MediaItem> mediaItems = new ArrayList<>();
-        List<String> uploadedUrls = new ArrayList<>();
-
-        try {
-            for (MultipartFile file : images) {
-                if (file.isEmpty())
-                    continue;
-
-                String url = minioService.uploadFile(file);
-                uploadedUrls.add(url);
-
-                String key = featureMerchandiseHelper.generateKey();
-                mediaItems.add(MediaItem.builder()
-                        .key(key)
-                        .url(url)
-                        .build());
-            }
-            return mediaItems;
-
-        } catch (Exception e) {
-            // Rollback
-            for (String url : uploadedUrls) {
-                try {
-                    minioService.deleteFile(url);
-                } catch (Exception deleteEx) {
-                    log.error("Không thể xóa file {} sau khi rollback: {}", url, deleteEx.getMessage());
-                }
-            }
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Lỗi khi upload file: " + e.getMessage());
-        }
-    }
-
     @Override
     @CacheEvict(value = "products", allEntries = true)
     public Response<?> addProduct(CreateProductRequest request) {
@@ -261,7 +228,6 @@ public class ProductService implements iProduct {
         return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public List<Long> searchProductIds(@NonNull GetProductRequest request) {
         List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
@@ -337,100 +303,6 @@ public class ProductService implements iProduct {
     }
 
     @Override
-    @Transactional
-    public Response<?> addProductImages(String productId, List<MultipartFile> images) {
-        final var product = productRepository.findById(Long.valueOf(productId))
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
-
-        if (CollectionUtils.isEmpty(images)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh không được để trống.");
-        }
-
-        List<MediaItem> newItems = uploadImages(images);
-        product.getMediaItems().addAll(newItems);
-        product.addUpdateEntry("Thêm " + newItems.size() + " ảnh sản phẩm",
-                securityUtil.getCurrentUsername());
-        log.info("Đã thêm {} ảnh mới vào sản phẩm {}", newItems.size(), productId);
-
-        return Response.ok(productRepository.save(product), "Thêm ảnh thành công.");
-    }
-
-    @Override
-    @Transactional
-    public Response<?> deleteProductImage(String productId, String imageKey) {
-        final var product = productRepository.findById(Long.valueOf(productId))
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
-
-        MediaItem itemToDelete = product.getMediaItems().stream()
-                .filter(mediaItem -> mediaItem.getKey().equals(imageKey))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND,
-                        "Không tìm thấy ảnh với key: " + imageKey));
-
-        try {
-            minioService.deleteFile(itemToDelete.getUrl());
-        } catch (Exception e) {
-            log.error("Lỗi khi xóa file trên MinIO: {}", e.getMessage());
-        }
-
-        product.getMediaItems().remove(itemToDelete);
-        product.addUpdateEntry("Xóa ảnh sản phẩm: " + imageKey, securityUtil.getCurrentUsername());
-
-        log.info("Đã xóa ảnh {} khỏi sản phẩm {}", imageKey, productId);
-
-        Product savedProduct = productRepository.save(product);
-        return Response.ok(productMapper.toDto(savedProduct), "Xóa ảnh thành công.");
-    }
-
-    @Override
-    @Transactional
-    public Response<?> replaceProductImages(String productId, List<MultipartFile> images) {
-        Long uuid;
-        try {
-            uuid = Long.valueOf(productId);
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "ID sản phẩm không hợp lệ.");
-        }
-
-        final var product = productRepository.findById(uuid)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
-
-        if (CollectionUtils.isEmpty(images)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh không được để trống.");
-        }
-
-        for (MediaItem oldItem : product.getMediaItems()) {
-            try {
-                minioService.deleteFile(oldItem.getUrl());
-            } catch (Exception e) {
-                log.error("Lỗi khi xóa file cũ {}: {}", oldItem.getUrl(), e.getMessage());
-            }
-        }
-
-        product.getMediaItems().clear();
-
-        List<MediaItem> newItems = uploadImages(images);
-        product.getMediaItems().addAll(newItems);
-        product.addUpdateEntry("Thay thế " + newItems.size() + " ảnh sản phẩm",
-                securityUtil.getCurrentUsername());
-        log.info("Đã thay thế {} ảnh cho sản phẩm {}", newItems.size(), productId);
-
-        // Trả về DTO thay vì Entity
-        Product savedProduct = productRepository.save(product);
-        return Response.ok(productMapper.toDto(savedProduct), "Thay thế ảnh thành công.");
-    }
-
-    @Override
-    public byte[] getProductImage(String imageName) {
-        try (java.io.InputStream inputStream = minioService.getFile(imageName)) {
-            return inputStream.readAllBytes();
-        } catch (Exception e) {
-            log.error("Lỗi khi đọc ảnh {}: {}", imageName, e.getMessage());
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể đọc dữ liệu ảnh: " + imageName);
-        }
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public Response<List<ProductDto>> getProductsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
@@ -476,17 +348,6 @@ public class ProductService implements iProduct {
 
     @Override
     @Transactional(readOnly = true)
-    public Response<ProductDto> getProductBySku(String sku) {
-        if (!org.springframework.util.StringUtils.hasText(sku)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU không được để trống.");
-        }
-        Long id = productRepository.findIdBySku(sku)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm với SKU '" + sku + "' không tồn tại."));
-        return Response.ok(getProductById(id));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Response<List<ProductDto>> getProductsBySkus(List<String> skus) {
         if (skus == null || skus.isEmpty()) {
             return Response.ok(new java.util.ArrayList<>());
@@ -528,14 +389,4 @@ public class ProductService implements iProduct {
         return Response.ok(result);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Response<ProductDto> getProductByName(String name) {
-        if (!org.springframework.util.StringUtils.hasText(name)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Tên sản phẩm không được để trống.");
-        }
-        Long id = productRepository.findIdByName(name)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm với tên '" + name + "' không tồn tại."));
-        return Response.ok(getProductById(id));
-    }
 }

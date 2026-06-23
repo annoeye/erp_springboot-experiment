@@ -1,0 +1,41 @@
+{
+  "name": "mcp-kafka",
+  "version": "1.2.6",
+  "description": "KR: Apache Kafka 연동 MCP 서버. EN: MCP server for Apache Kafka operations.",
+  "bin": {
+    "mcp-kafka": "build/index.js"
+  },
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rimraf build && tsc",
+    "start": "node build/index.js",
+    "start:http": "node build/index.js --http",
+    "dev": "node --loader ts-node/esm src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "kafka",
+    "kafkajs",
+    "message",
+    "mcp-server"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1",
+    "kafkajs": "^2.2.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

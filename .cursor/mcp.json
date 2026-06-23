@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/ddicgegd/Projects/erp_springboot-experiment"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "erp-system": {
+      "description": "ERP System MCP - Kafka, Redis, Database, MinIO, Frontend",
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}

@@ -19,7 +19,6 @@ public class AuthResponse {
     String username;
     String avatarUrl;
     String email;
-    String userId;
     String phoneNumber;
     Gender gender;
     @Builder.Default

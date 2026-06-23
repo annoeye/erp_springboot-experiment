@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.web.rest.impl;
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProfileRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
@@ -74,5 +75,20 @@ public class authControllerImpl implements AuthController {
     public ResponseEntity<?> logout(HttpServletRequest request) {
         userService.logoutUser(request);
         return ResponseEntity.ok(Map.of("message", "Đăng xuất thành công."));
+    }
+
+    @Override
+    public Response<MyProfileResponse> getMyProfile() {
+        return userService.getMyProfile();
+    }
+
+    @Override
+    public Response<MyProfileResponse> updateMyProfile(final UpdateProfileRequest body) {
+        return userService.updateMyProfile(body);
+    }
+
+    @Override
+    public Response<MyProfileResponse> uploadAvatar(final org.springframework.web.multipart.MultipartFile file) {
+        return userService.uploadAvatar(file);
     }
 }

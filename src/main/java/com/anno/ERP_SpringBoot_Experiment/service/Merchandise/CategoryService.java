@@ -14,6 +14,10 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingRe
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
+import com.anno.ERP_SpringBoot_Experiment.config.CacheConfig;
+import com.anno.ERP_SpringBoot_Experiment.util.CacheUtils;
+import java.util.Map;
+import java.util.Objects;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,13 +47,12 @@ public class CategoryService implements iCategory {
     private final org.springframework.cache.CacheManager cacheManager;
 
     @Override
-    @CacheEvict(value = "categories", allEntries = true)
     public Response<?> create(@NonNull final String name) {
         if (categoryRepository.existsAllByName(name)) {
             throw new BusinessException(ErrorCode.CATEGORY_ALREADY_EXISTS, "Danh mục đã tồn tại.");
         }
         
-        Category category = categoryRepository.save(
+        categoryRepository.save(
                 Category.builder()
                         .name(name)
                         .skuInfo(new SkuInfo().createSku("ctgr-"))
@@ -64,7 +67,6 @@ public class CategoryService implements iCategory {
 
     @Override
     @Transactional
-    @CacheEvict(value = "categories", allEntries = true)
     public Response<?> update(final UpdateCategoryRequest request) {
         Optional<Category> optionalCategory = categoryRepository
                 .findCategoryById(Long.valueOf(request.getId()));
@@ -78,7 +80,6 @@ public class CategoryService implements iCategory {
     }
 
     @Override
-    @CacheEvict(value = "categories", allEntries = true)
     public Response<?> delete(@NonNull final List<String> ids) {
         List<Long> idList = ids.stream()
                 .map(Long::valueOf)
@@ -90,7 +91,6 @@ public class CategoryService implements iCategory {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "categories", key = "#request.hashCode()")
     public Page<CategoryDto> search(@NonNull final CategorySearchRequest request) {
         categoryRepository.deleteAllExpiredCategories();
 
@@ -141,6 +141,29 @@ public class CategoryService implements iCategory {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Response<List<CategoryDto>> getCategoriesByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
+        }
+
+        Map<Long, CategoryDto> dtoMap = CacheUtils.getAll(
+                cacheManager,
+                CacheConfig.CACHE_CATEGORY_DETAILS,
+                ids,
+                missingIds -> categoryRepository.findAllById(missingIds).stream()
+                        .collect(Collectors.toMap(Category::getId, categoryMapper::toDto))
+        );
+
+        List<CategoryDto> result = ids.stream()
+                .map(dtoMap::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        return Response.ok(result);
+    }
+
+    @Override
     public CategoryExitingResponse isExiting(String name) {
         return categoryRepository.findCategoryByName(name)
                 .map(c -> CategoryExitingResponse.builder()
@@ -151,65 +174,6 @@ public class CategoryService implements iCategory {
                         .id(null)
                         .isExiting(false)
                         .build());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Response<List<CategoryDto>> getCategoriesByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Response.ok(new java.util.ArrayList<>());
-        }
-
-        org.springframework.cache.Cache cache = cacheManager.getCache("categoryDetails");
-        java.util.Map<Long, CategoryDto> dtoMap;
-
-        if (cache != null) {
-            @SuppressWarnings("unchecked")
-            com.github.benmanes.caffeine.cache.Cache<Long, CategoryDto> nativeCache =
-                    (com.github.benmanes.caffeine.cache.Cache<Long, CategoryDto>) cache.getNativeCache();
-
-            dtoMap = nativeCache.getAll(ids, missingIds -> {
-                List<Long> missingList = new java.util.ArrayList<>(missingIds);
-                List<Category> categories = categoryRepository.findAllById(missingList);
-                java.util.Map<Long, CategoryDto> loaded = new java.util.HashMap<>();
-                for (Category c : categories) {
-                    loaded.put(c.getId(), categoryMapper.toDto(c));
-                }
-                return loaded;
-            });
-        } else {
-            List<Category> categories = categoryRepository.findAllById(ids);
-            dtoMap = new java.util.HashMap<>();
-            for (Category c : categories) {
-                dtoMap.put(c.getId(), categoryMapper.toDto(c));
-            }
-        }
-
-        // Reconstruct list preserving the original requested order
-        List<CategoryDto> result = new java.util.ArrayList<>();
-        for (Long id : ids) {
-            CategoryDto dto = dtoMap.get(id);
-            if (dto != null) {
-                result.add(dto);
-            }
-        }
-
-        return Response.ok(result);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Response<CategoryDto> getCategoryBySku(String sku) {
-        if (!org.springframework.util.StringUtils.hasText(sku)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU không được để trống.");
-        }
-        Long id = categoryRepository.findIdBySku(sku)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục với SKU '" + sku + "' không tồn tại."));
-        List<CategoryDto> list = getCategoriesByIds(java.util.List.of(id)).getData();
-        if (list.isEmpty()) {
-            throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND, "Danh mục với SKU '" + sku + "' không tồn tại.");
-        }
-        return Response.ok(list.getFirst());
     }
 
     @Override

@@ -10,6 +10,7 @@ public class GetProductRequest {
     private String categoryId;
     private String createdBy;
     private List<String> productIds;
+    private List<String> skus;
     private List<String> statuses;
     private List<String> categoryIds;
     private Integer minSoldQuantity;

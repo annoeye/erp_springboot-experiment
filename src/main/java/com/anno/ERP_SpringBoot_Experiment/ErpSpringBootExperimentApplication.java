@@ -2,7 +2,6 @@ package com.anno.ERP_SpringBoot_Experiment;
 
 import com.anno.ERP_SpringBoot_Experiment.config.MinioProperties;
 import io.micrometer.common.util.StringUtils;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -26,8 +25,9 @@ public class ErpSpringBootExperimentApplication {
     public static void main(String[] args) {
         final var app = new SpringApplication(ErpSpringBootExperimentApplication.class);
         final var env = app.run(args).getEnvironment();
-        logApplicationStartup(env);
+        logApplicationStartup(env); 
     }
+    
 
     private static void logApplicationStartup(final Environment env) {
         String protocol = "http";

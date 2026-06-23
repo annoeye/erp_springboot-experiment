@@ -33,18 +33,37 @@ public class SecurityConfiguration {
                         "/swagger-ui.html",
         };
 
-        private static final String[] REQUEST_PERMIT_ALL = {
-                        "/api/auth/register",
-                        "/api/auth/login",
-                        "/api/auth/refresh-token",
-                        "/api/auth/verify**",
-                        "/api/auth/test-response",
-                        "/api/auth/logout",
-                        "/api/merchandise/**",
-                        "/api/images/**",
-                        "/api/payment/result**",
-                        "/api/delivery/**",
+    private static final String[] REQUEST_PERMIT_ALL = {
+                "/api/auth/register",
+                "/api/auth/login",
+                "/api/auth/refresh-token",
+                "/api/auth/verify**",
+                "/api/auth/test-response",
+                "/api/auth/logout",
+                "/api/merchandise/**",
+                "/api/images/**",
+                "/api/payment/result**",
+                "/api/delivery/**",
         };
+
+        /** MCP endpoint paths - permit all for AI tool connections */
+        private static final String[] MCP_PERMIT_ALL = {
+                "/mcp",
+                "/mcp/**",
+        };
+
+        @Bean
+        public SecurityFilterChain mcpFilterChain(HttpSecurity http) throws Exception {
+                http
+                        .securityMatcher("/mcp/**")
+                        .cors(Customizer.withDefaults())
+                        .csrf(AbstractHttpConfigurer::disable)
+                        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                        .sessionManagement(session -> session
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+                return http.build();
+        }
 
         @Bean
         public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
@@ -55,6 +74,7 @@ public class SecurityConfiguration {
                         .authorizeHttpRequests(auth ->
                                 auth.requestMatchers(SWAGGER_WHITELIST).permitAll()
                                         .requestMatchers(REQUEST_PERMIT_ALL).permitAll()
+                                        
                                         .requestMatchers("/api/auth/search").hasRole("ADMIN")
                                         .requestMatchers("/api/address/**").authenticated()
                                         .requestMatchers("/api/orders/**").authenticated()
@@ -70,12 +90,13 @@ public class SecurityConfiguration {
         @Bean
         CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration corsConfiguration = new CorsConfiguration();
-                corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
+                corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:3245"));
                 corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 corsConfiguration.setAllowedHeaders(List.of("*"));
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/api/**", corsConfiguration);
+                source.registerCorsConfiguration("/mcp/**", corsConfiguration);
                 return source;
         }
 }

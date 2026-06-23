@@ -43,6 +43,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
     String fullName;
 
     /**
+     * Tên đăng nhập
+     */
+    @Column(name = "username", unique = true)
+    String name;
+
+    /**
      * Mật khẩu
      * 
      * @en Password
@@ -175,13 +181,5 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Override
     public boolean isEnabled() {
         return status == ActiveStatus.ACTIVE;
-    }
-
-    public String getName() {
-        return this.fullName;
-    }
-
-    public void setName(String name) {
-        this.fullName = name;
     }
 }

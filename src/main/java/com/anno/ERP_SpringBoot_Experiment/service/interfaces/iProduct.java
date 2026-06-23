@@ -8,7 +8,6 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import lombok.NonNull;
 import org.springframework.data.domain.Page;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,16 +21,7 @@ public interface iProduct {
     void viewCount(String productId);
     void totalSoldQuantity(String productId);
     void totalRevenue(String productId, double price);
-    Response<?> addProductImages(String productId, List<MultipartFile> images);
-    Response<?> deleteProductImage(String productId, String imageKey);
-    Response<?> replaceProductImages(String productId, List<MultipartFile> images);
-    byte[] getProductImage(String imageName);
 
     Response<List<ProductDto>> getProductsByIds(List<Long> ids);
-
-    List<Long> searchProductIds(GetProductRequest request);
-
-    Response<ProductDto> getProductBySku(String sku);
     Response<List<ProductDto>> getProductsBySkus(List<String> skus);
-    Response<ProductDto> getProductByName(String name);
 }

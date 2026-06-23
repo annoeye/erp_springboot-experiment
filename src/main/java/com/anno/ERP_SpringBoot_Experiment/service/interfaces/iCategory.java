@@ -18,7 +18,5 @@ public interface iCategory {
     CategoryExitingResponse isExiting(String name);
 
     Response<List<CategoryDto>> getCategoriesByIds(List<Long> ids);
-
-    Response<CategoryDto> getCategoryBySku(String sku);
     Response<List<CategoryDto>> getCategoriesBySkus(List<String> skus);
 }

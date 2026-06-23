@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Demo - ERP System</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/argon-dashboard-tailwind.css">
+    <style>
+        .mcp-container { padding: 20px; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .mcp-header { margin-bottom: 30px; }
+        .mcp-header h1 { font-size: 24px; font-weight: 700; color: #1a1a2e; }
+        .mcp-header p { color: #6c757d; margin-top: 5px; }
+        .server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .server-card { 
+            background: white; border-radius: 12px; padding: 20px; 
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #e9ecef;
+        }
+        .server-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .server-card .status { font-size: 12px; padding: 2px 8px; border-radius: 10px; }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .tool-list { margin-top: 15px; }
+        .tool-item { 
+            padding: 8px 12px; background: #f8f9fa; border-radius: 6px; 
+            margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+            font-size: 13px; border-left: 3px solid #4a90d9;
+        }
+        .tool-item:hover { background: #e9ecef; transform: translateX(4px); }
+        .tool-item .name { font-weight: 600; color: #1a1a2e; }
+        .tool-item .desc { color: #6c757d; font-size: 12px; margin-top: 2px; }
+        .result-area {
+            margin-top: 20px; background: #1a1a2e; color: #e9ecef;
+            padding: 20px; border-radius: 12px; font-family: 'Fira Code', monospace;
+            font-size: 13px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;
+        }
+        .result-area .header { color: #6c757d; margin-bottom: 10px; font-size: 12px; }
+        .btn-execute {
+            margin-top: 8px; padding: 4px 12px; background: #4a90d9; color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 12px;
+        }
+        .btn-execute:hover { background: #357abd; }
+        .connection-bar {
+            display: flex; align-items: center; gap: 15px;
+            padding: 12px 20px; background: #f8f9fa; border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .connection-bar .indicator {
+            width: 12px; height: 12px; border-radius: 50%;
+        }
+        .connection-bar .indicator.connected { background: #28a745; }
+        .connection-bar .indicator.disconnected { background: #dc3545; }
+        .input-group { display: flex; gap: 10px; margin-top: 10px; }
+        .input-group input { flex: 1; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="mcp-container">
+        <div class="mcp-header">
+            <h1>🔌 MCP Dashboard</h1>
+            <p>Model Context Protocol - Kết nối AI tới ERP System</p>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connection-bar" id="connectionBar">
+            <div class="indicator disconnected" id="connIndicator"></div>
+            <span id="connStatus">Chưa kết nối</span>
+            <span style="color: #6c757d; font-size: 13px;">Session: <span id="sessionId">-</span></span>
+            <button class="btn-execute" onclick="connectMcp()">Kết nối</button>
+            <button class="btn-execute" style="background: #dc3545;" onclick="disconnectMcp()">Ngắt kết nối</button>
+        </div>
+
+        <!-- Server Cards -->
+        <div class="server-grid">
+            <div class="server-card">
+                <h3>📨 Kafka <span class="status disconnected" id="kafkaStatus">Chưa kết nối</span></h3>
+                <p style="font-size: 13px; color: #6c757d;">Message queue & event streaming</p>
+                <div class="tool-list">
+                    <div class="tool-item" onclick="callTool('kafka_topics', {})">
+                        <div class="name">kafka_topics</div>
+                        <div class="desc">Liệt kê tất cả Kafka topics</div>
+                    </div>
+                    <div class="tool-item">
+                        <div class="name">kafka_produce</div>
+                        <div class="desc">Gửi message vào topic</div>
+                        <div class="input-group">
+                            <input type="text" id="kafkaTopic" placeholder="Topic" style="width: 100px;">
+                            <input type="text" id="kafkaValue" placeholder="Message" style="flex: 1;">
+                            <button class="btn-execute" onclick="produceKafka()">Gửi</button>
+                        </div>
+                    </div>
+                    <div class="tool-item">
+                        <div class="name">kafka_consume</div>
+                        <div class="desc">Đọc message từ topic</div>
+                        <div class="input-group">
+                            <input type="text" id="consumeTopic" placeholder="Topic">
+                            <input type="number" id="consumeCount" placeholder="Count" value="5" style="width: 80px;">
+                            <button class="btn-execute" onclick="consumeKafka()">Đọc</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="server-card">
+                <h3>⚡ Redis <span class="status disconnected" id="redisStatus">Chưa kết nối</span></h3>
+                <p style="font-size: 13px; color: #6c757d;">In-memory cache & data store</p>
+                <div class="tool-list">
+                    <div class="tool-item" onclick="callTool('redis_ping', {})">
+                        <div class="name">redis_ping</div>
+                        <div class="desc">Kiểm tra kết nối Redis</div>
+                    </div>
+                    <div class="tool-item">
+                        <div class="name">redis_get</div>
+                        <div class="desc">Đọc giá trị từ Redis</div>
+                        <div class="input-group">
+                            <input type="text" id="redisGetKey" placeholder="Key">
+                            <button class="btn-execute" onclick="redisGet()">Get</button>
+                        </div>
+                    </div>
+                    <div class="tool-item" onclick="callTool('redis_keys', {pattern: '*'})">
+                        <div class="name">redis_keys</div>
+                        <div class="desc">Liệt kê tất cả Redis keys</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="server-card">
+                <h3>🗄️ Database <span class="status disconnected" id="dbStatus">Chưa kết nối</span></h3>
+                <p style="font-size: 13px; color: #6c757d;">Oracle database query & schema</p>
+                <div class="tool-list">
+                    <div class="tool-item" onclick="callTool('db_info', {})">
+                        <div class="name">db_info</div>
+                        <div class="desc">Thông tin database</div>
+                    </div>
+                    <div class="tool-item" onclick="callTool('db_tables', {})">
+                        <div class="name">db_tables</div>
+                        <div class="desc">Danh sách tables</div>
+                    </div>
+                    <div class="tool-item" onclick="callTool('db_count', {table: 'users'})">
+                        <div class="name">db_count</div>
+                        <div class="desc">Đếm số lượng users</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="server-card">
+                <h3>📦 MinIO <span class="status disconnected" id="minioStatus">Chưa kết nối</span></h3>
+                <p style="font-size: 13px; color: #6c757d;">S3-compatible file storage</p>
+                <div class="tool-list">
+                    <div class="tool-item" onclick="callTool('minio_buckets', {})">
+                        <div class="name">minio_buckets</div>
+                        <div class="desc">Danh sách buckets</div>
+                    </div>
+                    <div class="tool-item" onclick="callTool('minio_list', {bucket: 'images'})">
+                        <div class="name">minio_list</div>
+                        <div class="desc">Liệt kê objects</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Area -->
+        <div class="result-area" id="resultArea">
+            <div class="header">📋 Kết quả sẽ hiển thị ở đây...</div>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script src="/js/mcp-client.js"></script>
+    <script>
+        let mcpClient = null;
+
+        async function connectMcp() {
+            try {
+                mcpClient = new McpClient('/mcp');
+                await mcpClient.initialize();
+                
+                document.getElementById('connIndicator').className = 'indicator connected';
+                document.getElementById('connStatus').textContent = 'Đã kết nối';
+                document.getElementById('sessionId').textContent = mcpClient.sessionId || '-';
+                
+                document.getElementById('kafkaStatus').textContent = '✅ Connected';
+                document.getElementById('kafkaStatus').className = 'status connected';
+                document.getElementById('redisStatus').textContent = '✅ Connected';
+                document.getElementById('redisStatus').className = 'status connected';
+                document.getElementById('dbStatus').textContent = '✅ Connected';
+                document.getElementById('dbStatus').className = 'status connected';
+                document.getElementById('minioStatus').textContent = '✅ Connected';
+                document.getElementById('minioStatus').className = 'status connected';
+                
+                showResult('✅ Kết nối MCP thành công!\nSession: ' + mcpClient.sessionId);
+            } catch (e) {
+                showResult('❌ Lỗi kết nối: ' + e.message);
+            }
+        }
+
+        function disconnectMcp() {
+            if (mcpClient) {
+                mcpClient.disconnect();
+                mcpClient = null;
+            }
+            document.getElementById('connIndicator').className = 'indicator disconnected';
+            document.getElementById('connStatus').textContent = 'Đã ngắt kết nối';
+            document.getElementById('sessionId').textContent = '-';
+            ['kafkaStatus', 'redisStatus', 'dbStatus', 'minioStatus'].forEach(id => {
+                document.getElementById(id).textContent = '❌ Disconnected';
+                document.getElementById(id).className = 'status disconnected';
+            });
+            showResult('🔌 Đã ngắt kết nối MCP');
+        }
+
+        async function callTool(name, args) {
+            if (!mcpClient) {
+                showResult('❌ Vui lòng kết nối MCP trước!');
+                return;
+            }
+            try {
+                showResult('⏳ Đang gọi tool: ' + name + '...');
+                const result = await mcpClient.callTool(name, args);
+                displayToolResult(result);
+            } catch (e) {
+                showResult('❌ Lỗi: ' + e.message);
+            }
+        }
+
+        async function produceKafka() {
+            const topic = document.getElementById('kafkaTopic').value;
+            const value = document.getElementById('kafkaValue').value;
+            if (!topic || !value) { showResult('❌ Vui lòng nhập topic và message'); return; }
+            await callTool('kafka_produce', { topic, value });
+        }
+
+        async function consumeKafka() {
+            const topic = document.getElementById('consumeTopic').value;
+            const count = parseInt(document.getElementById('consumeCount').value) || 5;
+            if (!topic) { showResult('❌ Vui lòng nhập topic'); return; }
+            await callTool('kafka_consume', { topic, count });
+        }
+
+        async function redisGet() {
+            const key = document.getElementById('redisGetKey').value;
+            if (!key) { showResult('❌ Vui lòng nhập key'); return; }
+            await callTool('redis_get', { key });
+        }
+
+        function displayToolResult(result) {
+            if (!result) { showResult('(no result)'); return; }
+            let text = '';
+            if (result.content) {
+                result.content.forEach(item => {
+                    if (item.type === 'text') text += item.text + '\n';
+                });
+            }
+            showResult(text || JSON.stringify(result, null, 2));
+        }
+
+        function showResult(text) {
+            document.getElementById('resultContent').textContent = text;
+        }
+    </script>
+</body>
+</html>

@@ -19,12 +19,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "Product", indexes = {
-                @Index(name = "idx_product_category", columnList = "category_uuid"),
-                @Index(name = "idx_product_status", columnList = "status"),
-                @Index(name = "idx_product_name", columnList = "name"),
-                @Index(name = "idx_product_sold_quantity", columnList = "total_sold_quantity"),
-                @Index(name = "idx_product_view_count", columnList = "view_count"),
-                @Index(name = "idx_product_rating", columnList = "average_rating")
+                @Index(name = "idx_product_category", columnList = "category_uuid")
 })
 @Getter
 @Setter

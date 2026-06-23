@@ -13,14 +13,19 @@ import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProfileRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.DeviceInfoResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.response.MyProfileResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.DeviceInfoService;
+import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
+import org.springframework.web.multipart.MultipartFile;
 import com.anno.ERP_SpringBoot_Experiment.service.RefreshTokenService;
+import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
@@ -69,6 +74,8 @@ public class UserService implements iUser {
   private final RedisService redisService;
   private final JwtService jwtService;
   private final ObjectMapper objectMapper;
+  private final SecurityUtil securityUtil;
+  private final MinioService minioService;
 
   @Override
   @Transactional
@@ -102,6 +109,7 @@ public class UserService implements iUser {
     } else {
       user = new User();
       user.setFullName(body.getFullName());
+      user.setName(body.getName());
       user.setEmail(body.getEmail());
       user.setRoles(Collections.singleton(RoleType.USER));
       user.setPassword(passwordEncoder.encode(body.getPassword()));
@@ -143,9 +151,13 @@ public class UserService implements iUser {
     User user;
     String usernameOrEmail = body.getUsernameOrEmail();
 
-    user = userRepository.findByNameOrEmail(usernameOrEmail)
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND,
-            "Tên đăng nhập hoặc Email không tồn tại."));
+    if (helper.isEmailFormat(usernameOrEmail)) {
+        user = userRepository.findByEmail(usernameOrEmail)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Email không tồn tại."));
+    } else {
+        user = userRepository.findByName(usernameOrEmail)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Tên đăng nhập không tồn tại."));
+    }
 
     if (user.getStatus().equals(ActiveStatus.INACTIVE)) { // check status
       if (user.getAuthCode().getCode() != null || user.getAuthCode().getExpiryDate() != null) {
@@ -182,7 +194,6 @@ public class UserService implements iUser {
         .username(user.getUsername()).email(user.getEmail())
         .accessToken(result.getAccessToken())
         .refreshToken(result.getFinalRefreshTokenString())
-        .userId(String.valueOf(user.getId()))
         .avatarUrl(user.getAvatarUrl())
         .gender(user.getGender())
         .phoneNumber(user.getPhoneNumber())
@@ -340,7 +351,6 @@ public class UserService implements iUser {
         .message(result.getMessage() != null ? result.getMessage() : "Tạo mới token thành công.")
         .accessToken(result.getAccessToken())
         .refreshToken(result.getFinalRefreshTokenString())
-        .userId(String.valueOf(user.getId()))
         .username(user.getUsername())
         .email(user.getEmail())
         .avatarUrl(user.getAvatarUrl())
@@ -372,5 +382,127 @@ public class UserService implements iUser {
     } catch (Exception e) {
       log.warn("Không thể thu hồi Refresh Token khi logout: {}", e.getMessage());
     }
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Response<MyProfileResponse> getMyProfile() {
+    String email = securityUtil.getCurrentUsername();
+
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại."));
+
+    return Response.ok(MyProfileResponse.builder()
+        .username(user.getName())
+        .fullName(user.getFullName())
+        .email(user.getEmail())
+        .phoneNumber(user.getPhoneNumber())
+        .avatarUrl(user.getAvatarUrl())
+        .dateOfBirth(user.getDateOfBirth())
+        .gender(user.getGender())
+        .rank(user.getRank())
+        .status(user.getStatus())
+        .roles(user.getRoles())
+        .build());
+  }
+
+  @Override
+  @Transactional
+  public Response<MyProfileResponse> updateMyProfile(final UpdateProfileRequest request) {
+    String email = securityUtil.getCurrentUsername();
+
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại."));
+
+    if (request.getFullName() != null) {
+      user.setFullName(request.getFullName());
+    }
+    if (request.getPhoneNumber() != null) {
+      user.setPhoneNumber(request.getPhoneNumber());
+    }
+    if (request.getDateOfBirth() != null) {
+      user.setDateOfBirth(request.getDateOfBirth());
+    }
+    if (request.getGender() != null) {
+      user.setGender(request.getGender());
+    }
+    if (request.getAvatarUrl() != null) {
+      user.setAvatarUrl(request.getAvatarUrl());
+    }
+
+    userRepository.save(user);
+    log.info("Cập nhật thông tin profile thành công cho user: {}", user.getUsername());
+
+    return Response.ok(MyProfileResponse.builder()
+        .username(user.getName())
+        .fullName(user.getFullName())
+        .email(user.getEmail())
+        .phoneNumber(user.getPhoneNumber())
+        .avatarUrl(user.getAvatarUrl())
+        .dateOfBirth(user.getDateOfBirth())
+        .gender(user.getGender())
+        .rank(user.getRank())
+        .status(user.getStatus())
+        .roles(user.getRoles())
+        .build());
+  }
+
+  @Override
+  @Transactional
+  public Response<MyProfileResponse> uploadAvatar(final MultipartFile file) {
+    if (file == null || file.isEmpty()) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Tệp tải lên không được để trống!");
+    }
+
+    String contentType = file.getContentType();
+    if (contentType == null || !contentType.startsWith("image/")) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Chỉ cho phép tải lên tệp ảnh!");
+    }
+
+    String originalFilename = file.getOriginalFilename();
+    if (originalFilename != null && originalFilename.contains(".")) {
+      String ext = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+      if (!ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".png") && !ext.equals(".gif")) {
+        throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Định dạng ảnh không được hỗ trợ!");
+      }
+    }
+
+    String email = securityUtil.getCurrentUsername();
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại."));
+
+    String oldAvatar = user.getAvatarUrl();
+    if (oldAvatar != null && !oldAvatar.isEmpty() && !oldAvatar.startsWith("http")) {
+      try {
+        minioService.deleteFile(oldAvatar);
+      } catch (Exception e) {
+        log.error("Không thể xóa avatar cũ {} trên MinIO: {}", oldAvatar, e.getMessage());
+      }
+    }
+
+    String newAvatarName;
+    try {
+      newAvatarName = minioService.uploadFile(file);
+    } catch (Exception e) {
+      log.error("Lỗi khi tải ảnh lên MinIO: {}", e.getMessage());
+      throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể tải ảnh lên hệ thống.");
+    }
+
+    user.setAvatarUrl(newAvatarName);
+    userRepository.save(user);
+    log.info("Cập nhật avatar thành công cho user: {}, file mới: {}", user.getUsername(), newAvatarName);
+
+    return Response.ok(MyProfileResponse.builder()
+        .username(user.getName())
+        .fullName(user.getFullName())
+        .email(user.getEmail())
+        .phoneNumber(user.getPhoneNumber())
+        .avatarUrl(user.getAvatarUrl())
+        .dateOfBirth(user.getDateOfBirth())
+        .gender(user.getGender())
+        .rank(user.getRank())
+        .status(user.getStatus())
+        .roles(user.getRoles())
+        .build(), "Cập nhật ảnh đại diện thành công.");
   }
 }

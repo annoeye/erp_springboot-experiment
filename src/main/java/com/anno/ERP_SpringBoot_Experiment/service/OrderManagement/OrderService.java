@@ -68,6 +68,7 @@ public class OrderService implements iOrder {
             initialStatus.add(OrderStatus.WAITING_PAYMENT);
         }
         order.setStatus(initialStatus);
+        order.setCurrentStatus(initialStatus.get(initialStatus.size() - 1));
         order.setCustomer(customer);
         order.setCustomerName(customer.getFullName());
         order.setCustomerEmail(customer.getEmail());
@@ -130,7 +131,18 @@ public class OrderService implements iOrder {
     }
 
     @Override public Response<PagingResponse<OrderDto>> searchOrders(OrderSearchRequest r) {
-        var p = orderRepository.findAll(PageRequest.of(0,20));
+        int page = r.getPage() != null ? r.getPage() : 0;
+        int size = r.getSize() != null ? r.getSize() : 20;
+        Sort sort = Sort.by(Sort.Direction.DESC, "auditInfo.createdAt");
+        if (r.getSortBy() != null && !r.getSortBy().isEmpty()) {
+            Sort.Direction direction = "ASC".equalsIgnoreCase(r.getSortDirection()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+            sort = Sort.by(direction, r.getSortBy());
+        }
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Specification<Order> spec = com.anno.ERP_SpringBoot_Experiment.repository.specification.OrderSpecification.build(r);
+        var p = orderRepository.findAll(spec, pageable);
+        
         return Response.ok(PagingResponse.<OrderDto>builder().contents(p.map(orderMapper::toDto).getContent())
                 .paging(PageableData.builder().pageNumber(p.getNumber()).totalPages(p.getTotalPages())
                         .totalElements(p.getTotalElements()).pageSize(p.getSize()).build()).build());

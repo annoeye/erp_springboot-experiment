@@ -23,6 +23,11 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantValueInput;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
+import com.anno.ERP_SpringBoot_Experiment.config.CacheConfig;
+import com.anno.ERP_SpringBoot_Experiment.util.CacheUtils;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +44,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -251,6 +257,92 @@ public class AttributesService implements iAttributes {
                 String.format("Đã xóa thành công %d danh mục của sản phẩm.", attributesList.size()));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
+        List<Long> ids = searchAttributesIds(request);
+        List<AttributesDto> content = getAttributesByIds(ids).getData();
+
+        List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
+        SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
+        Specification<Attributes> spec = builder.build();
+
+        Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
+
+        long total;
+        if (spec != null) {
+            total = attributesRepository.count(spec);
+        } else {
+            total = attributesRepository.count();
+        }
+
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<List<AttributesDto>> getAttributesByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Response.ok(new ArrayList<>());
+        }
+
+        Map<Long, AttributesDto> dtoMap = CacheUtils.getAll(
+                cacheManager,
+                CacheConfig.CACHE_ATTRIBUTES,
+                ids,
+                missingIds -> attributesRepository.getQuantityAttributesById(new ArrayList<>(missingIds)).stream()
+                        .collect(Collectors.toMap(Attributes::getId, attributesMapper::toDto))
+        );
+
+        List<AttributesDto> result = ids.stream()
+                .map(dtoMap::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        return Response.ok(result);
+    }
+
+@Override
+@Transactional(readOnly = true)
+public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
+    if (skus == null || skus.isEmpty()) {
+        return Response.ok(new ArrayList<>());
+    }
+
+    List<Object[]> rows = attributesRepository.findIdsAndSkusBySkus(skus);
+    Map<String, Long> skuToIdMap = rows.stream()
+            .collect(Collectors.toMap(
+                    row -> (String) row[1], // Key là SKU
+                    row -> (Long) row[0],   // Value là ID
+                    (existing, replacement) -> existing 
+            ));
+
+    List<Long> ids = skus.stream()
+            .map(skuToIdMap::get)   
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+    if (ids.isEmpty()) {
+        return Response.ok(new ArrayList<>());
+    }
+
+    List<AttributesDto> dtos = getAttributesByIds(ids).getData();
+
+    Map<String, AttributesDto> skuToDtoMap = dtos.stream()
+            .filter(dto -> dto.getSku() != null && dto.getSku().getSku() != null)
+            .collect(Collectors.toMap(
+                    dto -> dto.getSku().getSku(),
+                    dto -> dto,                 
+                    (existing, replacement) -> existing
+            ));
+
+    return Response.ok(skus.stream()
+            .map(skuToDtoMap::get)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
+    }
+
     private List<SearchCriteria> buildAttributesSearchCriteria(AttributesSearchRequest request) {
         List<SearchCriteria> criteriaList = new ArrayList<>();
 
@@ -334,29 +426,6 @@ public class AttributesService implements iAttributes {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "attributes", key = "#request.hashCode()")
-    public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
-        List<Long> ids = searchAttributesIds(request);
-        List<AttributesDto> content = getAttributesByIds(ids).getData();
-
-        List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
-        SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Attributes> spec = builder.build();
-
-        Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
-
-        long total;
-        if (spec != null) {
-            total = attributesRepository.count(spec);
-        } else {
-            total = attributesRepository.count();
-        }
-
-        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public List<Long> searchAttributesIds(@NonNull AttributesSearchRequest request) {
         List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
@@ -386,12 +455,6 @@ public class AttributesService implements iAttributes {
         return typedQuery.getResultList();
     }
 
-
-
-    // Removed mapSpecificationGroups as it is no longer needed
-
-    // Lazy Loading: Lấy danh sách thuộc tính theo Product ID.
-    // Dữ liệu được nạp vào RAM khi lần đầu gọi (Cache Miss) và tự hết hạn sau 5 phút (cấu hình trong CacheConfig).
     @Override
     @Cacheable(value = "attributes", key = "#productId")
     public List<AttributesDto> getAttributesByProductId(String productId) {
@@ -401,107 +464,5 @@ public class AttributesService implements iAttributes {
                 .stream()
                 .map(attributesMapper::toDto)
                 .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Response<List<AttributesDto>> getAttributesByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Response.ok(new java.util.ArrayList<>());
-        }
-
-        org.springframework.cache.Cache cache = cacheManager.getCache("attributes");
-        java.util.Map<Long, AttributesDto> dtoMap;
-
-        if (cache != null) {
-            @SuppressWarnings("unchecked")
-            com.github.benmanes.caffeine.cache.Cache<Long, AttributesDto> nativeCache =
-                    (com.github.benmanes.caffeine.cache.Cache<Long, AttributesDto>) cache.getNativeCache();
-
-            dtoMap = nativeCache.getAll(ids, missingIds -> {
-                List<Long> missingList = new java.util.ArrayList<>(missingIds);
-                List<Attributes> attributesList = attributesRepository.getQuantityAttributesById(missingList);
-                java.util.Map<Long, AttributesDto> loaded = new java.util.HashMap<>();
-                for (Attributes a : attributesList) {
-                    loaded.put(a.getId(), attributesMapper.toDto(a));
-                }
-                return loaded;
-            });
-        } else {
-            List<Attributes> attributesList = attributesRepository.getQuantityAttributesById(ids);
-            dtoMap = new java.util.HashMap<>();
-            for (Attributes a : attributesList) {
-                dtoMap.put(a.getId(), attributesMapper.toDto(a));
-            }
-        }
-
-        // Reconstruct list preserving the original requested order
-        List<AttributesDto> result = new java.util.ArrayList<>();
-        for (Long id : ids) {
-            AttributesDto dto = dtoMap.get(id);
-            if (dto != null) {
-                result.add(dto);
-            }
-        }
-
-        return Response.ok(result);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Response<AttributesDto> getAttributesBySku(String sku) {
-        if (!org.springframework.util.StringUtils.hasText(sku)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU không được để trống.");
-        }
-        Long id = attributesRepository.findIdBySkuNotDeleted(sku)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính với SKU '" + sku + "' không tồn tại."));
-        List<AttributesDto> list = getAttributesByIds(java.util.List.of(id)).getData();
-        if (list.isEmpty()) {
-            throw new BusinessException(ErrorCode.ATTRIBUTES_NOT_FOUND, "Thuộc tính với SKU '" + sku + "' không tồn tại.");
-        }
-        return Response.ok(list.getFirst());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
-        if (skus == null || skus.isEmpty()) {
-            return Response.ok(new java.util.ArrayList<>());
-        }
-
-        List<Object[]> rows = attributesRepository.findIdsAndSkusBySkus(skus);
-        java.util.Map<String, Long> skuToIdMap = new java.util.HashMap<>();
-        for (Object[] row : rows) {
-            Long id = (Long) row[0];
-            String s = (String) row[1];
-            skuToIdMap.put(s, id);
-        }
-
-        List<Long> ids = new java.util.ArrayList<>();
-        for (String s : skus) {
-            Long id = skuToIdMap.get(s);
-            if (id != null) {
-                ids.add(id);
-            }
-        }
-
-        List<AttributesDto> dtos = getAttributesByIds(ids).getData();
-
-        java.util.Map<String, AttributesDto> skuToDtoMap = new java.util.HashMap<>();
-        for (AttributesDto dto : dtos) {
-            if (dto.getSku() != null && dto.getSku().getSku() != null) {
-                skuToDtoMap.put(dto.getSku().getSku(), dto);
-            }
-        }
-
-        List<AttributesDto> result = new java.util.ArrayList<>();
-        for (String s : skus) {
-            AttributesDto dto = skuToDtoMap.get(s);
-            if (dto != null) {
-                result.add(dto);
-            }
-        }
-
-        return Response.ok(result);
     }
 }

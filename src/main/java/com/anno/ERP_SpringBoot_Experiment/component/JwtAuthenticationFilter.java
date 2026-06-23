@@ -51,6 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(BEARER_PREFIX.length());
 
+        // Với logout: dù token hết hạn vẫn cho đi qua để service có thể revoke token
+        boolean isLogoutRequest = request.getRequestURI().equals("/api/auth/logout");
+
         try {
             userName = jwtService.extractUsername(jwt);
             if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -62,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     logger.debug("Người dùng '{}' đã xác thực thành công qua JWT.", userName);
-                } else {
+                } else if (!isLogoutRequest) {
                     logger.warn("JWT không hợp lệ đối với người dùng: {}. Yêu cầu bị chặn.", userName);
                     handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, "Mã thông báo không hợp lệ.");
                     return;
@@ -70,7 +73,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             filterChain.doFilter(request, response);
 
-        } catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | SignatureException
+        } catch (ExpiredJwtException e) {
+            if (isLogoutRequest) {
+                // Token hết hạn nhưng vẫn cho logout đi qua để revoke
+                logger.info("Token hết hạn nhưng cho phép logout tiếp tục.");
+                filterChain.doFilter(request, response);
+            } else {
+                logger.warn("JWT authentication error: {}", mapJwtExceptionToMessage(e));
+                handleJwtException(response, HttpServletResponse.SC_UNAUTHORIZED, mapJwtExceptionToMessage(e));
+            }
+        } catch (UnsupportedJwtException | MalformedJwtException | SignatureException
                 | IllegalArgumentException e) {
 
             int status = (e instanceof IllegalArgumentException)

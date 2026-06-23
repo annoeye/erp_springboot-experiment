@@ -39,25 +39,13 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
 
-        @PostMapping("/search-Product/ids")
-        @ResponseStatus(HttpStatus.OK)
-        Response<List<Long>> searchProductIds(@Valid @RequestBody GetProductRequest request);
-
         @GetMapping("/products")
         @ResponseStatus(HttpStatus.OK)
         Response<List<ProductDto>> getProductsByIds(@RequestParam List<Long> ids);
 
-        @GetMapping("/products/by-sku/{sku}")
-        @ResponseStatus(HttpStatus.OK)
-        Response<ProductDto> getProductBySku(@PathVariable String sku);
-
         @GetMapping("/products/by-skus")
         @ResponseStatus(HttpStatus.OK)
         Response<List<ProductDto>> getProductsBySkus(@RequestParam List<String> skus);
-
-        @GetMapping("/products/by-name/{name}")
-        @ResponseStatus(HttpStatus.OK)
-        Response<ProductDto> getProductByName(@PathVariable String name);
 
         /************* Product Images Management *****************/
 
@@ -112,13 +100,11 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<List<CategoryDto>> getCategoriesByIds(@RequestParam List<Long> ids);
 
-        @GetMapping("/categories/by-sku/{sku}")
-        @ResponseStatus(HttpStatus.OK)
-        Response<CategoryDto> getCategoryBySku(@PathVariable String sku);
-
         @GetMapping("/categories/by-skus")
         @ResponseStatus(HttpStatus.OK)
         Response<List<CategoryDto>> getCategoriesBySkus(@RequestParam List<String> skus);
+
+
 
         @GetMapping("/checkCategory/{name}")
         CategoryExitingResponse check(@RequestParam String name);
@@ -145,17 +131,9 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<PagingResponse<AttributesDto>> searchAttributes(@Valid @RequestBody AttributesSearchRequest request);
 
-        @PostMapping("/search-Attributes/ids")
-        @ResponseStatus(HttpStatus.OK)
-        Response<List<Long>> searchAttributesIds(@Valid @RequestBody AttributesSearchRequest request);
-
         @GetMapping("/attributes")
         @ResponseStatus(HttpStatus.OK)
         Response<List<AttributesDto>> getAttributesByIds(@RequestParam List<Long> ids);
-
-        @GetMapping("/attributes/by-sku/{sku}")
-        @ResponseStatus(HttpStatus.OK)
-        Response<AttributesDto> getAttributesBySku(@PathVariable String sku);
 
         @GetMapping("/attributes/by-skus")
         @ResponseStatus(HttpStatus.OK)
