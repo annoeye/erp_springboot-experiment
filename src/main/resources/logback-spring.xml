@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%boldYellow(%d{HH:mm:ss.SSS}) %boldCyan(%d{yyyy-MM-dd}) %green([%thread]) %highlight(%-5level) %cyan(%logger{36}) %magenta([%file:%line]) %yellow(-) %msg%n%clr(%wEx){red}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SQL_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%boldYellow(%d{HH:mm:ss.SSS}) %boldCyan(%d{yyyy-MM-dd}) %green([%thread]) %highlight(%-5level) %cyan(%logger{36}) %magenta([%file:%line]) %yellow(-) %boldGreen(%msg)%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="SQL_CONSOLE" />
+    </logger>
+    
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+        <appender-ref ref="SQL_CONSOLE" />
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+</configuration>

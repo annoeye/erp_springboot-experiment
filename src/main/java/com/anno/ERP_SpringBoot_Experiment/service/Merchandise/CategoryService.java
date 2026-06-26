@@ -47,6 +47,7 @@ public class CategoryService implements iCategory {
     private final org.springframework.cache.CacheManager cacheManager;
 
     @Override
+    @CacheEvict(value = "categoryDetails", allEntries = true)
     public Response<?> create(@NonNull final String name) {
         if (categoryRepository.existsAllByName(name)) {
             throw new BusinessException(ErrorCode.CATEGORY_ALREADY_EXISTS, "Danh mục đã tồn tại.");
@@ -67,6 +68,7 @@ public class CategoryService implements iCategory {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categoryDetails", allEntries = true)
     public Response<?> update(final UpdateCategoryRequest request) {
         Optional<Category> optionalCategory = categoryRepository
                 .findCategoryById(Long.valueOf(request.getId()));
@@ -80,6 +82,7 @@ public class CategoryService implements iCategory {
     }
 
     @Override
+    @CacheEvict(value = "categoryDetails", allEntries = true)
     public Response<?> delete(@NonNull final List<String> ids) {
         List<Long> idList = ids.stream()
                 .map(Long::valueOf)

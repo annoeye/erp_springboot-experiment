@@ -18,6 +18,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.RedisProducerService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantGroupInput;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantValueInput;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
@@ -62,6 +63,7 @@ public class AttributesService implements iAttributes {
     private final SecurityUtil securityUtil;
     private final org.springframework.cache.CacheManager cacheManager;
     private final jakarta.persistence.EntityManager entityManager;
+    private final RedisProducerService redisProducerService;
 
     @Override
     @Transactional
@@ -112,6 +114,10 @@ public class AttributesService implements iAttributes {
                 : String.format("Đã tạo thành công %d variants.", savedList.size());
 
         attributesMapper.toDto(savedList);
+        
+        // Hook: Gửi yêu cầu xóa cache bất đồng bộ qua Redis Stream
+        redisProducerService.sendEvictMessage(product.getId().toString());
+
         return Response.ok(message);
     }
 
@@ -185,6 +191,12 @@ public class AttributesService implements iAttributes {
         attributes.addUpdateEntry("Cập nhật thuộc tính sản phẩm", securityUtil.getCurrentUsername());
 
         attributesRepository.save(attributes);
+
+        // Hook: Gửi yêu cầu xóa cache bất đồng bộ qua Redis Stream
+        if (attributes.getProduct() != null) {
+            redisProducerService.sendEvictMessage(attributes.getProduct().getId().toString());
+        }
+
         return Response.ok("Đã cập nhật thành công.");
     }
 
@@ -223,12 +235,21 @@ public class AttributesService implements iAttributes {
         attributesRepository.saveAll(attributesToDelete);
 
         log.info("Đã xóa {} attributes", attributesToDelete.size());
+
+        // Hook: Gửi yêu cầu xóa cache bất đồng bộ qua Redis Stream cho các sản phẩm liên quan
+        attributesToDelete.stream()
+                .map(Attributes::getProduct)
+                .filter(Objects::nonNull)
+                .map(Product::getId)
+                .distinct()
+                .forEach(productId -> redisProducerService.sendEvictMessage(productId.toString()));
+
         return Response.noContent();
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "attributes", key = "#productId")
+    @CacheEvict(value = "attributes", allEntries = true)
     public Response<?> deleteByProduct(@NonNull String productId) {
         Product product = productRepository.findById(Long.valueOf(productId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại."));
@@ -251,6 +272,9 @@ public class AttributesService implements iAttributes {
                 attributesList.size(),
                 product.getName(),
                 currentUser);
+
+        // Hook: Gửi yêu cầu xóa cache bất đồng bộ qua Redis Stream
+        redisProducerService.sendEvictMessage(productId);
 
         return Response.ok(
                 null,

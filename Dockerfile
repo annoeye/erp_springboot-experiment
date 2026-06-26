@@ -22,7 +22,6 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
-COPY --from=deps /root/.m2 /root/.m2
 COPY --from=deps /app/.mvn .mvn/
 COPY --from=deps /app/mvnw .
 COPY --from=deps /app/pom.xml .

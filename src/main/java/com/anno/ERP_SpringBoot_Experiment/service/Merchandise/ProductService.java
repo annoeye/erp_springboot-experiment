@@ -23,6 +23,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Re
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
+import com.anno.ERP_SpringBoot_Experiment.service.RedisProducerService;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.NonNull;
@@ -56,9 +57,9 @@ public class ProductService implements iProduct {
     private final com.anno.ERP_SpringBoot_Experiment.service.CacheSyncService cacheSyncService;
     private final org.springframework.cache.CacheManager cacheManager;
     private final jakarta.persistence.EntityManager entityManager;
+    private final RedisProducerService redisProducerService;
 
     @Override
-    @CacheEvict(value = "products", allEntries = true)
     public Response<?> addProduct(CreateProductRequest request) {
         Category category = categoryRepository
                 .findCategoryBySkuInfo_Sku(request.getCategorySku())
@@ -87,7 +88,6 @@ public class ProductService implements iProduct {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
     public Response<?> updateProduct(UpdateProductRequest request) {
         if (!StringUtils.hasText(request.getId())) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Sản phẩm không không được để trống.");
@@ -110,6 +110,9 @@ public class ProductService implements iProduct {
         log.info("Đã cập nhật sản phẩm '{}' với ID {}", product.getName(), product.getId());
         productRepository.save(product);
 
+        // Hook: Gửi yêu cầu xóa cache bất đồng bộ qua Redis Stream
+        redisProducerService.sendEvictMessage(product.getId().toString());
+
         // Hook: Báo hiệu cho luồng đồng bộ chạy ngầm cập nhật cache RAM
         cacheSyncService.markProductDirty(product.getId());
 
@@ -121,6 +124,8 @@ public class ProductService implements iProduct {
     public Response<?> deleteProduct(@NonNull final List<Long> ids) {
         // Xóa mềm danh sách sản phẩm
         productRepository.softDeleteAllByIds(ids, securityUtil.getCurrentUsername());
+        // Hook: Gửi yêu cầu xóa cache bất đồng bộ qua Redis Stream
+        ids.forEach(id -> redisProducerService.sendEvictMessage(id.toString()));
         return Response.noContent();
     }
 
@@ -207,7 +212,6 @@ public class ProductService implements iProduct {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "products", key = "#request.hashCode()")
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
         List<Long> ids = searchProductIds(request);
         List<ProductDto> content = getProductsByIds(ids).getData();

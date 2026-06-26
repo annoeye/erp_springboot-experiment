@@ -8,6 +8,7 @@ include:
   - compose/kafka.yml
   - compose/minio.yml
   - compose/spring-app.yml
+  - compose/elasticsearch.yml
 
 volumes:
   oracle-data:

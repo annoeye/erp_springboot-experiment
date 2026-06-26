@@ -36,6 +36,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     # Load shared env vars from the docker env file
     # These are consumed directly by Spring Boot via application.yml placeholders
     env_file:

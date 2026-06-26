@@ -1,26 +1,52 @@
-HELP.md
+# ====================
+# Java / Maven Build Outputs
+# ====================
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-node_modules
+*.class
+*.jar
+*.war
+*.ear
 
-### STS ###
+# ====================
+# Maven Wrapper
+# ====================
+.mvn/wrapper/maven-wrapper.jar
+
+# ====================
+# Node / Frontend
+# ====================
+node_modules/
+package-lock.json
+dist/
+
+# ====================
+# IDE - Eclipse (STS)
+# ====================
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+# ====================
+# IDE - IntelliJ IDEA
+# ====================
+.idea/
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+# ====================
+# IDE - VS Code
+# ====================
+.vscode/
+*.code-workspace
+
+# ====================
+# IDE - NetBeans
+# ====================
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -30,15 +56,59 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# ====================
+# OS Files
+# ====================
+.DS_Store
+Thumbs.db
+Desktop.ini
 
+# ====================
+# Logs
+# ====================
+logs/
+*.log
+nohup.out
 
-### Oracle - DB ###
-oracle-data
-.aider*
+# ====================
+# Environment & Secrets
+# ====================
 .env
+.env.local
+.env.*.local
 
-# MongoDB data directories
+# ====================
+# Runtime / Temp
+# ====================
+*.pid
+*.seed
+*.pid.lock
+tmp/
+temp/
+
+# ====================
+# Database Data (Docker volumes)
+# ====================
+oracle-data/
 docker/data/mongodb/
 docker/data/mongodb-live/
+
+# ====================
+# Generated Docs & Help
+# ====================
+HELP.md
+
+# ====================
+# AI / IDE Agent Configs (keep local)
+# ====================
+.aider*
+.cursor/
+
+# ====================
+# Archives & Binaries
+# ====================
+*.tgz
+*.tar.gz
+*.zip
+*.7z
 
