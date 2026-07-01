@@ -70,8 +70,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:placeholder@example.com}
+    password: ${MAIL_PASSWORD:placeholder_password}
     properties:
       mail:
         smtp:
@@ -183,3 +183,8 @@ logging:
 
   pattern:
     console: "%boldYellow(%d{HH:mm:ss.SSS}) %boldCyan(%d{yyyy-MM-dd}) %green([%thread]) %highlight(%-5level) %cyan(%logger{36}) %magenta([%file:%line]) %yellow(-) %msg%n%clr(%wEx){red}"
+
+management:
+  health:
+    mail:
+      enabled: false
