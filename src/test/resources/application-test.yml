@@ -7,6 +7,9 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.mail.MailHealthContributorAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchDataAutoConfiguration
 
   # H2 in-memory database — Oracle compatibility mode
   datasource:
@@ -54,7 +57,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 9999
+      port: 6379
 
   # Tắt cache cho test
   cache:
@@ -67,9 +70,9 @@ spring:
 
 integration:
   minio:
-    access-key: test
-    secret-key: test
-    url: http://localhost:9999
+    access-key: admin
+    secret-key: admin12345
+    url: http://localhost:9000
     bucket: test-bucket
 
 # Tắt swagger trong test

@@ -14,8 +14,8 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.CategoryExitingRe
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iCategory;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
-import com.anno.ERP_SpringBoot_Experiment.config.CacheConfig;
-import com.anno.ERP_SpringBoot_Experiment.util.CacheUtils;
+import com.anno.ERP_SpringBoot_Experiment.caffeine_cache.CacheConfig;
+import com.anno.ERP_SpringBoot_Experiment.caffeine_cache.CacheUtils;
 import java.util.Map;
 import java.util.Objects;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;

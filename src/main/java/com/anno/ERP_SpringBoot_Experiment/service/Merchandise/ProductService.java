@@ -54,7 +54,7 @@ public class ProductService implements iProduct {
     private final Helper featureMerchandiseHelper;
     private final MinioService minioService;
     private final ProductMapper productMapper;
-    private final com.anno.ERP_SpringBoot_Experiment.service.CacheSyncService cacheSyncService;
+    private final com.anno.ERP_SpringBoot_Experiment.caffeine_cache.CacheSyncService cacheSyncService;
     private final org.springframework.cache.CacheManager cacheManager;
     private final jakarta.persistence.EntityManager entityManager;
     private final RedisProducerService redisProducerService;
