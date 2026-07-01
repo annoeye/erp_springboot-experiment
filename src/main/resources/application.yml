@@ -90,6 +90,11 @@ spring:
       username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
 
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    username: ${ELASTICSEARCH_USERNAME:elastic}
+    password: ${ELASTICSEARCH_PASSWORD:elastic11}
+
   output:
     ansi:
       enabled: ALWAYS

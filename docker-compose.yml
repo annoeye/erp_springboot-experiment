@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # 1. Oracle Database
+  oracle:
+    image: gvenzl/oracle-xe:21-slim-faststart
+    container_name: erp-oracle
+    environment:
+      - ORACLE_PASSWORD=oracle
+      - APP_USER=Spring_app
+      - APP_PASSWORD=spring_password
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis
+  redis:
+    image: redis:alpine
+    container_name: erp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 3. Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: erp-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  # 4. MinIO
+  minio:
+    image: minio/minio
+    container_name: erp-minio
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=admin12345
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # 5. Kafka (KRaft mode with SASL_PLAINTEXT enabled)
+  kafka:
+    image: bitnami/kafka:3.5
+    container_name: erp-kafka
+    ports:
+      - "9093:9093"
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=CONTROLLER://:9092,SASL_PLAINTEXT://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=SASL_PLAINTEXT://localhost:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@localhost:9092
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      # SASL Setup
+      - KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN
+      - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN
+      - KAFKA_CLIENT_USERS=kafka
+      - KAFKA_CLIENT_PASSWORDS=kafka@2025
+    volumes:
+      - kafka_data:/bitnami/kafka
+
+  # 6. Spring Boot App
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: erp-app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:oracle:thin:@oracle:1521/XEPDB1
+      - DB_USERNAME=Spring_app
+      - DB_PASSWORD=spring_password
+      - REDIS_HOST=redis
+      - ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - MINIO_URL=http://minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=admin12345
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - KAFKA_USER=kafka
+      - KAFKA_PASSWORD=kafka@2025
+    depends_on:
+      oracle:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_started
+
+volumes:
+  oracle_data:
+  redis_data:
+  es_data:
+  minio_data:
+  kafka_data:

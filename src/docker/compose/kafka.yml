@@ -4,7 +4,7 @@
 
 services:
   kafka:
-    image: apache/kafka:4.2.1
+    image: apache/kafka:latest
     container_name: kafka
     restart: unless-stopped
     init: true
