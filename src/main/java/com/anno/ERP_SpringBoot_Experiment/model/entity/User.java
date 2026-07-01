@@ -93,6 +93,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
     String avatarUrl;
 
     /**
+     * ID Client tương ứng trên hệ thống Fineract
+     */
+    @Column(name = "fineract_client_id")
+    String fineractClientId;
+
+    /**
      * Vai trò
      * 
      * @en Roles
