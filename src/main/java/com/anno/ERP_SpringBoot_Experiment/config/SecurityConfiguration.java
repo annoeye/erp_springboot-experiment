@@ -46,10 +46,10 @@ public class SecurityConfiguration {
                 "/api/delivery/**",
         };
 
-        /** MCP endpoint paths - permit all for AI tool connections */
-        private static final String[] MCP_PERMIT_ALL = {
-                "/mcp",
-                "/mcp/**",
+        private static final String[] FINERACT_PERMIT_ALL = {
+                "/api/v1/erp/clients/**",
+                "/api/v1/erp/loans/**",
+                "/api/v1/erp/loan-products/**",
         };
 
         @Bean
@@ -74,6 +74,7 @@ public class SecurityConfiguration {
                         .authorizeHttpRequests(auth ->
                                 auth.requestMatchers(SWAGGER_WHITELIST).permitAll()
                                         .requestMatchers(REQUEST_PERMIT_ALL).permitAll()
+                                        .requestMatchers(FINERACT_PERMIT_ALL).permitAll()
                                         
                                         .requestMatchers("/api/auth/search").hasRole("ADMIN")
                                         .requestMatchers("/api/address/**").authenticated()
