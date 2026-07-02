@@ -16,7 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT u FROM User u WHERE u.authCode.code = :code")
     Optional<User> findByAuthCode(@Param("code") String code);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findByEmail(String email);
 
     @Query("SELECT u FROM User u WHERE u.name = :name")
