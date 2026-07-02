@@ -26,6 +26,7 @@ public class FineractClientService {
     public JsonNode createClient(FineractClientCreateRequestDTO request) {
         // Set defaults as specified
         if (request.getOfficeId() == null) request.setOfficeId(1L);
+        if (request.getLegalFormId() == null) request.setLegalFormId(1L);
         if (request.getActive() == null) request.setActive(true);
         if (request.getActivationDate() == null) request.setActivationDate("01 January 2026");
         if (request.getDateFormat() == null) request.setDateFormat("dd MMMM yyyy");
@@ -52,6 +53,7 @@ public class FineractClientService {
         FineractClientCreateRequestDTO syncRequest = new FineractClientCreateRequestDTO(
                 firstname,
                 lastname,
+                1L,
                 1L,
                 true,
                 "01 January 2026",

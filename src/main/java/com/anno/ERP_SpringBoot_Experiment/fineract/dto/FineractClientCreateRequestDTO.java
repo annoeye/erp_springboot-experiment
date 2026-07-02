@@ -11,6 +11,7 @@ public class FineractClientCreateRequestDTO {
     private String firstname;
     private String lastname;
     private Long officeId;
+    private Long legalFormId;
     private Boolean active;
     private String activationDate;
     private String dateFormat;
