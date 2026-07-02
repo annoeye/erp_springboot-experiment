@@ -33,13 +33,15 @@ public class FineractClientConfig {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
         
-        // Since RestClient uses JDK HttpClient or simple request factory by default, 
-        // we can configure it using JdkClientHttpRequestFactory if we use JDK 11+ HttpClient.
-        // For simplicity and avoiding complex factory setup, we'll just set default headers.
-        // Note: For fully disabling SSL verification in RestClient without a custom factory,
-        // it requires deeper config. Here we keep it simple.
+        java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder()
+                .sslContext(sslContext)
+                .build();
+                
+        org.springframework.http.client.JdkClientHttpRequestFactory requestFactory = 
+                new org.springframework.http.client.JdkClientHttpRequestFactory(httpClient);
 
         return RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(properties.getBaseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .defaultHeader("Fineract-Platform-TenantId", properties.getTenantId())
