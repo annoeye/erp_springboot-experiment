@@ -7,6 +7,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.*;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iUser;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.AuthController;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,7 +46,7 @@ public class authControllerImpl implements AuthController {
     }
 
     @Override
-    public Response<String> validateResetToken(final String token) {
+    public Response<UserDto> validateResetToken(final String token) {
         return userService.validateResetToken(token);
     }
 

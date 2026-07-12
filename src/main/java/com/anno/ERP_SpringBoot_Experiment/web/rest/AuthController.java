@@ -8,6 +8,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterReques
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.MyProfileResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -39,7 +40,7 @@ public interface AuthController {
 
         @GetMapping("/validate-reset-token")
         @ResponseStatus(HttpStatus.OK)
-        Response<String> validateResetToken(@RequestParam("token") final String token);
+        Response<UserDto> validateResetToken(@RequestParam("token") final String token);
 
         @PostMapping("/refresh-token")
         @ResponseStatus(HttpStatus.OK)

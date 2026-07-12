@@ -5,6 +5,7 @@ import com.anno.ERP_SpringBoot_Experiment.domainevent.AccountRecoveryEvent;
 import com.anno.ERP_SpringBoot_Experiment.domainevent.VerificationEmailEvent;
 import com.anno.ERP_SpringBoot_Experiment.mapper.UserMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
@@ -299,7 +300,7 @@ public class UserService implements iUser {
   }
 
   @Override
-  public Response<String> validateResetToken(@NonNull final String token) {
+  public Response<UserDto> validateResetToken(@NonNull final String token) {
     User user = userRepository.findByAuthCode(token)
         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Đường dẫn khôi phục không hợp lệ."));
 
@@ -312,7 +313,7 @@ public class UserService implements iUser {
           "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
     }
 
-    return Response.ok("Đường dẫn khôi phục hợp lệ.");
+    return Response.ok(userMapper.toDto(user));
   }
 
   // @Override

@@ -9,6 +9,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserRegisterReques
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.AuthResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.MyProfileResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.RegisterResponse;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.UserDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -18,7 +19,7 @@ public interface iUser {
     Response<String> verifyEmail(final String code);
     Response<String> resetPassword(final String code, final AccountVerificationRequest request);
     Response<String> recoverAccount(final String email);
-    Response<String> validateResetToken(final String token);
+    Response<UserDto> validateResetToken(final String token);
     Response<AuthResponse> refreshToken(final RefreshTokenRequest request);
 //    Page<UserDto> search(final UserSearchRequest request);
 //    Page<UserSearchRequest> search(final UserSearchRequest request);
