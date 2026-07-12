@@ -123,7 +123,7 @@ server:
   url: http://localhost:8080
 
 frontend:
-  url: http://localhost:5173/berry-vue
+  url: https://ais-dev-pw4m2b4tdeexlu2cu2osje-420049508645.asia-east1.run.app
 
 # MCP (Model Context Protocol) Configuration
 mcp:
