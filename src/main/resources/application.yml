@@ -66,6 +66,10 @@ spring:
       ddl-auto: update
     open-in-view: false
     show-sql: false
+    properties:
+      hibernate:
+        create_empty_composites:
+          enabled: true
 
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}

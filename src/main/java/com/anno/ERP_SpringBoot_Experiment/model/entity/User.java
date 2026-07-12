@@ -123,13 +123,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Builder.Default
     AuthCode authCode = new AuthCode();
 
-    public AuthCode getAuthCode() {
-        if (this.authCode == null) {
-            this.authCode = new AuthCode();
-        }
-        return this.authCode;
-    }
-
     /* ============================ 🗂️ Enum ============================ */
 
     /**
