@@ -313,7 +313,9 @@ public class UserService implements iUser {
           "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
     }
 
-    return Response.ok(userMapper.toDto(user));
+    UserDto dto = userMapper.toDto(user);
+    dto.setId(null);
+    return Response.ok(dto);
   }
 
   // @Override
