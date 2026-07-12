@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.interfaces;
 
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.ChangeUsernameRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProfileRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
@@ -27,4 +28,5 @@ public interface iUser {
     Response<MyProfileResponse> getMyProfile();
     Response<MyProfileResponse> updateMyProfile(final UpdateProfileRequest request);
     Response<MyProfileResponse> uploadAvatar(final org.springframework.web.multipart.MultipartFile file);
+    Response<String> changeUsername(final ChangeUsernameRequest request);
 }

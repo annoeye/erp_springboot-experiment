@@ -13,6 +13,7 @@ import com.anno.ERP_SpringBoot_Experiment.service.KafkaService.ActiveLogService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.ChangeUsernameRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProfileRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
@@ -524,5 +525,33 @@ public class UserService implements iUser {
         .status(user.getStatus())
         .roles(user.getRoles())
         .build(), "Cập nhật ảnh đại diện thành công.");
+  }
+
+  @Override
+  @Transactional
+  public Response<String> changeUsername(@NonNull final ChangeUsernameRequest request) {
+    User user = securityUtil.getCurrentUser()
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng chưa đăng nhập."));
+
+    String cooldownKey = "username:cooldown:" + user.getEmail();
+    if (redisService.hasKey(cooldownKey)) {
+      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+          "Bạn chỉ được đổi tên đăng nhập tối đa 1 lần mỗi tháng. Vui lòng quay lại sau.");
+    }
+
+    String newUsername = request.getNewUsername();
+    if (userRepository.findByName(newUsername).isPresent()) {
+      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+          "Tên đăng nhập mới đã tồn tại trên hệ thống.");
+    }
+
+    user.setName(newUsername);
+    userRepository.save(user);
+
+    // Đặt cooldown 30 ngày trên Redis
+    redisService.setValueWithExpiry(cooldownKey, "true", 30, TimeUnit.DAYS);
+    log.info("Người dùng {} đã đổi tên đăng nhập thành công sang {}", user.getEmail(), newUsername);
+
+    return Response.ok("Đổi tên đăng nhập thành công.");
   }
 }

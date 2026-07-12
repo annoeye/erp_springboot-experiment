@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest;
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.ChangeUsernameRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProfileRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
@@ -66,5 +67,8 @@ public interface AuthController {
         @ResponseStatus(HttpStatus.OK)
         Response<MyProfileResponse> uploadAvatar(@RequestParam("file") org.springframework.web.multipart.MultipartFile file);
 
+        @PutMapping("/change-username")
+        @ResponseStatus(HttpStatus.OK)
+        Response<String> changeUsername(@Valid @RequestBody final ChangeUsernameRequest body);
 }
 

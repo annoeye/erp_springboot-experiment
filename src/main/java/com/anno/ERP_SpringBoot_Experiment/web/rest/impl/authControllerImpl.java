@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.web.rest.impl;
 
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.ChangeUsernameRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateProfileRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UserLoginRequest;
@@ -96,5 +97,10 @@ public class authControllerImpl implements AuthController {
     @Override
     public Response<MyProfileResponse> uploadAvatar(final org.springframework.web.multipart.MultipartFile file) {
         return userService.uploadAvatar(file);
+    }
+
+    @Override
+    public Response<String> changeUsername(final ChangeUsernameRequest body) {
+        return userService.changeUsername(body);
     }
 }
