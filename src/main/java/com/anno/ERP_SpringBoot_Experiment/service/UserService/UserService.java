@@ -533,7 +533,7 @@ public class UserService implements iUser {
     User user = securityUtil.getCurrentUser()
         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng chưa đăng nhập."));
 
-    String cooldownKey = "username:cooldown:" + user.getEmail();
+    String cooldownKey = "username:cooldown:" + user.getId();
     if (redisService.hasKey(cooldownKey)) {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
           "Bạn chỉ được đổi tên đăng nhập tối đa 1 lần mỗi tháng. Vui lòng quay lại sau.");
@@ -550,7 +550,7 @@ public class UserService implements iUser {
 
     // Đặt cooldown 30 ngày trên Redis
     redisService.setValueWithExpiry(cooldownKey, "true", 30, TimeUnit.DAYS);
-    log.info("Người dùng {} đã đổi tên đăng nhập thành công sang {}", user.getEmail(), newUsername);
+    log.info("Người dùng ID {} đã đổi tên đăng nhập thành công sang {}", user.getId(), newUsername);
 
     return Response.ok("Đổi tên đăng nhập thành công.");
   }
