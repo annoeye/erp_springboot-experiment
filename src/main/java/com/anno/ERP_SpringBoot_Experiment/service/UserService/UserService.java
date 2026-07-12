@@ -266,9 +266,6 @@ public class UserService implements iUser {
           "Mật khẩu xác nhận không trùng khớp.");
     }
 
-    user.getAuthCode().setCode(null);
-    user.getAuthCode().setExpiryDate(null);
-    user.getAuthCode().setPurpose(null);
     user.setPassword(passwordEncoder.encode(request.getNewPassword()));
 
     userRepository.save(user);
