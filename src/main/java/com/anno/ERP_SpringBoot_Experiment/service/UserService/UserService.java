@@ -247,7 +247,9 @@ public class UserService implements iUser {
         .orElseThrow(
             () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
 
-    boolean isCodeValid = Objects.equals(code, user.getAuthCode().getCode()) &&
+    boolean isCodeValid = user.getAuthCode().getCode() != null &&
+        Objects.equals(code, user.getAuthCode().getCode()) &&
+        user.getAuthCode().getExpiryDate() != null &&
         user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
         user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
 
@@ -304,7 +306,9 @@ public class UserService implements iUser {
     User user = userRepository.findByAuthCode(token)
         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Đường dẫn khôi phục không hợp lệ."));
 
-    boolean isValid = Objects.equals(token, user.getAuthCode().getCode()) &&
+    boolean isValid = user.getAuthCode().getCode() != null &&
+        Objects.equals(token, user.getAuthCode().getCode()) &&
+        user.getAuthCode().getExpiryDate() != null &&
         user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
         user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
 
