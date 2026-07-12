@@ -14,11 +14,11 @@
         </encoder>
     </appender>
 
-    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+    <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
         <appender-ref ref="SQL_CONSOLE" />
     </logger>
     
-    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+    <logger name="org.hibernate.orm.jdbc.bind" level="ERROR" additivity="false">
         <appender-ref ref="SQL_CONSOLE" />
     </logger>
 

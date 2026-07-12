@@ -5,6 +5,7 @@ import com.anno.ERP_SpringBoot_Experiment.model.document.ProductDocument;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.search.ProductSearchRepository;
+import com.anno.ERP_SpringBoot_Experiment.service.search.ProductElasticSearchService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,11 @@ public class ElasticsearchSyncListener {
     private final ProductSearchRepository productSearchRepository;
     private final ProductRepository productRepository;
     private final ObjectMapper objectMapper;
+    private final ProductElasticSearchService productElasticSearchService;
 
     @KafkaListener(topics = "product-events", groupId = "erp-elasticsearch-sync-group")
     public void handleProductEvent(String message) {
+        productElasticSearchService.ensureIndexExists();
         log.info("Received product event for Elasticsearch sync: {}", message);
         try {
             JsonNode rootNode = objectMapper.readTree(message);

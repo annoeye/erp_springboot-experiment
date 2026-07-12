@@ -15,6 +15,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.web.cors.DefaultCorsProcessor;
+import org.springframework.web.filter.CorsFilter;
+import java.io.IOException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -89,15 +94,37 @@ public class SecurityConfiguration {
         }
 
         @Bean
-        CorsConfigurationSource corsConfigurationSource() {
+        public CorsFilter corsFilter() {
                 CorsConfiguration corsConfiguration = new CorsConfiguration();
-                corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:3245"));
+                corsConfiguration.setAllowedOriginPatterns(List.of(
+                        "http://localhost:*",
+                        "https://*.run.app",
+                        "https://*.google.com",
+                        "https://*.aistudio.google.com"
+                ));
                 corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 corsConfiguration.setAllowedHeaders(List.of("*"));
+                corsConfiguration.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/api/**", corsConfiguration);
                 source.registerCorsConfiguration("/mcp/**", corsConfiguration);
-                return source;
+
+                CorsFilter corsFilter = new CorsFilter(source);
+                corsFilter.setCorsProcessor(new DefaultCorsProcessor() {
+                        @Override
+                        protected boolean handleInternal(ServerHttpRequest request, ServerHttpResponse response,
+                                                         CorsConfiguration config, boolean preFlightRequest) throws IOException {
+                                boolean result = super.handleInternal(request, response, config, preFlightRequest);
+                                if (result && preFlightRequest && request.getHeaders().containsKey("Access-Control-Request-Private-Network")) {
+                                        if (response instanceof org.springframework.http.server.ServletServerHttpResponse) {
+                                                ((org.springframework.http.server.ServletServerHttpResponse) response).getServletResponse()
+                                                        .setHeader("Access-Control-Allow-Private-Network", "true");
+                                        }
+                                }
+                                return result;
+                        }
+                });
+                return corsFilter;
         }
 }

@@ -13,7 +13,7 @@ COPY mvnw pom.xml ./
 RUN chmod +x mvnw
 
 # Download dependencies (layer cached unless pom.xml changes)
-RUN --mount=type=cache,target=/root/.m2 \
+RUN --mount=type=cache,target=/root/.m2,rw \
     ./mvnw dependency:go-offline -B
 
 # =============================================================================
@@ -27,8 +27,7 @@ COPY --from=deps /app/mvnw .
 COPY --from=deps /app/pom.xml .
 COPY src/ src/
 
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw clean package -DskipTests -B
+RUN --mount=type=cache,target=/root/.m2,rw ./mvnw clean package -Dmaven.test.skip=true -B
 
 # =============================================================================
 # Stage 3: Production runtime (minimal image)

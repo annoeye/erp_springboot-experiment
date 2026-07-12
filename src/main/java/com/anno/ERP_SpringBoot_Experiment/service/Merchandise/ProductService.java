@@ -58,7 +58,7 @@ public class ProductService implements iProduct {
     private final org.springframework.cache.CacheManager cacheManager;
     private final jakarta.persistence.EntityManager entityManager;
     private final RedisProducerService redisProducerService;
-
+    private final com.anno.ERP_SpringBoot_Experiment.service.search.ProductElasticSearchService productElasticSearchService;
     @Override
     public Response<?> addProduct(CreateProductRequest request) {
         Category category = categoryRepository
@@ -129,137 +129,21 @@ public class ProductService implements iProduct {
         return Response.noContent();
     }
 
-    private List<SearchCriteria> buildProductSearchCriteria(GetProductRequest request) {
-        List<SearchCriteria> criteriaList = new ArrayList<>();
-
-        if (StringUtils.hasText(request.getKeyword())) {
-            // Default "keyword" to search within name
-            criteriaList.add(new SearchCriteria("name", "~", request.getKeyword()));
-        }
-
-        if (StringUtils.hasText(request.getCreatedBy())) {
-            criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
-        }
-
-        if (!CollectionUtils.isEmpty(request.getProductIds())) {
-            List<Long> uuidList = request.getProductIds().stream()
-                    .map(Long::valueOf)
-                    .toList();
-            criteriaList.add(new SearchCriteria("id", "~", uuidList));
-        }
-
-        if (!CollectionUtils.isEmpty(request.getStatuses())) {
-            criteriaList.add(new SearchCriteria("status", "~", request.getStatuses()));
-        }
-
-        if (!CollectionUtils.isEmpty(request.getCategoryIds())) {
-            List<Long> uuidList = request.getCategoryIds().stream()
-                    .map(Long::valueOf)
-                    .toList();
-            criteriaList.add(new SearchCriteria("category.id", "~", uuidList));
-        }
-
-        if (StringUtils.hasText(request.getCategoryId())) {
-            criteriaList.add(new SearchCriteria("category.id", ":", Long.valueOf(request.getCategoryId().trim())));
-        }
-
-        if (request.getMinSoldQuantity() != null) {
-            criteriaList.add(new SearchCriteria("totalSoldQuantity", ">", request.getMinSoldQuantity()));
-        }
-        if (request.getMaxSoldQuantity() != null) {
-            criteriaList.add(new SearchCriteria("totalSoldQuantity", "<", request.getMaxSoldQuantity()));
-        }
-
-        if (request.getMinRevenue() != null) {
-            criteriaList.add(new SearchCriteria("totalRevenue", ">", request.getMinRevenue()));
-        }
-        if (request.getMaxRevenue() != null) {
-            criteriaList.add(new SearchCriteria("totalRevenue", "<", request.getMaxRevenue()));
-        }
-
-        if (request.getMinOrders() != null) {
-            criteriaList.add(new SearchCriteria("totalOrders", ">", request.getMinOrders()));
-        }
-        if (request.getMaxOrders() != null) {
-            criteriaList.add(new SearchCriteria("totalOrders", "<", request.getMaxOrders()));
-        }
-
-        if (request.getMinView() != null) {
-            criteriaList.add(new SearchCriteria("viewCount", ">", request.getMinView()));
-        }
-        if (request.getMinRating() != null) {
-            criteriaList.add(new SearchCriteria("averageRating", ">", request.getMinRating()));
-        }
-        if (request.getMinReviews() != null) {
-            criteriaList.add(new SearchCriteria("reviewCount", ">", request.getMinReviews()));
-        }
-
-        if (request.getCreatedFrom() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.createdAt", ">", request.getCreatedFrom()));
-        }
-        if (request.getCreatedTo() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.createdAt", "<", request.getCreatedTo()));
-        }
-        if (request.getUpdatedFrom() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", ">", request.getUpdatedFrom()));
-        }
-        if (request.getUpdatedTo() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
-        }
-
-        return criteriaList;
-    }
-
     @Override
     @Transactional(readOnly = true)
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
         List<Long> ids = searchProductIds(request);
         List<ProductDto> content = getProductsByIds(ids).getData();
 
-        List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
-        SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Product> spec = builder.build();
-
         Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
-
-        long total;
-        if (spec != null) {
-            total = productRepository.count(spec);
-        } else {
-            total = productRepository.count();
-        }
+        long total = productElasticSearchService.countProducts(request);
 
         return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
 
     @Transactional(readOnly = true)
     public List<Long> searchProductIds(@NonNull GetProductRequest request) {
-        List<SearchCriteria> criteriaList = buildProductSearchCriteria(request);
-        SpecificationBuilder<Product> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Product> spec = builder.build();
-
-        jakarta.persistence.criteria.CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        jakarta.persistence.criteria.CriteriaQuery<Long> query = cb.createQuery(Long.class);
-        jakarta.persistence.criteria.Root<Product> root = query.from(Product.class);
-
-        query.select(root.get("id"));
-
-        if (spec != null) {
-            jakarta.persistence.criteria.Predicate predicate = spec.toPredicate(root, query, cb);
-            if (predicate != null) {
-                query.where(predicate);
-            }
-        }
-
-        // Apply paging if specified
-        jakarta.persistence.TypedQuery<Long> typedQuery = entityManager.createQuery(query);
-        if (request.getPaging() != null) {
-            Pageable pageable = request.getPaging().pageable();
-            typedQuery.setFirstResult((int) pageable.getOffset());
-            typedQuery.setMaxResults(pageable.getPageSize());
-        }
-
-        return typedQuery.getResultList();
+        return productElasticSearchService.searchProductIds(request);
     }
 
     @Override

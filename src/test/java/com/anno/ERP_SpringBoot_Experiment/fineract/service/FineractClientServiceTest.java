@@ -2,6 +2,7 @@ package com.anno.ERP_SpringBoot_Experiment.fineract.service;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
+import com.anno.ERP_SpringBoot_Experiment.fineract.config.FineractProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,6 +18,7 @@ class FineractClientServiceTest {
 
     private RestClient restClient;
     private UserRepository userRepository;
+    private FineractProperties fineractProperties;
     private FineractClientService clientService;
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -24,7 +26,8 @@ class FineractClientServiceTest {
     void setUp() {
         restClient = mock(RestClient.class);
         userRepository = mock(UserRepository.class);
-        clientService = new FineractClientService(restClient, userRepository);
+        fineractProperties = mock(FineractProperties.class);
+        clientService = new FineractClientService(restClient, userRepository, fineractProperties);
     }
 
     @Test

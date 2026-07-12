@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "codebase-summarizer": {
+      "source": "patricio0312rev/skills",
+      "sourceType": "github",
+      "skillPath": "foundation/codebase-summarizer/SKILL.md",
+      "computedHash": "e9198897108b73c9a470d0692774b87972455ae9887c7b5be8f930c55b3ca72c"
+    },
     "create-skill": {
       "source": "siviter-xyz/dot-agent",
       "sourceType": "github",

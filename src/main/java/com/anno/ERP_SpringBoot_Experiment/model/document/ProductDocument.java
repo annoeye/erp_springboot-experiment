@@ -11,7 +11,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Document(indexName = "products")
+@Document(indexName = "products", createIndex = false)
 @Getter
 @Setter
 @Builder
@@ -52,4 +52,25 @@ public class ProductDocument {
 
     @Field(type = FieldType.Double)
     Double averageRating;
+
+    @Field(type = FieldType.Double)
+    BigDecimal totalRevenue;
+
+    @Field(type = FieldType.Integer)
+    Integer totalOrders;
+
+    @Field(type = FieldType.Integer)
+    Integer viewCount;
+
+    @Field(type = FieldType.Integer)
+    Integer reviewCount;
+
+    @Field(type = FieldType.Date, format = org.springframework.data.elasticsearch.annotations.DateFormat.date_hour_minute_second_millis)
+    java.time.LocalDateTime createdAt;
+
+    @Field(type = FieldType.Date, format = org.springframework.data.elasticsearch.annotations.DateFormat.date_hour_minute_second_millis)
+    java.time.LocalDateTime updatedAt;
+
+    @Field(type = FieldType.Keyword)
+    String createdBy;
 }

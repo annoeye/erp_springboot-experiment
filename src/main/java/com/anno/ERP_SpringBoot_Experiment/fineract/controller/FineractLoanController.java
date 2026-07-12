@@ -1,9 +1,12 @@
 package com.anno.ERP_SpringBoot_Experiment.fineract.controller;
 
 import com.anno.ERP_SpringBoot_Experiment.fineract.service.FineractLoanService;
+import com.anno.ERP_SpringBoot_Experiment.fineract.dto.LoanApplicationRequestDTO;
+import com.anno.ERP_SpringBoot_Experiment.fineract.dto.LoanRepaymentRequestDTO;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,13 +43,13 @@ public class FineractLoanController {
     }
 
     @PostMapping("/my")
-    public ResponseEntity<JsonNode> applyForLoan(@AuthenticationPrincipal UserDetails userDetails, @RequestBody JsonNode payload) {
+    public ResponseEntity<JsonNode> applyForLoan(@AuthenticationPrincipal UserDetails userDetails, @Valid @RequestBody LoanApplicationRequestDTO payload) {
         User user = getAuthenticatedUser(userDetails);
         return ResponseEntity.ok(loanService.applyLoanForUser(user, payload));
     }
 
     @PostMapping("/{loanId}/repayments")
-    public ResponseEntity<JsonNode> repayLoan(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long loanId, @RequestBody JsonNode payload) {
+    public ResponseEntity<JsonNode> repayLoan(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long loanId, @Valid @RequestBody LoanRepaymentRequestDTO payload) {
         User user = getAuthenticatedUser(userDetails);
         return ResponseEntity.ok(loanService.repayLoanForUser(user, loanId, payload));
     }

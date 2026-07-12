@@ -21,21 +21,27 @@ public class FineractClientConfig {
         String encodedAuth = Base64.getEncoder().encodeToString(authString.getBytes());
         String authHeader = "Basic " + encodedAuth;
 
-        // Bypass SSL for local testing (matches MCP server behavior)
-        TrustManager[] trustAllCerts = new TrustManager[]{
-            new X509TrustManager() {
-                public X509Certificate[] getAcceptedIssuers() { return null; }
-                public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-            }
-        };
+        java.net.http.HttpClient.Builder httpClientBuilder = java.net.http.HttpClient.newBuilder();
 
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        if (properties.isSslBypass()) {
+            // Bypass SSL for local testing (matches MCP server behavior)
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return null; }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                }
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            httpClientBuilder.sslContext(sslContext);
+            
+            // Bypass hostname verification for Java 11 HttpClient
+            System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+        }
         
-        java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder()
-                .sslContext(sslContext)
-                .build();
+        java.net.http.HttpClient httpClient = httpClientBuilder.build();
                 
         org.springframework.http.client.JdkClientHttpRequestFactory requestFactory = 
                 new org.springframework.http.client.JdkClientHttpRequestFactory(httpClient);

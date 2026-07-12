@@ -88,10 +88,10 @@ public class SecurityUtil {
      */
     public Optional<User> getCurrentUser() {
         String username = getCurrentUsername();
-        if (username == null) {
+        if (username == null || "anonymous".equals(username)) {
             return Optional.empty();
         }
-        return userRepository.findByName(username);
+        return userRepository.findByNameOrEmail(username);
     }
 
     /**

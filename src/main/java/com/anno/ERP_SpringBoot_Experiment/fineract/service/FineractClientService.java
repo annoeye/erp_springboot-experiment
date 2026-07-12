@@ -4,10 +4,14 @@ import com.anno.ERP_SpringBoot_Experiment.fineract.dto.FineractClientCreateReque
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
 import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.anno.ERP_SpringBoot_Experiment.fineract.config.FineractProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +19,7 @@ public class FineractClientService {
 
     private final RestClient fineractRestClient;
     private final UserRepository userRepository;
+    private final FineractProperties fineractProperties;
 
     public JsonNode getClients() {
         return fineractRestClient.get()
@@ -24,13 +29,13 @@ public class FineractClientService {
     }
 
     public JsonNode createClient(FineractClientCreateRequestDTO request) {
-        // Set defaults as specified
-        if (request.getOfficeId() == null) request.setOfficeId(1L);
-        if (request.getLegalFormId() == null) request.setLegalFormId(1L);
+        // Set defaults from properties if not specified
+        if (request.getOfficeId() == null) request.setOfficeId(fineractProperties.getDefaultOfficeId());
+        if (request.getLegalFormId() == null) request.setLegalFormId(fineractProperties.getDefaultLegalFormId());
         if (request.getActive() == null) request.setActive(true);
-        if (request.getActivationDate() == null) request.setActivationDate("01 January 2026");
-        if (request.getDateFormat() == null) request.setDateFormat("dd MMMM yyyy");
-        if (request.getLocale() == null) request.setLocale("en");
+        if (request.getActivationDate() == null) request.setActivationDate(LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDateFormat())));
+        if (request.getDateFormat() == null) request.setDateFormat(fineractProperties.getDateFormat());
+        if (request.getLocale() == null) request.setLocale(fineractProperties.getLocale());
 
         return fineractRestClient.post()
                 .uri("/clients")
@@ -53,12 +58,12 @@ public class FineractClientService {
         FineractClientCreateRequestDTO syncRequest = new FineractClientCreateRequestDTO(
                 firstname,
                 lastname,
-                1L,
-                1L,
+                fineractProperties.getDefaultOfficeId(),
+                fineractProperties.getDefaultLegalFormId(),
                 true,
-                "01 January 2026",
-                "dd MMMM yyyy",
-                "en"
+                LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDateFormat())),
+                fineractProperties.getDateFormat(),
+                fineractProperties.getLocale()
         );
 
         JsonNode response = createClient(syncRequest);

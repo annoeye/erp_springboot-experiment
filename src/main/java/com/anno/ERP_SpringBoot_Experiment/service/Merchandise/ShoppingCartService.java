@@ -41,7 +41,7 @@ public class ShoppingCartService implements iShoppingCart {
         }
 
         String username = securityUtil.getCurrentUsername();
-        User user = userRepository.findByName(username)
+        User user = userRepository.findByNameOrEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "User không tồn tại"));
 
         ShoppingCart cart = shoppingCartRepository.findByUser(user)
@@ -100,7 +100,7 @@ public class ShoppingCartService implements iShoppingCart {
         }
 
         String username = securityUtil.getCurrentUsername();
-        User user = userRepository.findByName(username)
+        User user = userRepository.findByNameOrEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "User không tồn tại"));
 
         ShoppingCart cart = shoppingCartRepository.findByUser(user)

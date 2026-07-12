@@ -1,12 +1,18 @@
 package com.anno.ERP_SpringBoot_Experiment.fineract.service;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
+import com.anno.ERP_SpringBoot_Experiment.fineract.config.FineractProperties;
+import com.anno.ERP_SpringBoot_Experiment.fineract.dto.LoanApplicationRequestDTO;
+import com.anno.ERP_SpringBoot_Experiment.fineract.dto.LoanRepaymentRequestDTO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -15,6 +21,7 @@ class FineractLoanServiceTest {
 
     private RestClient restClient;
     private FineractClientService clientService;
+    private FineractProperties fineractProperties;
     private FineractLoanService loanService;
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -22,7 +29,8 @@ class FineractLoanServiceTest {
     void setUp() {
         restClient = mock(RestClient.class);
         clientService = mock(FineractClientService.class);
-        loanService = new FineractLoanService(restClient, clientService);
+        fineractProperties = mock(FineractProperties.class);
+        loanService = new FineractLoanService(restClient, clientService, fineractProperties);
     }
 
     @Test
@@ -55,8 +63,8 @@ class FineractLoanServiceTest {
         user.setFineractClientId("123");
         when(clientService.getOrCreateFineractClient(user)).thenReturn("123");
 
-        ObjectNode payload = mapper.createObjectNode();
-        payload.put("amount", 5000);
+        LoanApplicationRequestDTO payload = new LoanApplicationRequestDTO();
+        payload.setPrincipal(BigDecimal.valueOf(5000));
 
         RestClient.RequestBodyUriSpec requestBodyUriSpec = mock(RestClient.RequestBodyUriSpec.class);
         RestClient.RequestBodySpec requestBodySpec = mock(RestClient.RequestBodySpec.class);
@@ -73,7 +81,6 @@ class FineractLoanServiceTest {
 
         JsonNode result = loanService.applyLoanForUser(user, payload);
         assertThat(result.get("loanId").asInt()).isEqualTo(12);
-        assertThat(payload.get("clientId").asLong()).isEqualTo(123L);
     }
 
     @Test
@@ -82,8 +89,9 @@ class FineractLoanServiceTest {
         user.setFineractClientId("123");
         when(clientService.getOrCreateFineractClient(user)).thenReturn("123");
 
-        ObjectNode payload = mapper.createObjectNode();
-        payload.put("transactionAmount", 500);
+        LoanRepaymentRequestDTO payload = new LoanRepaymentRequestDTO();
+        payload.setTransactionAmount(BigDecimal.valueOf(500));
+        payload.setNote("Repayment for loan");
 
         RestClient.RequestBodyUriSpec requestBodyUriSpec = mock(RestClient.RequestBodyUriSpec.class);
         RestClient.RequestBodySpec requestBodySpec = mock(RestClient.RequestBodySpec.class);

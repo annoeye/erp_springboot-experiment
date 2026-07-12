@@ -1,8 +1,14 @@
 package com.anno.ERP_SpringBoot_Experiment.fineract.service;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
+import com.anno.ERP_SpringBoot_Experiment.fineract.config.FineractProperties;
+import com.anno.ERP_SpringBoot_Experiment.fineract.dto.LoanApplicationRequestDTO;
+import com.anno.ERP_SpringBoot_Experiment.fineract.dto.LoanRepaymentRequestDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -13,6 +19,8 @@ public class FineractLoanService {
 
     private final RestClient fineractRestClient;
     private final FineractClientService clientService;
+    private final FineractProperties fineractProperties;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public JsonNode getLoans() {
         return fineractRestClient.get()
@@ -29,13 +37,16 @@ public class FineractLoanService {
                 .body(JsonNode.class);
     }
 
-    public JsonNode applyLoanForUser(User user, JsonNode payload) {
+    public JsonNode applyLoanForUser(User user, LoanApplicationRequestDTO requestDTO) {
         String clientId = clientService.getOrCreateFineractClient(user);
-        
-        // Force the Fineract Client ID in the payload
-        if (payload.isObject()) {
-            ((ObjectNode) payload).put("clientId", Long.parseLong(clientId));
-        }
+        String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDateFormat()));
+
+        ObjectNode payload = objectMapper.valueToTree(requestDTO);
+        payload.put("clientId", Long.parseLong(clientId));
+        payload.put("expectedDisbursementDate", currentDate);
+        payload.put("submittedOnDate", currentDate);
+        payload.put("dateFormat", fineractProperties.getDateFormat());
+        payload.put("locale", fineractProperties.getLocale());
 
         return fineractRestClient.post()
                 .uri("/loans")
@@ -44,9 +55,15 @@ public class FineractLoanService {
                 .body(JsonNode.class);
     }
 
-    public JsonNode repayLoanForUser(User user, Long loanId, JsonNode payload) {
+    public JsonNode repayLoanForUser(User user, Long loanId, LoanRepaymentRequestDTO requestDTO) {
         // Enforce lazy sync registration checks
         clientService.getOrCreateFineractClient(user);
+        String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDateFormat()));
+
+        ObjectNode payload = objectMapper.valueToTree(requestDTO);
+        payload.put("transactionDate", currentDate);
+        payload.put("dateFormat", fineractProperties.getDateFormat());
+        payload.put("locale", fineractProperties.getLocale());
 
         return fineractRestClient.post()
                 .uri("/loans/{loanId}/transactions?command=repayment", loanId)

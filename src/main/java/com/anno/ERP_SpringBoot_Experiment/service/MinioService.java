@@ -23,18 +23,34 @@ public class MinioService {
 
     private final MinioClient minioClient;
     private final String BUCKET_NAME = "images";
+    private volatile boolean bucketInitialized = false;
+
+    private void ensureBucketExists() {
+        if (!bucketInitialized) {
+            synchronized (this) {
+                if (!bucketInitialized) {
+                    try {
+                        boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(BUCKET_NAME).build());
+                        if (!found) {
+                            log.info("Đã tạo mới Bucket {}", BUCKET_NAME);
+                            minioClient.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
+                        }
+                        bucketInitialized = true;
+                    } catch (Exception e) {
+                        log.error("Không thể kiểm tra hoặc tạo bucket '{}': {}", BUCKET_NAME, e.getMessage());
+                        throw new RuntimeException("MinIO service is unavailable: " + e.getMessage(), e);
+                    }
+                }
+            }
+        }
+    }
 
     @PostConstruct
     public void initBucket() {
         try {
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(BUCKET_NAME).build());
-            if (!found) {
-                log.info("Đã tạo mới Bucket {}", BUCKET_NAME);
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
-            }
-
+            ensureBucketExists();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.warn("MinIO chưa sẵn sàng lúc khởi động. Ứng dụng vẫn tiếp tục khởi chạy. Chi tiết: {}", e.getMessage());
         }
     }
 
@@ -45,7 +61,7 @@ public class MinioService {
      * @return Tên file đã được lưu trên MinIO
      */
     public String uploadFile(@NonNull final MultipartFile file) throws IOException {
-
+        ensureBucketExists();
         try {
             String originalFilename = file.getOriginalFilename();
             String fileExtension = "";
@@ -80,6 +96,7 @@ public class MinioService {
      * @return InputStream của file
      */
     public InputStream getFile(@NonNull final String fileName) {
+        ensureBucketExists();
         try {
             return minioClient.getObject(
                     GetObjectArgs.builder()
@@ -101,6 +118,7 @@ public class MinioService {
      * @return URL tạm thời
      */
     public String getPresignedUrl(@NonNull final String fileName, int expiryInSeconds) {
+        ensureBucketExists();
         try {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
@@ -130,6 +148,7 @@ public class MinioService {
      * @param fileName Tên file cần xóa
      */
     public void deleteFile(@NonNull final String fileName) {
+        ensureBucketExists();
         try {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()

@@ -52,7 +52,7 @@ services:
       SPRING_DATASOURCE_USERNAME: SPRING_APP
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_ELASTICSEARCH_URIS: https://elasticsearch:9200
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
       FINERACT_BASE_URL: https://host.docker.internal:8443/fineract-provider/api/v1
       INTEGRATION_MINIO_URL: http://minio:9000
       INTEGRATION_MINIO_ACCESS_KEY: ${MINIO_USER}
