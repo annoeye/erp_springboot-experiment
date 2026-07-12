@@ -1,7 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.service.UserService;
 
 import com.anno.ERP_SpringBoot_Experiment.domainevent.SaveDeviceInfo;
-import com.anno.ERP_SpringBoot_Experiment.domainevent.SendCodeResetPassword;
+import com.anno.ERP_SpringBoot_Experiment.domainevent.AccountRecoveryEvent;
 import com.anno.ERP_SpringBoot_Experiment.domainevent.VerificationEmailEvent;
 import com.anno.ERP_SpringBoot_Experiment.mapper.UserMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.User;
@@ -88,8 +88,15 @@ public class UserService implements iUser {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mật khẩu không khớp");
     }
 
-    userRepository.findByEmail(body.getEmail()).filter(u -> u.getStatus() == ActiveStatus.ACTIVE).ifPresent(u -> {
-      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email đã tồn tại.");
+    userRepository.findByEmail(body.getEmail()).ifPresent(existingEmailUser -> {
+      if (existingEmailUser.getStatus() == ActiveStatus.ACTIVE) {
+        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email đã tồn tại.");
+      } else if (existingEmailUser.getStatus() == ActiveStatus.INACTIVE) {
+        if (!existingEmailUser.getName().equals(body.getName())) {
+          throw new BusinessException(ErrorCode.REGISTRATION_INFO_MISMATCH,
+              "Email này đã được đăng ký nhưng thông tin đăng ký hiện tại không khớp! Bạn có thể sử dụng chức năng Khôi phục thông tin tài khoản.");
+        }
+      }
     });
 
     userRepository.findByName(body.getName()).ifPresent(existingUser -> {
@@ -269,22 +276,47 @@ public class UserService implements iUser {
 
   @Override
   @Transactional
-  public Response<String> sendCodeResetPassword(String email) {
+  public Response<String> recoverAccount(String email) {
     User user = userRepository.findByEmail(email)
         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại"));
 
-    String code = String.format(OTP_FORMAT_PATTERN, SECURE_RANDOM.nextInt(OTP_UPPER_BOUND));
+    if (user.getAuthCode().getCode() != null
+        && user.getAuthCode().getExpiryDate() != null
+        && user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD) {
+      if (user.getAuthCode().getExpiryDate().minusMinutes(9).isAfter(LocalDateTime.now())) {
+        throw new BusinessException(ErrorCode.INVALID_REQUEST, "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại email mới.");
+      }
+    }
+
+    String code = java.util.UUID.randomUUID().toString();
     user.getAuthCode().setCode(code);
     user.getAuthCode().setPurpose(ActiveStatus.CHANGE_PASSWORD);
-    user.getAuthCode().setExpiryDate(LocalDateTime.now().plusMinutes(5));
+    user.getAuthCode().setExpiryDate(LocalDateTime.now().plusMinutes(10));
     userRepository.save(user);
 
-    eventPublisher.publishEvent(SendCodeResetPassword.builder().user(user).code(code).build());
+    eventPublisher.publishEvent(AccountRecoveryEvent.builder().user(user).token(code).build());
 
-    log.info("Đã gửi mã xác thực đổi mật khẩu cho người dùng: {}", user.getUsername());
+    log.info("Đã gửi đường dẫn khôi phục tài khoản cho người dùng: {}", user.getUsername());
 
     return Response
-        .ok("Mã xác thực đổi mật khẩu đã được gửi đến " + helper.maskEmail(email) + ". Vui lòng kiểm tra.");
+        .ok("Đường dẫn khôi phục tài khoản đã được gửi đến " + helper.maskEmail(email) + ". Vui lòng kiểm tra.");
+  }
+
+  @Override
+  public Response<String> validateResetToken(@NonNull final String token) {
+    User user = userRepository.findByAuthCode(token)
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Đường dẫn khôi phục không hợp lệ."));
+
+    boolean isValid = Objects.equals(token, user.getAuthCode().getCode()) &&
+        user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
+        user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
+
+    if (!isValid) {
+      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+          "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
+    }
+
+    return Response.ok("Đường dẫn khôi phục hợp lệ.");
   }
 
   // @Override

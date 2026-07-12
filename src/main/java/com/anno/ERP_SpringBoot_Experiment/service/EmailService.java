@@ -47,17 +47,17 @@ public class EmailService {
     }
 
     @Async
-    public void sendPasswordResetOtpEmail(String to, String username, String otp) throws MessagingException {
+    public void sendAccountRecoveryEmail(String to, String username, String resetUrl) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
         helper.setFrom(fromEmail);
         helper.setTo(to);
-        helper.setSubject("Mã xác thực đặt lại mật khẩu");
+        helper.setSubject("Khôi phục thông tin tài khoản");
 
-        Map<String, Object> variables = Map.of("username", username, "otp", otp);
+        Map<String, Object> variables = Map.of("username", username, "resetUrl", resetUrl);
 
-        String htmlContent = processHtmlTemplate("password-reset-otp-email.html", variables);
+        String htmlContent = processHtmlTemplate("account-recovery-email.html", variables);
         helper.setText(htmlContent, true);
 
         mailSender.send(message);

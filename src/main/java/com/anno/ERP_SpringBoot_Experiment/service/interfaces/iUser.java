@@ -17,7 +17,8 @@ public interface iUser {
     Response<AuthResponse> loginUser(final UserLoginRequest body);
     Response<String> verifyEmail(final String code);
     Response<String> resetPassword(final String code, final AccountVerificationRequest request);
-    Response<String> sendCodeResetPassword(final String email);
+    Response<String> recoverAccount(final String email);
+    Response<String> validateResetToken(final String token);
     Response<AuthResponse> refreshToken(final RefreshTokenRequest request);
 //    Page<UserDto> search(final UserSearchRequest request);
 //    Page<UserSearchRequest> search(final UserSearchRequest request);

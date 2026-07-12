@@ -37,13 +37,17 @@ public interface AuthController {
                         @RequestParam("code") final String code,
                         @Valid @RequestBody final AccountVerificationRequest body);
 
+        @GetMapping("/validate-reset-token")
+        @ResponseStatus(HttpStatus.OK)
+        Response<String> validateResetToken(@RequestParam("token") final String token);
+
         @PostMapping("/refresh-token")
         @ResponseStatus(HttpStatus.OK)
         Response<AuthResponse> refreshToken(@Valid @RequestBody final RefreshTokenRequest body);
 
-        @GetMapping("/send-reset-code/{email}")
+        @GetMapping("/recover-account/{email}")
         @ResponseStatus(HttpStatus.OK)
-        Response<String> sendPasswordResetCode(@PathVariable final String email);
+        Response<String> recoverAccount(@PathVariable final String email);
 
         @PostMapping("/logout")
         ResponseEntity<?> logout(final HttpServletRequest request);

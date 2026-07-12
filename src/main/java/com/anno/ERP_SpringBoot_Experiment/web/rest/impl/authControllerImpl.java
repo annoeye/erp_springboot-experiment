@@ -45,13 +45,18 @@ public class authControllerImpl implements AuthController {
     }
 
     @Override
+    public Response<String> validateResetToken(final String token) {
+        return userService.validateResetToken(token);
+    }
+
+    @Override
     public Response<AuthResponse> refreshToken(final RefreshTokenRequest body) {
         return userService.refreshToken(body);
     }
 
     @Override
-    public Response<String> sendPasswordResetCode(final String email) {
-        return userService.sendCodeResetPassword(email);
+    public Response<String> recoverAccount(final String email) {
+        return userService.recoverAccount(email);
     }
 
 //    @Override
