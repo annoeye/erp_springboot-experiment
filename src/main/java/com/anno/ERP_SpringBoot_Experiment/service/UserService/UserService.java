@@ -269,8 +269,19 @@ public class UserService implements iUser {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Tài khoản chưa được kích hoạt.");
     }
 
-    String code = java.util.UUID.randomUUID().toString();
-    redisService.setValueWithExpiry("recovery:token:" + code, user.getEmail(), 24, TimeUnit.HOURS);
+    String tokenKey = "recovery:email:" + email;
+    String code;
+    if (redisService.hasKey(tokenKey)) {
+      code = (String) redisService.getValue(tokenKey);
+      redisService.expire("recovery:token:" + code, 24, TimeUnit.HOURS);
+      redisService.expire(tokenKey, 24, TimeUnit.HOURS);
+      log.info("Gia hạn token khôi phục cũ: {} cho user: {}", code, user.getUsername());
+    } else {
+      code = java.util.UUID.randomUUID().toString();
+      redisService.setValueWithExpiry("recovery:token:" + code, user.getEmail(), 24, TimeUnit.HOURS);
+      redisService.setValueWithExpiry(tokenKey, code, 24, TimeUnit.HOURS);
+      log.info("Tạo token khôi phục mới cho user: {}", user.getUsername());
+    }
 
     eventPublisher.publishEvent(AccountRecoveryEvent.builder().user(user).token(code).build());
 
