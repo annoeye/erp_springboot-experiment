@@ -286,10 +286,19 @@ public class UserService implements iUser {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Tài khoản chưa được kích hoạt.");
     }
 
-    String code = java.util.UUID.randomUUID().toString();
-    user.getAuthCode().setCode(code);
-    user.getAuthCode().setPurpose(ActiveStatus.CHANGE_PASSWORD);
-    user.getAuthCode().setExpiryDate(LocalDateTime.now().plusMinutes(10));
+    String code;
+    if (user.getAuthCode() != null && user.getAuthCode().getCode() != null 
+        && user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD) {
+      code = user.getAuthCode().getCode();
+      user.getAuthCode().setExpiryDate(LocalDateTime.now().plusHours(24));
+      log.info("Gia hạn token khôi phục cũ trong DB: {} cho user: {}", code, user.getUsername());
+    } else {
+      code = java.util.UUID.randomUUID().toString();
+      user.getAuthCode().setCode(code);
+      user.getAuthCode().setPurpose(ActiveStatus.CHANGE_PASSWORD);
+      user.getAuthCode().setExpiryDate(LocalDateTime.now().plusHours(24));
+      log.info("Tạo token khôi phục mới trong DB cho user: {}", user.getUsername());
+    }
     userRepository.save(user);
 
     eventPublisher.publishEvent(AccountRecoveryEvent.builder().user(user).token(code).build());
