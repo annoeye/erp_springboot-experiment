@@ -270,7 +270,7 @@ public class UserService implements iUser {
     }
 
     String code = java.util.UUID.randomUUID().toString();
-    redisService.setValueWithExpiry("recovery:token:" + code, user.getEmail(), 10, TimeUnit.MINUTES);
+    redisService.setValueWithExpiry("recovery:token:" + code, user.getEmail(), 24, TimeUnit.HOURS);
 
     eventPublisher.publishEvent(AccountRecoveryEvent.builder().user(user).token(code).build());
 
