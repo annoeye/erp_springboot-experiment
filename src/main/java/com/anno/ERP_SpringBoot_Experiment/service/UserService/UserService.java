@@ -131,14 +131,15 @@ public class UserService implements iUser {
       log.info("Tạo user mới: {}", user.getName());
     }
 
-    String code = UUID.randomUUID().toString();
-    redisService.setValueWithExpiry("verification:token:" + code, user.getEmail(), 5, TimeUnit.MINUTES);
+    user.getAuthCode().setCode(UUID.randomUUID().toString());
+    user.getAuthCode().setExpiryDate(LocalDateTime.now().plusMinutes(5));
+    user.getAuthCode().setPurpose(ActiveStatus.EMAIL_VERIFICATION);
 
     userRepository.save(user);
 
     eventPublisher.publishEvent(
         VerificationEmailEvent.builder()
-            .emailVerificationToken(code)
+            .emailVerificationToken(user.getAuthCode().getCode())
             .email(user.getEmail())
             .username(user.getName())
             .purpose(ActiveStatus.EMAIL_VERIFICATION)
@@ -169,22 +170,26 @@ public class UserService implements iUser {
     }
 
     if (user.getStatus().equals(ActiveStatus.INACTIVE)) { // check status
-      String code = UUID.randomUUID().toString();
-      redisService.setValueWithExpiry("verification:token:" + code, user.getEmail(), 5, TimeUnit.MINUTES);
-      log.info("Tạo và gửi lại token xác thực cho user chưa active: {}", user.getUsername());
+      if (user.getAuthCode().getCode() != null || user.getAuthCode().getExpiryDate() != null) {
+        user.getAuthCode().setCode(UUID.randomUUID().toString());
+        user.getAuthCode().setExpiryDate(LocalDateTime.now().plusMinutes(5));
+        user = userRepository.save(user);
+        log.info("Tạo và gửi lại token xác thực cho user chưa active: {}", user.getUsername());
+      }
 
       eventPublisher.publishEvent(VerificationEmailEvent.builder()
-          .emailVerificationToken(code).email(user.getEmail())
+          .emailVerificationToken(user.getAuthCode().getCode()).email(user.getEmail())
           .username(user.getUsername())
           .purpose(ActiveStatus.EMAIL_VERIFICATION)
           .build());
+      ;
 
       return Response.loginResponse(HttpStatus.UNAUTHORIZED,
           AuthResponse.builder()
-               .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến "
-                   + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
-               .email(user.getEmail())
-               .build());
+              .message("Tài khoản chưa được xác thực. Một email xác thực đã được gửi (lại) đến "
+                  + helper.maskEmail(user.getEmail()) + ". Vui lòng kiểm tra.")
+              .email(user.getEmail())
+              .build());
     }
 
     if (!passwordEncoder.matches(body.getPassword(), user.getPassword())) {
@@ -209,23 +214,29 @@ public class UserService implements iUser {
   @Override
   @Transactional
   public Response<String> verifyEmail(@NonNull final String code) {
-    String email = (String) redisService.getValue("verification:token:" + code);
-    if (email == null) {
-      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
-          "Mã xác thực email không hợp lệ hoặc đã hết hạn.");
-    }
 
-    User user = userRepository.findByEmail(email)
+    User user = userRepository.findByAuthCode(code)
         .orElseThrow(
             () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
 
-    user.setStatus(ActiveStatus.ACTIVE);
-    userRepository.save(user);
-    
-    redisService.delete("verification:token:" + code);
-    log.info("Xác thực email thành công cho user: {}", user.getUsername());
+    boolean isCodeValid = Objects.equals(code, user.getAuthCode().getCode()) &&
+        user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
+        user.getAuthCode().getPurpose() == ActiveStatus.EMAIL_VERIFICATION;
 
-    return Response.ok("Xác thực email thành công. Tài khoản của bạn đã được kích hoạt.");
+    if (isCodeValid) {
+      user.getAuthCode().setCode(null);
+      user.getAuthCode().setExpiryDate(null);
+      user.getAuthCode().setPurpose(null);
+      user.setStatus(ActiveStatus.ACTIVE);
+
+      userRepository.save(user);
+      log.info("Xác thực email thành công cho user: {}", user.getUsername());
+
+      return Response.ok("Xác thực email thành công. Tài khoản của bạn đã được kích hoạt.");
+    } else {
+      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
+          "Mã xác thực email không hợp lệ hoặc đã hết hạn.");
+    }
   }
 
   @Override
@@ -234,15 +245,20 @@ public class UserService implements iUser {
       @NonNull final String code,
       @NonNull final AccountVerificationRequest request) {
 
-    String email = (String) redisService.getValue("recovery:token:" + code);
-    if (email == null) {
+    User user = userRepository.findByAuthCode(code)
+        .orElseThrow(
+            () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
+
+    boolean isCodeValid = user.getAuthCode().getCode() != null &&
+        Objects.equals(code, user.getAuthCode().getCode()) &&
+        user.getAuthCode().getExpiryDate() != null &&
+        user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
+        user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
+
+    if (!isCodeValid) {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
           "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
     }
-
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(
-            () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
 
     if (request.getNewPassword() == null || request.getConfirmPassword() == null) {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Dữ liệu mật khẩu mới bị thiếu.");
@@ -270,19 +286,11 @@ public class UserService implements iUser {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Tài khoản chưa được kích hoạt.");
     }
 
-    String tokenKey = "recovery:email:" + email;
-    String code;
-    if (redisService.hasKey(tokenKey)) {
-      code = (String) redisService.getValue(tokenKey);
-      redisService.expire("recovery:token:" + code, 24, TimeUnit.HOURS);
-      redisService.expire(tokenKey, 24, TimeUnit.HOURS);
-      log.info("Gia hạn token khôi phục cũ: {} cho user: {}", code, user.getUsername());
-    } else {
-      code = java.util.UUID.randomUUID().toString();
-      redisService.setValueWithExpiry("recovery:token:" + code, user.getEmail(), 24, TimeUnit.HOURS);
-      redisService.setValueWithExpiry(tokenKey, code, 24, TimeUnit.HOURS);
-      log.info("Tạo token khôi phục mới cho user: {}", user.getUsername());
-    }
+    String code = java.util.UUID.randomUUID().toString();
+    user.getAuthCode().setCode(code);
+    user.getAuthCode().setPurpose(ActiveStatus.CHANGE_PASSWORD);
+    user.getAuthCode().setExpiryDate(LocalDateTime.now().plusMinutes(10));
+    userRepository.save(user);
 
     eventPublisher.publishEvent(AccountRecoveryEvent.builder().user(user).token(code).build());
 
@@ -294,14 +302,19 @@ public class UserService implements iUser {
 
   @Override
   public Response<UserDto> validateResetToken(@NonNull final String token) {
-    String email = (String) redisService.getValue("recovery:token:" + token);
-    if (email == null) {
+    User user = userRepository.findByAuthCode(token)
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Đường dẫn khôi phục không hợp lệ."));
+
+    boolean isValid = user.getAuthCode().getCode() != null &&
+        Objects.equals(token, user.getAuthCode().getCode()) &&
+        user.getAuthCode().getExpiryDate() != null &&
+        user.getAuthCode().getExpiryDate().isAfter(LocalDateTime.now()) &&
+        user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD;
+
+    if (!isValid) {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
           "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
     }
-
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Đường dẫn khôi phục không hợp lệ."));
 
     UserDto dto = userMapper.toDto(user);
     dto.setId(null);
@@ -548,9 +561,9 @@ public class UserService implements iUser {
     user.setName(newUsername);
     userRepository.save(user);
 
-    // Đặt cooldown 30 ngày trên Redis
+    // Lưu vào Redis để hold người dùng này không cho đổi tiếp trong 30 ngày
     redisService.setValueWithExpiry(cooldownKey, "true", 30, TimeUnit.DAYS);
-    log.info("Người dùng ID {} đã đổi tên đăng nhập thành công sang {}", user.getId(), newUsername);
+    log.info("Người dùng ID {} đổi tên đăng nhập thành công sang {} và bị khóa 30 ngày trên Redis", user.getId(), newUsername);
 
     return Response.ok("Đổi tên đăng nhập thành công.");
   }

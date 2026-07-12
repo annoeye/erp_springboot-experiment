@@ -1,6 +1,7 @@
 package com.anno.ERP_SpringBoot_Experiment.model.entity;
 
 import com.anno.ERP_SpringBoot_Experiment.model.base.BaseEntity;
+import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuthCode;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.Gender;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.RoleType;
@@ -108,6 +109,19 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(name = "roles")
     @Builder.Default
     Set<RoleType> roles = new HashSet<>();
+
+    /*
+     * ============================ 🧩 Embedded Fields ============================
+     */
+
+    /**
+     * Mã xác thực
+     * 
+     * @en Auth code
+     */
+    @Embedded
+    @Builder.Default
+    AuthCode authCode = new AuthCode();
 
     /* ============================ 🗂️ Enum ============================ */
 

@@ -13,6 +13,8 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
+    @Query("SELECT u FROM User u WHERE u.authCode.code = :code")
+    Optional<User> findByAuthCode(@Param("code") String code);
 
     Optional<User> findByEmail(String email);
 
