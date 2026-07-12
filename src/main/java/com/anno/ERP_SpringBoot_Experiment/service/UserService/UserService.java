@@ -280,8 +280,7 @@ public class UserService implements iUser {
     User user = userRepository.findByEmail(email)
         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại"));
 
-    if (user.getAuthCode().getCode() != null
-        && user.getAuthCode().getExpiryDate() != null
+    if (user.getAuthCode().getExpiryDate() != null
         && user.getAuthCode().getPurpose() == ActiveStatus.CHANGE_PASSWORD) {
       if (user.getAuthCode().getExpiryDate().minusMinutes(9).isAfter(LocalDateTime.now())) {
         throw new BusinessException(ErrorCode.INVALID_REQUEST, "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại email mới.");
