@@ -12,6 +12,7 @@ import com.anno.ERP_SpringBoot_Experiment.repository.UserRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.KafkaService.ActiveLogService;
 import com.anno.ERP_SpringBoot_Experiment.service.JwtService;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisService;
+import com.anno.ERP_SpringBoot_Experiment.service.accountrecovery.AccountRecoveryService;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AccountVerificationRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.ChangeUsernameRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.RefreshTokenRequest;
@@ -79,6 +80,8 @@ public class UserService implements iUser {
   private final ObjectMapper objectMapper;
   private final SecurityUtil securityUtil;
   private final MinioService minioService;
+  private final CredentialChangeAuthorization credentialChangeAuthorization;
+  private final AccountRecoveryService accountRecoveryService;
 
   @Override
   @Transactional
@@ -234,16 +237,17 @@ public class UserService implements iUser {
       @NonNull final String code,
       @NonNull final AccountVerificationRequest request) {
 
-    String email = (String) redisService.getValue("recovery:token:" + code);
-    if (email == null) {
-      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
-          "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
-    }
+    var authorization = credentialChangeAuthorization.resolveFromRecoveryToken(code);
+    User user = authorization.user();
+    changePassword(user, request);
+    credentialChangeAuthorization.consumeRecoveryToken(authorization);
+    refreshTokenService.revokeAllUserTokens(user.getId());
+    log.info("Đổi mật khẩu thành công cho user: {}", user.getUsername());
 
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(
-            () -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại để xác thực."));
+    return Response.ok("Mật khẩu đã được thay đổi thành công. Vui lòng đăng nhập lại.");
+  }
 
+  private void changePassword(User user, AccountVerificationRequest request) {
     if (request.getNewPassword() == null || request.getConfirmPassword() == null) {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Dữ liệu mật khẩu mới bị thiếu.");
     }
@@ -253,40 +257,20 @@ public class UserService implements iUser {
     }
 
     user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
     userRepository.save(user);
-    log.info("Đổi mật khẩu thành công cho user: {}", user.getUsername());
-
-    return Response.ok("Mật khẩu đã được thay đổi thành công.");
   }
 
   @Override
   @Transactional
   public Response<String> recoverAccount(String email) {
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại"));
+    var recoveryToken = accountRecoveryService.issue(email);
 
-    if (user.getStatus() != ActiveStatus.ACTIVE) {
-      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Tài khoản chưa được kích hoạt.");
-    }
+    eventPublisher.publishEvent(AccountRecoveryEvent.builder()
+        .user(recoveryToken.user())
+        .token(recoveryToken.token())
+        .build());
 
-    String tokenKey = "recovery:email:" + email;
-    String code;
-    if (redisService.hasKey(tokenKey)) {
-      code = (String) redisService.getValue(tokenKey);
-      redisService.expire("recovery:token:" + code, 24, TimeUnit.HOURS);
-      redisService.expire(tokenKey, 24, TimeUnit.HOURS);
-      log.info("Gia hạn token khôi phục cũ: {} cho user: {}", code, user.getUsername());
-    } else {
-      code = java.util.UUID.randomUUID().toString();
-      redisService.setValueWithExpiry("recovery:token:" + code, user.getEmail(), 24, TimeUnit.HOURS);
-      redisService.setValueWithExpiry(tokenKey, code, 24, TimeUnit.HOURS);
-      log.info("Tạo token khôi phục mới cho user: {}", user.getUsername());
-    }
-
-    eventPublisher.publishEvent(AccountRecoveryEvent.builder().user(user).token(code).build());
-
-    log.info("Đã gửi đường dẫn khôi phục tài khoản cho người dùng: {}", user.getUsername());
+    log.info("Đã gửi đường dẫn khôi phục tài khoản cho người dùng: {}", recoveryToken.user().getUsername());
 
     return Response
         .ok("Đường dẫn khôi phục tài khoản đã được gửi đến " + helper.maskEmail(email) + ". Vui lòng kiểm tra.");
@@ -294,16 +278,8 @@ public class UserService implements iUser {
 
   @Override
   public Response<UserDto> validateResetToken(@NonNull final String token) {
-    String email = (String) redisService.getValue("recovery:token:" + token);
-    if (email == null) {
-      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS,
-          "Mã đổi mật khẩu không hợp lệ hoặc đã hết hạn.");
-    }
-
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Đường dẫn khôi phục không hợp lệ."));
-
-    UserDto dto = userMapper.toDto(user);
+    var recoveryToken = accountRecoveryService.resolve(token);
+    UserDto dto = userMapper.toDto(recoveryToken.user());
     dto.setId(null);
     return Response.ok(dto);
   }
@@ -530,8 +506,8 @@ public class UserService implements iUser {
   @Override
   @Transactional
   public Response<String> changeUsername(@NonNull final ChangeUsernameRequest request) {
-    User user = securityUtil.getCurrentUser()
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Người dùng chưa đăng nhập."));
+    var authorization = credentialChangeAuthorization.resolveFromRecoveryTokenOrSession(request.getToken());
+    User user = authorization.user();
 
     String cooldownKey = "username:cooldown:" + user.getId();
     if (redisService.hasKey(cooldownKey)) {
@@ -550,8 +526,10 @@ public class UserService implements iUser {
 
     // Đặt cooldown 30 ngày trên Redis
     redisService.setValueWithExpiry(cooldownKey, "true", 30, TimeUnit.DAYS);
+    credentialChangeAuthorization.consumeRecoveryToken(authorization);
+    refreshTokenService.revokeAllUserTokens(user.getId());
     log.info("Người dùng ID {} đã đổi tên đăng nhập thành công sang {}", user.getId(), newUsername);
 
-    return Response.ok("Đổi tên đăng nhập thành công.");
+    return Response.ok("Đổi tên đăng nhập thành công. Vui lòng đăng nhập lại.");
   }
 }

@@ -73,8 +73,9 @@ public class merchandiseControllerImpl implements MerchandiseController {
 
       @Override
       @Operation(summary = "Tìm kiếm sản phẩm", description = "Tìm kiếm sản phẩm theo các tiêu chí như tên, danh mục, giá, v.v.")
-      public Page<ProductDto> searchProduct(@RequestBody GetProductRequest request) {
-          return productService.searchProducts(request);
+      public Response<PagingResponse<ProductDto>> searchProduct(@RequestBody GetProductRequest request) {
+          final Page<ProductDto> products = productService.searchProducts(request);
+          return Response.ok(PagingResponse.from(products));
       }
 
       @Override

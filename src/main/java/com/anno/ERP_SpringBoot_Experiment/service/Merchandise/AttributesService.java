@@ -43,6 +43,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -289,16 +290,12 @@ public class AttributesService implements iAttributes {
 
         List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Attributes> spec = builder.build();
+        Specification<Attributes> spec = activeAttributesOnly().and(builder.build());
 
         Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
 
         long total;
-        if (spec != null) {
-            total = attributesRepository.count(spec);
-        } else {
-            total = attributesRepository.count();
-        }
+        total = attributesRepository.count(spec);
 
         return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
@@ -429,20 +426,20 @@ public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
         }
 
         if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
-            criteriaList.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
+            criteriaList.add(new SearchCriteria("createdBy", "~", request.getCreatedBy()));
         }
 
         if (request.getCreatedFrom() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.createdAt", ">", request.getCreatedFrom()));
+            criteriaList.add(new SearchCriteria("createdAt", ">", request.getCreatedFrom()));
         }
         if (request.getCreatedTo() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.createdAt", "<", request.getCreatedTo()));
+            criteriaList.add(new SearchCriteria("createdAt", "<", request.getCreatedTo()));
         }
         if (request.getUpdatedFrom() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", ">", request.getUpdatedFrom()));
+            criteriaList.add(new SearchCriteria("updatedAt", ">", request.getUpdatedFrom()));
         }
         if (request.getUpdatedTo() != null) {
-            criteriaList.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
+            criteriaList.add(new SearchCriteria("updatedAt", "<", request.getUpdatedTo()));
         }
 
         return criteriaList;
@@ -453,7 +450,7 @@ public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
     public List<Long> searchAttributesIds(@NonNull AttributesSearchRequest request) {
         List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
         SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Attributes> spec = builder.build();
+        Specification<Attributes> spec = activeAttributesOnly().and(builder.build());
 
         jakarta.persistence.criteria.CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         jakarta.persistence.criteria.CriteriaQuery<Long> query = cb.createQuery(Long.class);
@@ -461,11 +458,9 @@ public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
 
         query.select(root.get("id"));
 
-        if (spec != null) {
-            jakarta.persistence.criteria.Predicate predicate = spec.toPredicate(root, query, cb);
-            if (predicate != null) {
-                query.where(predicate);
-            }
+        jakarta.persistence.criteria.Predicate predicate = spec.toPredicate(root, query, cb);
+        if (predicate != null) {
+            query.where(predicate);
         }
 
         // Apply paging if specified
@@ -477,6 +472,16 @@ public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
         }
 
         return typedQuery.getResultList();
+    }
+
+    private Specification<Attributes> activeAttributesOnly() {
+        return (root, query, cb) -> cb.and(
+                cb.or(
+                        cb.isNull(root.get("isDeleted")),
+                        cb.isFalse(root.get("isDeleted"))),
+                cb.or(
+                        cb.isNull(root.get("deletedAt")),
+                        cb.greaterThan(root.get("deletedAt"), LocalDateTime.now())));
     }
 
     @Override

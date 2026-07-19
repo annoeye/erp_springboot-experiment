@@ -48,16 +48,7 @@ class FineractControllerIntegrationTest {
     private com.anno.ERP_SpringBoot_Experiment.service.MinioService minioService;
 
     @MockBean
-    private com.anno.ERP_SpringBoot_Experiment.repository.search.ProductSearchRepository productSearchRepository;
-
-    @MockBean
-    private com.anno.ERP_SpringBoot_Experiment.event.listener.ElasticsearchSyncListener elasticsearchSyncListener;
-
-    @MockBean
     private com.anno.ERP_SpringBoot_Experiment.service.EmailService emailService;
-
-    @MockBean
-    private com.anno.ERP_SpringBoot_Experiment.service.search.ProductElasticSearchService productElasticSearchService;
 
     private ObjectMapper mapper = new ObjectMapper();
 

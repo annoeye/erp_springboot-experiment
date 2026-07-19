@@ -34,6 +34,19 @@ public class ShoppingCartService implements iShoppingCart {
     private final Helper helper;
 
     @Override
+    @Transactional(readOnly = true)
+    public Response<ShoppingCartDto> getCart() {
+        String username = securityUtil.getCurrentUsername();
+        User user = userRepository.findByNameOrEmail(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "User không tồn tại"));
+
+        ShoppingCart cart = shoppingCartRepository.findByUser(user)
+                .orElseGet(() -> helper.createNewCart(user));
+
+        return Response.ok(helper.toDto(cart));
+    }
+
+    @Override
     @Transactional
     public Response<ShoppingCartDto> add(final List<CartItemRequest> items) {
         if (items == null || items.isEmpty()) {
@@ -125,5 +138,23 @@ public class ShoppingCartService implements iShoppingCart {
         return Response.ok(
                 helper.toDto(savedCart),
                 String.format("Đã xóa %d sản phẩm khỏi giỏ hàng", removedCount));
+    }
+
+    @Override
+    @Transactional
+    public Response<ShoppingCartDto> clearCart() {
+        String username = securityUtil.getCurrentUsername();
+        User user = userRepository.findByNameOrEmail(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "User không tồn tại"));
+
+        ShoppingCart cart = shoppingCartRepository.findByUser(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "Giỏ hàng không tồn tại"));
+
+        cart.clearItems();
+        helper.recalculateAndUpdateTotals(cart);
+        cart.getAuditInfo().addUpdateEntry("Xóa toàn bộ giỏ hàng", username);
+
+        ShoppingCart savedCart = shoppingCartRepository.save(cart);
+        return Response.ok(helper.toDto(savedCart), "Đã xóa toàn bộ giỏ hàng");
     }
 }

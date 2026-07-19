@@ -1,11 +1,11 @@
 package com.anno.ERP_SpringBoot_Experiment.repository;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
-import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
@@ -63,17 +63,45 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     Optional<Product> findProductBySkuInfo_Sku(String skuInfoSku);
 
-    @Query("SELECT p.id, p.skuInfo.sku FROM Product p WHERE p.skuInfo.sku IN :skus")
-    List<Object[]> findIdsAndSkusBySkus(@org.springframework.data.repository.query.Param("skus") List<String> skus);
+    @Query("""
+            SELECT p FROM Product p
+            WHERE p.id IN :ids
+            AND (p.isDeleted IS NULL OR p.isDeleted = false)
+            AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    List<Product> findActiveByIdIn(@Param("ids") List<Long> ids);
 
-    @Query("SELECT p.id FROM Product p WHERE p.name = :name")
-    Optional<Long> findIdByName(@org.springframework.data.repository.query.Param("name") String name);
+    @Query("""
+            SELECT p.id, p.skuInfo.sku FROM Product p
+            WHERE p.skuInfo.sku IN :skus
+            AND (p.isDeleted IS NULL OR p.isDeleted = false)
+            AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    List<Object[]> findIdsAndSkusBySkus(@Param("skus") List<String> skus);
 
-    @Query("SELECT p.id FROM Product p WHERE p.skuInfo.sku = :sku")
-    Optional<Long> findIdBySku(@org.springframework.data.repository.query.Param("sku") String sku);
+    @Query("""
+            SELECT p.id FROM Product p
+            WHERE p.name = :name
+            AND (p.isDeleted IS NULL OR p.isDeleted = false)
+            AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    Optional<Long> findIdByName(@Param("name") String name);
+
+    @Query("""
+            SELECT p.id FROM Product p
+            WHERE p.skuInfo.sku = :sku
+            AND (p.isDeleted IS NULL OR p.isDeleted = false)
+            AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    Optional<Long> findIdBySku(@Param("sku") String sku);
 
     // Eager Load: Tải sản phẩm cùng Category trong 1 câu SQL (chống N+1 query).
     // Dùng cho CacheSyncService khi đồng bộ chạy ngầm.
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.id = :id")
-    Optional<Product> findByIdWithDetails(@org.springframework.data.repository.query.Param("id") Long id);
+    @Query("""
+            SELECT p FROM Product p LEFT JOIN FETCH p.category
+            WHERE p.id = :id
+            AND (p.isDeleted IS NULL OR p.isDeleted = false)
+            AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    Optional<Product> findByIdWithDetails(@Param("id") Long id);
 }

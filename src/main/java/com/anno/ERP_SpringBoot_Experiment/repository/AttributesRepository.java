@@ -19,40 +19,80 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
 
         Optional<Attributes> findAttributesBySku_sku(String skuSku);
 
-        @Query("SELECT a FROM Attributes a WHERE a.sku.sku = :sku AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE a.sku.sku = :sku
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         Optional<Attributes> findAttributesBySkuNotDeleted(@Param("sku") String sku);
 
         Optional<Attributes> findAttributesById(Long id);
 
         List<Attributes> findAllBySku_skuIn(List<String> skus);
 
-        @Query("SELECT a FROM Attributes a WHERE a.id IN :ids")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE a.id IN :ids
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Attributes> getQuantityAttributesById(@Param("ids") List<Long> ids);
 
         List<Attributes> findAllByProduct(Product product);
 
-        @Query("SELECT a FROM Attributes a WHERE a.product = :product AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE a.product = :product
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Attributes> findAllByProductNotDeleted(@Param("product") Product product);
 
         List<Attributes> findAllByProduct_Id(Long productId);
 
-        @Query("SELECT a FROM Attributes a WHERE a.product.id = :productId AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE a.product.id = :productId
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Attributes> findAllByProductIdNotDeleted(@Param("productId") Long productId);
 
         boolean existsBySku_sku(String skuSku);
 
         long countByProduct(Product product);
 
-        @Query("SELECT COUNT(a) FROM Attributes a WHERE a.product = :product AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT COUNT(a) FROM Attributes a
+                        WHERE a.product = :product
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         long countByProductNotDeleted(@Param("product") Product product);
 
-        @Query("SELECT a FROM Attributes a WHERE LOWER(a.name) LIKE LOWER(CONCAT('%', :name, '%')) AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE LOWER(a.name) LIKE LOWER(CONCAT('%', :name, '%'))
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Attributes> findByNameContainingNotDeleted(@Param("name") String name);
 
-        @Query("SELECT a FROM Attributes a WHERE a.price BETWEEN :minPrice AND :maxPrice AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE a.price BETWEEN :minPrice AND :maxPrice
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Attributes> findByPriceBetweenNotDeleted(@Param("minPrice") Double minPrice, @Param("maxPrice") Double maxPrice);
 
-        @Query("SELECT a FROM Attributes a WHERE a.salePrice IS NOT NULL AND a.salePrice > 0 AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a FROM Attributes a
+                        WHERE a.salePrice IS NOT NULL AND a.salePrice > 0
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Attributes> findAllOnSale();
 
         @Modifying(clearAutomatically = true)
@@ -75,9 +115,19 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
         @Query("UPDATE Attributes a SET a.totalOrders = COALESCE(a.totalOrders, 0) + 1 WHERE a.id = :id")
         void updateTotalOrders(@Param("id") Long id);
 
-        @Query("SELECT a.id, a.sku.sku FROM Attributes a WHERE a.sku.sku IN :skus")
+        @Query("""
+                        SELECT a.id, a.sku.sku FROM Attributes a
+                        WHERE a.sku.sku IN :skus
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         List<Object[]> findIdsAndSkusBySkus(@Param("skus") List<String> skus);
 
-        @Query("SELECT a.id FROM Attributes a WHERE a.sku.sku = :sku AND a.deletedAt IS NULL")
+        @Query("""
+                        SELECT a.id FROM Attributes a
+                        WHERE a.sku.sku = :sku
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
         Optional<Long> findIdBySkuNotDeleted(@Param("sku") String sku);
 }

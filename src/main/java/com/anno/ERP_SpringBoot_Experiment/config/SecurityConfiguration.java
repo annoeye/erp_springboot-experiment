@@ -48,6 +48,7 @@ public class SecurityConfiguration {
                 "/api/auth/recover-account/**",
                 "/api/auth/validate-reset-token**",
                 "/api/auth/reset-password**",
+                "/api/auth/change-username",
                 "/api/merchandise/**",
                 "/api/images/**",
                 "/api/payment/result**",

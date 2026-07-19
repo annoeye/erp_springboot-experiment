@@ -1,12 +1,12 @@
 package com.anno.ERP_SpringBoot_Experiment.repository;
 
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
-import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,9 +57,27 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
 
     Optional<Category> findCategoryByName(String name);
 
-    @Query("SELECT c.id, c.skuInfo.sku FROM Category c WHERE c.skuInfo.sku IN :skus")
-    List<Object[]> findIdsAndSkusBySkus(@org.springframework.data.repository.query.Param("skus") List<String> skus);
+    @Query("""
+            SELECT c FROM Category c
+            WHERE c.id IN :ids
+            AND (c.isDeleted IS NULL OR c.isDeleted = false)
+            AND (c.deletedAt IS NULL OR c.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    List<Category> findActiveByIdIn(@Param("ids") List<Long> ids);
 
-    @Query("SELECT c.id FROM Category c WHERE c.skuInfo.sku = :sku")
-    Optional<Long> findIdBySku(@org.springframework.data.repository.query.Param("sku") String sku);
+    @Query("""
+            SELECT c.id, c.skuInfo.sku FROM Category c
+            WHERE c.skuInfo.sku IN :skus
+            AND (c.isDeleted IS NULL OR c.isDeleted = false)
+            AND (c.deletedAt IS NULL OR c.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    List<Object[]> findIdsAndSkusBySkus(@Param("skus") List<String> skus);
+
+    @Query("""
+            SELECT c.id FROM Category c
+            WHERE c.skuInfo.sku = :sku
+            AND (c.isDeleted IS NULL OR c.isDeleted = false)
+            AND (c.deletedAt IS NULL OR c.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    Optional<Long> findIdBySku(@Param("sku") String sku);
 }

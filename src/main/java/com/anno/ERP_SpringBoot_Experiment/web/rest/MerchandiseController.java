@@ -10,7 +10,6 @@ import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ProductIsExiting;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.PagingResponse;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +36,7 @@ public interface MerchandiseController {
 
         @PostMapping("/search-Product")
         @ResponseStatus(HttpStatus.OK)
-        Page<ProductDto> searchProduct(@Valid @RequestBody GetProductRequest request);
+        Response<PagingResponse<ProductDto>> searchProduct(@Valid @RequestBody GetProductRequest request);
 
         @GetMapping("/products")
         @ResponseStatus(HttpStatus.OK)

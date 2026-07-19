@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -95,8 +96,6 @@ public class CategoryService implements iCategory {
     @Override
     @Transactional(readOnly = true)
     public Page<CategoryDto> search(@NonNull final CategorySearchRequest request) {
-        categoryRepository.deleteAllExpiredCategories();
-
         List<SearchCriteria> list = new ArrayList<>();
 
         var names = featureMerchandiseHelper.filterBlank(request.getNames());
@@ -120,27 +119,37 @@ public class CategoryService implements iCategory {
         }
 
         if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
-            list.add(new SearchCriteria("auditInfo.createdBy", "~", request.getCreatedBy()));
+            list.add(new SearchCriteria("createdBy", "~", request.getCreatedBy()));
         }
         
         if (request.getCreatedFrom() != null) {
-            list.add(new SearchCriteria("auditInfo.createdAt", ">", request.getCreatedFrom()));
+            list.add(new SearchCriteria("createdAt", ">", request.getCreatedFrom()));
         }
         if (request.getCreatedTo() != null) {
-            list.add(new SearchCriteria("auditInfo.createdAt", "<", request.getCreatedTo()));
+            list.add(new SearchCriteria("createdAt", "<", request.getCreatedTo()));
         }
         if (request.getUpdatedFrom() != null) {
-            list.add(new SearchCriteria("auditInfo.updatedAt", ">", request.getUpdatedFrom()));
+            list.add(new SearchCriteria("updatedAt", ">", request.getUpdatedFrom()));
         }
         if (request.getUpdatedTo() != null) {
-            list.add(new SearchCriteria("auditInfo.updatedAt", "<", request.getUpdatedTo()));
+            list.add(new SearchCriteria("updatedAt", "<", request.getUpdatedTo()));
         }
 
         log.info("Search criteria list: {}", list);
 
         return categoryRepository.findAll(
-                new SpecificationBuilder<Category>(list).build(),
+                activeCategoriesOnly().and(new SpecificationBuilder<Category>(list).build()),
                 request.getPaging().pageable()).map(categoryMapper::toDto);
+    }
+
+    private Specification<Category> activeCategoriesOnly() {
+        return (root, query, cb) -> cb.and(
+                cb.or(
+                        cb.isNull(root.get("isDeleted")),
+                        cb.isFalse(root.get("isDeleted"))),
+                cb.or(
+                        cb.isNull(root.get("deletedAt")),
+                        cb.greaterThan(root.get("deletedAt"), LocalDateTime.now())));
     }
 
     @Override
@@ -154,7 +163,7 @@ public class CategoryService implements iCategory {
                 cacheManager,
                 CacheConfig.CACHE_CATEGORY_DETAILS,
                 ids,
-                missingIds -> categoryRepository.findAllById(missingIds).stream()
+                missingIds -> categoryRepository.findActiveByIdIn(new ArrayList<>(missingIds)).stream()
                         .collect(Collectors.toMap(Category::getId, categoryMapper::toDto))
         );
 
