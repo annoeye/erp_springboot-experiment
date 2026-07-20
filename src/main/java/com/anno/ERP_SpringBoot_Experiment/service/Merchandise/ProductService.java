@@ -2,13 +2,13 @@ package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.mapper.ProductMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
-import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.ActiveStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
 import com.anno.ERP_SpringBoot_Experiment.service.MinioService;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.ProductDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateProductRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.GetProductRequest;
@@ -20,17 +20,13 @@ import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iProduct;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -48,12 +44,13 @@ public class ProductService implements iProduct {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SecurityUtil securityUtil;
-    private final Helper featureMerchandiseHelper;
     private final MinioService minioService;
     private final ProductMapper productMapper;
     private final com.anno.ERP_SpringBoot_Experiment.caffeine_cache.CacheSyncService cacheSyncService;
     private final org.springframework.cache.CacheManager cacheManager;
     private final RedisProducerService redisProducerService;
+    private final MerchandiseSearchService merchandiseSearchService;
+    private final CategoryService categoryService;
 
     @Override
     public Response<?> addProduct(CreateProductRequest request) {
@@ -128,8 +125,19 @@ public class ProductService implements iProduct {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductDto> searchProducts(@NonNull GetProductRequest request) {
-        var pageable = request.getPaging() != null ? request.getPaging().pageable() : PageRequest.of(0, 10);
-        return productRepository.findAll(buildProductSpecification(request), pageable)
+        var pageable = merchandiseSearchService.pageable(request.getPaging());
+        List<String> categorySkuFilters = collectCategorySkus(request);
+        List<Long> categoryIdsFromSkus = resolveCategoryIdsFromSkus(categorySkuFilters);
+        if (!categorySkuFilters.isEmpty() && categoryIdsFromSkus.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        Specification<Product> specification = merchandiseSearchService.productSpecification(request);
+        if (!categoryIdsFromSkus.isEmpty()) {
+            specification = specification.and(categoryIdIn(categoryIdsFromSkus));
+        }
+
+        return productRepository.findAll(specification, pageable)
                 .map(productMapper::toDto);
     }
 
@@ -264,135 +272,56 @@ public class ProductService implements iProduct {
         return Response.ok(result);
     }
 
-    private Specification<Product> buildProductSpecification(GetProductRequest request) {
-        Specification<Product> specification = activeProductsOnly();
-
-        specification = specification.and(keywordSpecification(request.getKeyword()));
-        specification = specification.and(equalsIfPresent("createdBy", request.getCreatedBy()));
-        specification = specification.and(equalsLongIfPresent("category.id", request.getCategoryId()));
-        specification = specification.and(inLongListIfPresent("id", featureMerchandiseHelper.filterBlank(request.getProductIds())));
-        specification = specification.and(inStringListIfPresent("skuInfo.sku", request.getSkus()));
-        specification = specification.and(inStringListIfPresent("status", request.getStatuses()));
-        specification = specification.and(inLongListIfPresent("category.id", featureMerchandiseHelper.filterBlank(request.getCategoryIds())));
-        specification = specification.and(greaterThanOrEqualTo("totalSoldQuantity", request.getMinSoldQuantity()));
-        specification = specification.and(lessThanOrEqualTo("totalSoldQuantity", request.getMaxSoldQuantity()));
-        specification = specification.and(greaterThanOrEqualTo("totalRevenue", request.getMinRevenue() == null ? null : BigDecimal.valueOf(request.getMinRevenue())));
-        specification = specification.and(lessThanOrEqualTo("totalRevenue", request.getMaxRevenue() == null ? null : BigDecimal.valueOf(request.getMaxRevenue())));
-        specification = specification.and(greaterThanOrEqualTo("totalOrders", request.getMinOrders()));
-        specification = specification.and(lessThanOrEqualTo("totalOrders", request.getMaxOrders()));
-        specification = specification.and(greaterThanOrEqualTo("viewCount", request.getMinView()));
-        specification = specification.and(greaterThanOrEqualTo("averageRating", request.getMinRating()));
-        specification = specification.and(greaterThanOrEqualTo("reviewCount", request.getMinReviews()));
-        specification = specification.and(greaterThanOrEqualTo("createdAt", request.getCreatedFrom()));
-        specification = specification.and(lessThanOrEqualTo("createdAt", request.getCreatedTo()));
-        specification = specification.and(greaterThanOrEqualTo("updatedAt", request.getUpdatedFrom()));
-        specification = specification.and(lessThanOrEqualTo("updatedAt", request.getUpdatedTo()));
-
-        return specification;
-    }
-
-    private Specification<Product> activeProductsOnly() {
-        return (root, query, cb) -> cb.and(
-                cb.or(
-                        cb.isNull(root.get("isDeleted")),
-                        cb.isFalse(root.get("isDeleted"))),
-                cb.or(
-                        cb.isNull(root.get("deletedAt")),
-                        cb.greaterThan(root.get("deletedAt"), LocalDateTime.now())));
-    }
-
-    private Specification<Product> keywordSpecification(String keyword) {
-        if (!StringUtils.hasText(keyword)) {
-            return null;
+    @Override
+    @Transactional(readOnly = true)
+    public Response<List<ProductDto>> getProductsByCategorySkus(List<String> categorySkus) {
+        List<String> filters = filterSkus(categorySkus);
+        if (filters.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
         }
 
-        String normalizedKeyword = "%" + keyword.trim().toLowerCase() + "%";
-        return (root, query, cb) -> {
-            query.distinct(true);
-
-            Join<Product, Attributes> attributesJoin = root.join("attributes", JoinType.LEFT);
-            Join<Attributes, String> keywordsJoin = attributesJoin.join("keywords", JoinType.LEFT);
-
-            Predicate productName = cb.like(cb.lower(root.get("name")), normalizedKeyword);
-            Predicate productSku = cb.like(cb.lower(root.get("skuInfo").get("sku")), normalizedKeyword);
-            Predicate attributeName = cb.like(cb.lower(attributesJoin.get("name")), normalizedKeyword);
-            Predicate attributeSku = cb.like(cb.lower(attributesJoin.get("sku").get("sku")), normalizedKeyword);
-            Predicate attributeKeyword = cb.like(cb.lower(keywordsJoin), normalizedKeyword);
-
-            return cb.or(productName, productSku, attributeName, attributeSku, attributeKeyword);
-        };
-    }
-
-    private Specification<Product> equalsIfPresent(String path, String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
+        List<Long> categoryIds = resolveCategoryIdsFromSkus(filters);
+        if (categoryIds.isEmpty()) {
+            return Response.ok(new java.util.ArrayList<>());
         }
 
-        String normalizedValue = value.trim().toLowerCase();
-        return (root, query, cb) -> cb.equal(cb.lower(resolvePath(root, path).as(String.class)), normalizedValue);
+        List<Long> productIds = productRepository.findActiveIdsByCategoryIds(categoryIds);
+        return getProductsByIds(productIds);
     }
 
-    private Specification<Product> equalsLongIfPresent(String path, String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
+    private List<String> collectCategorySkus(GetProductRequest request) {
+        List<String> filters = new java.util.ArrayList<>();
+        if (StringUtils.hasText(request.getCategorySku())) {
+            filters.add(request.getCategorySku().trim());
         }
-
-        Long parsedValue = Long.valueOf(value.trim());
-        return (root, query, cb) -> cb.equal(resolvePath(root, path).as(Long.class), parsedValue);
+        filters.addAll(filterSkus(request.getCategorySkus()));
+        return filters.stream().distinct().toList();
     }
 
-    private Specification<Product> inStringListIfPresent(String path, List<String> values) {
-        List<String> filteredValues = featureMerchandiseHelper.filterBlank(values).stream()
+    private List<String> filterSkus(List<String> skus) {
+        if (skus == null || skus.isEmpty()) {
+            return java.util.List.of();
+        }
+        return skus.stream()
+                .filter(StringUtils::hasText)
                 .map(String::trim)
+                .distinct()
                 .toList();
-        if (filteredValues.isEmpty()) {
-            return null;
-        }
-
-        return (root, query, cb) -> resolvePath(root, path).in(filteredValues);
     }
 
-    private Specification<Product> inLongListIfPresent(String path, List<String> values) {
-        List<Long> parsedValues = featureMerchandiseHelper.filterBlank(values).stream()
-                .map(String::trim)
-                .map(Long::valueOf)
+    private List<Long> resolveCategoryIdsFromSkus(List<String> categorySkus) {
+        if (categorySkus == null || categorySkus.isEmpty()) {
+            return java.util.List.of();
+        }
+        return categoryService.getCategoriesBySkus(categorySkus).getData().stream()
+                .map(CategoryDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
                 .toList();
-        if (parsedValues.isEmpty()) {
-            return null;
-        }
-
-        return (root, query, cb) -> resolvePath(root, path).in(parsedValues);
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private Specification<Product> greaterThanOrEqualTo(String path, Comparable<?> value) {
-        if (value == null) {
-            return null;
-        }
-
-        return (root, query, cb) -> cb.greaterThanOrEqualTo(
-                (jakarta.persistence.criteria.Expression) resolvePath(root, path),
-                (Comparable) value);
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private Specification<Product> lessThanOrEqualTo(String path, Comparable<?> value) {
-        if (value == null) {
-            return null;
-        }
-
-        return (root, query, cb) -> cb.lessThanOrEqualTo(
-                (jakarta.persistence.criteria.Expression) resolvePath(root, path),
-                (Comparable) value);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> jakarta.persistence.criteria.Path<T> resolvePath(jakarta.persistence.criteria.From<?, ?> from, String path) {
-        jakarta.persistence.criteria.Path<?> current = from;
-        for (String segment : path.split("\\.")) {
-            current = current.get(segment);
-        }
-        return (jakarta.persistence.criteria.Path<T>) current;
+    private Specification<Product> categoryIdIn(List<Long> categoryIds) {
+        return (root, query, cb) -> root.get("category").get("id").in(categoryIds);
     }
 
 }

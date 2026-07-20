@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import java.util.List;
 
@@ -9,8 +10,12 @@ import java.time.LocalDateTime;
 public class AttributesSearchRequest {
     private String keyword;
     private String productId;
+    @JsonAlias({ "product_sku", "productSku" })
+    private String productSku;
     private List<String> ids;
     private List<String> productIds;
+    @JsonAlias({ "product_skus", "productSkus" })
+    private List<String> productSkus;
     private List<String> skus;
     private List<String> statuses;
     private Double minPrice;

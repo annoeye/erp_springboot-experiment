@@ -1,12 +1,9 @@
 package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 
 import com.anno.ERP_SpringBoot_Experiment.mapper.CategoryMapper;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.AuditInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Category;
 import com.anno.ERP_SpringBoot_Experiment.repository.CategoryRepository;
-import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
-import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.CategoryDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CategorySearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateCategoryRequest;
@@ -25,9 +22,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -44,8 +39,8 @@ public class CategoryService implements iCategory {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final SecurityUtil securityUtil;
-    private final Helper featureMerchandiseHelper;
     private final org.springframework.cache.CacheManager cacheManager;
+    private final MerchandiseSearchService merchandiseSearchService;
 
     @Override
     @CacheEvict(value = "categoryDetails", allEntries = true)
@@ -96,60 +91,9 @@ public class CategoryService implements iCategory {
     @Override
     @Transactional(readOnly = true)
     public Page<CategoryDto> search(@NonNull final CategorySearchRequest request) {
-        List<SearchCriteria> list = new ArrayList<>();
-
-        var names = featureMerchandiseHelper.filterBlank(request.getNames());
-        var skus = featureMerchandiseHelper.filterBlank(request.getSkus());
-        var ids = featureMerchandiseHelper.filterBlank(request.getIds()).stream()
-                .map(Long::valueOf)
-                .toList();
-
-        if (!names.isEmpty()) {
-            list.add(new SearchCriteria("name", "~", names));
-        }
-        if (!skus.isEmpty()) {
-            list.add(new SearchCriteria("skuInfo.sku", "~", skus));
-        }
-        if (!ids.isEmpty()) {
-            list.add(new SearchCriteria("id", "~", ids));
-        }
-        
-        if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
-            list.add(new SearchCriteria("name", "~", request.getKeyword()));
-        }
-
-        if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
-            list.add(new SearchCriteria("createdBy", "~", request.getCreatedBy()));
-        }
-        
-        if (request.getCreatedFrom() != null) {
-            list.add(new SearchCriteria("createdAt", ">", request.getCreatedFrom()));
-        }
-        if (request.getCreatedTo() != null) {
-            list.add(new SearchCriteria("createdAt", "<", request.getCreatedTo()));
-        }
-        if (request.getUpdatedFrom() != null) {
-            list.add(new SearchCriteria("updatedAt", ">", request.getUpdatedFrom()));
-        }
-        if (request.getUpdatedTo() != null) {
-            list.add(new SearchCriteria("updatedAt", "<", request.getUpdatedTo()));
-        }
-
-        log.info("Search criteria list: {}", list);
-
         return categoryRepository.findAll(
-                activeCategoriesOnly().and(new SpecificationBuilder<Category>(list).build()),
-                request.getPaging().pageable()).map(categoryMapper::toDto);
-    }
-
-    private Specification<Category> activeCategoriesOnly() {
-        return (root, query, cb) -> cb.and(
-                cb.or(
-                        cb.isNull(root.get("isDeleted")),
-                        cb.isFalse(root.get("isDeleted"))),
-                cb.or(
-                        cb.isNull(root.get("deletedAt")),
-                        cb.greaterThan(root.get("deletedAt"), LocalDateTime.now())));
+                merchandiseSearchService.categorySpecification(request),
+                merchandiseSearchService.pageable(request.getPaging())).map(categoryMapper::toDto);
     }
 
     @Override

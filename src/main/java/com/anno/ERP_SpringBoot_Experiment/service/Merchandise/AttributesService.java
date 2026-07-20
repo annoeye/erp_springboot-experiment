@@ -5,22 +5,17 @@ import com.anno.ERP_SpringBoot_Experiment.mapper.PromotionMapper;
 import com.anno.ERP_SpringBoot_Experiment.mapper.SpecificationMapper;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SkuInfo;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.SpecificationGroup;
-import com.anno.ERP_SpringBoot_Experiment.model.embedded.Specificationa;
 import com.anno.ERP_SpringBoot_Experiment.model.embedded.VariantOption;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Attributes;
 import com.anno.ERP_SpringBoot_Experiment.model.entity.Product;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.AttributesRepository;
 import com.anno.ERP_SpringBoot_Experiment.repository.ProductRepository;
-import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
-import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.AttributesDto;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.CreateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.UpdateAttributesRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.RedisProducerService;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantGroupInput;
-import com.anno.ERP_SpringBoot_Experiment.service.dto.request.VariantValueInput;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.response.ResponseConfig.Response;
 import com.anno.ERP_SpringBoot_Experiment.service.interfaces.iAttributes;
 import com.anno.ERP_SpringBoot_Experiment.util.SecurityUtil;
@@ -38,15 +33,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.HashMap;
 import java.util.List;
 
 
@@ -57,14 +47,13 @@ public class AttributesService implements iAttributes {
 
     private final AttributesRepository attributesRepository;
     private final ProductRepository productRepository;
-    private final Helper featureMerchandiseHelper;
     private final SpecificationMapper specificationMapper;
     private final PromotionMapper promotionMapper;
     private final AttributesMapper attributesMapper;
     private final SecurityUtil securityUtil;
     private final org.springframework.cache.CacheManager cacheManager;
-    private final jakarta.persistence.EntityManager entityManager;
     private final RedisProducerService redisProducerService;
+    private final MerchandiseSearchService merchandiseSearchService;
 
     @Override
     @Transactional
@@ -285,17 +274,21 @@ public class AttributesService implements iAttributes {
     @Override
     @Transactional(readOnly = true)
     public Page<AttributesDto> search(@NonNull AttributesSearchRequest request) {
-        List<Long> ids = searchAttributesIds(request);
+        List<String> productSkuFilters = collectProductSkus(request);
+        List<Long> productIdsFromSkus = resolveProductIdsFromSkus(productSkuFilters);
+        if (!productSkuFilters.isEmpty() && productIdsFromSkus.isEmpty()) {
+            var pageable = merchandiseSearchService.pageable(request.getPaging());
+            return Page.empty(pageable);
+        }
+
+        AttributesSearchRequest resolvedRequest = withResolvedProductIds(request, productIdsFromSkus);
+        List<Long> ids = merchandiseSearchService.searchAttributeIds(resolvedRequest);
         List<AttributesDto> content = getAttributesByIds(ids).getData();
 
-        List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
-        SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Attributes> spec = activeAttributesOnly().and(builder.build());
-
-        Pageable pageable = (request.getPaging() != null) ? request.getPaging().pageable() : PageRequest.of(0, 10);
+        var pageable = merchandiseSearchService.pageable(resolvedRequest.getPaging());
 
         long total;
-        total = attributesRepository.count(spec);
+        total = attributesRepository.count(merchandiseSearchService.attributesSpecification(resolvedRequest));
 
         return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
@@ -364,124 +357,32 @@ public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
             .collect(Collectors.toList()));
     }
 
-    private List<SearchCriteria> buildAttributesSearchCriteria(AttributesSearchRequest request) {
-        List<SearchCriteria> criteriaList = new ArrayList<>();
-
-        if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
-            criteriaList.add(new SearchCriteria("name", "~", request.getKeyword()));
+    @Override
+    @Transactional(readOnly = true)
+    public Response<List<AttributesDto>> getAttributesByProductSkus(List<String> productSkus) {
+        List<String> filters = filterSkus(productSkus);
+        if (filters.isEmpty()) {
+            return Response.ok(new ArrayList<>());
         }
 
-        if (request.getIds() != null && !request.getIds().isEmpty()) {
-            List<Long> attrIds = request.getIds().stream()
-                    .map(Long::valueOf)
-                    .toList();
-            criteriaList.add(new SearchCriteria("id", "~", attrIds));
+        List<Long> productIds = resolveProductIdsFromSkus(filters);
+        if (productIds.isEmpty()) {
+            return Response.ok(new ArrayList<>());
         }
 
-        if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
-            List<Long> prodIds = request.getProductIds().stream()
-                    .map(Long::valueOf)
-                    .toList();
-            criteriaList.add(new SearchCriteria("product.id", "~", prodIds));
-        }
-
-        if (request.getProductId() != null && !request.getProductId().isBlank()) {
-            criteriaList.add(new SearchCriteria("product.id", ":", Long.valueOf(request.getProductId().trim())));
-        }
-
-        if (request.getSkus() != null && !request.getSkus().isEmpty()) {
-            criteriaList.add(new SearchCriteria("sku.sku", "~", request.getSkus()));
-        }
-
-        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
-            criteriaList.add(new SearchCriteria("statusProduct", "~", request.getStatuses()));
-        }
-
-        if (request.getMinPrice() != null) {
-            criteriaList.add(new SearchCriteria("price", ">", request.getMinPrice()));
-        }
-        if (request.getMaxPrice() != null) {
-            criteriaList.add(new SearchCriteria("price", "<", request.getMaxPrice()));
-        }
-
-        if (request.getMinSalePrice() != null) {
-            criteriaList.add(new SearchCriteria("salePrice", ">", request.getMinSalePrice()));
-        }
-        if (request.getMaxSalePrice() != null) {
-            criteriaList.add(new SearchCriteria("salePrice", "<", request.getMaxSalePrice()));
-        }
-
-        if (request.getMinSoldQuantity() != null) {
-            criteriaList.add(new SearchCriteria("soldQuantity", ">", request.getMinSoldQuantity()));
-        }
-        if (request.getMaxSoldQuantity() != null) {
-            criteriaList.add(new SearchCriteria("soldQuantity", "<", request.getMaxSoldQuantity()));
-        }
-
-        if (request.getMinCostPrice() != null) {
-            criteriaList.add(new SearchCriteria("costPrice", ">", request.getMinCostPrice()));
-        }
-        if (request.getMaxCostPrice() != null) {
-            criteriaList.add(new SearchCriteria("costPrice", "<", request.getMaxCostPrice()));
-        }
-
-        if (request.getCreatedBy() != null && !request.getCreatedBy().isEmpty()) {
-            criteriaList.add(new SearchCriteria("createdBy", "~", request.getCreatedBy()));
-        }
-
-        if (request.getCreatedFrom() != null) {
-            criteriaList.add(new SearchCriteria("createdAt", ">", request.getCreatedFrom()));
-        }
-        if (request.getCreatedTo() != null) {
-            criteriaList.add(new SearchCriteria("createdAt", "<", request.getCreatedTo()));
-        }
-        if (request.getUpdatedFrom() != null) {
-            criteriaList.add(new SearchCriteria("updatedAt", ">", request.getUpdatedFrom()));
-        }
-        if (request.getUpdatedTo() != null) {
-            criteriaList.add(new SearchCriteria("updatedAt", "<", request.getUpdatedTo()));
-        }
-
-        return criteriaList;
+        List<Long> attributeIds = attributesRepository.findActiveIdsByProductIds(productIds);
+        return getAttributesByIds(attributeIds);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Long> searchAttributesIds(@NonNull AttributesSearchRequest request) {
-        List<SearchCriteria> criteriaList = buildAttributesSearchCriteria(request);
-        SpecificationBuilder<Attributes> builder = new SpecificationBuilder<>(criteriaList);
-        Specification<Attributes> spec = activeAttributesOnly().and(builder.build());
-
-        jakarta.persistence.criteria.CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        jakarta.persistence.criteria.CriteriaQuery<Long> query = cb.createQuery(Long.class);
-        jakarta.persistence.criteria.Root<Attributes> root = query.from(Attributes.class);
-
-        query.select(root.get("id"));
-
-        jakarta.persistence.criteria.Predicate predicate = spec.toPredicate(root, query, cb);
-        if (predicate != null) {
-            query.where(predicate);
+        List<String> productSkuFilters = collectProductSkus(request);
+        List<Long> productIdsFromSkus = resolveProductIdsFromSkus(productSkuFilters);
+        if (!productSkuFilters.isEmpty() && productIdsFromSkus.isEmpty()) {
+            return List.of();
         }
-
-        // Apply paging if specified
-        jakarta.persistence.TypedQuery<Long> typedQuery = entityManager.createQuery(query);
-        if (request.getPaging() != null) {
-            Pageable pageable = request.getPaging().pageable();
-            typedQuery.setFirstResult((int) pageable.getOffset());
-            typedQuery.setMaxResults(pageable.getPageSize());
-        }
-
-        return typedQuery.getResultList();
-    }
-
-    private Specification<Attributes> activeAttributesOnly() {
-        return (root, query, cb) -> cb.and(
-                cb.or(
-                        cb.isNull(root.get("isDeleted")),
-                        cb.isFalse(root.get("isDeleted"))),
-                cb.or(
-                        cb.isNull(root.get("deletedAt")),
-                        cb.greaterThan(root.get("deletedAt"), LocalDateTime.now())));
+        return merchandiseSearchService.searchAttributeIds(withResolvedProductIds(request, productIdsFromSkus));
     }
 
     @Override
@@ -493,5 +394,83 @@ public Response<List<AttributesDto>> getAttributesBySkus(List<String> skus) {
                 .stream()
                 .map(attributesMapper::toDto)
                 .toList();
+    }
+
+    private List<String> collectProductSkus(AttributesSearchRequest request) {
+        List<String> filters = new ArrayList<>();
+        if (org.springframework.util.StringUtils.hasText(request.getProductSku())) {
+            filters.add(request.getProductSku().trim());
+        }
+        filters.addAll(filterSkus(request.getProductSkus()));
+        return filters.stream().distinct().toList();
+    }
+
+    private List<String> filterSkus(List<String> skus) {
+        if (skus == null || skus.isEmpty()) {
+            return List.of();
+        }
+        return skus.stream()
+                .filter(org.springframework.util.StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .toList();
+    }
+
+    private List<Long> resolveProductIdsFromSkus(List<String> productSkus) {
+        if (productSkus == null || productSkus.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Long> skuToIdMap = productRepository.findIdsAndSkusBySkus(productSkus).stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[1],
+                        row -> (Long) row[0],
+                        (existing, replacement) -> existing
+                ));
+
+        return productSkus.stream()
+                .map(skuToIdMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private AttributesSearchRequest withResolvedProductIds(
+            AttributesSearchRequest request,
+            List<Long> productIdsFromSkus) {
+        if (productIdsFromSkus == null || productIdsFromSkus.isEmpty()) {
+            return request;
+        }
+
+        List<String> mergedProductIds = new ArrayList<>();
+        if (request.getProductIds() != null) {
+            mergedProductIds.addAll(request.getProductIds());
+        }
+        mergedProductIds.addAll(productIdsFromSkus.stream().map(String::valueOf).toList());
+
+        AttributesSearchRequest resolved = new AttributesSearchRequest();
+        resolved.setKeyword(request.getKeyword());
+        resolved.setProductId(request.getProductId());
+        resolved.setProductSku(request.getProductSku());
+        resolved.setIds(request.getIds());
+        resolved.setProductIds(mergedProductIds.stream().distinct().toList());
+        resolved.setProductSkus(request.getProductSkus());
+        resolved.setSkus(request.getSkus());
+        resolved.setStatuses(request.getStatuses());
+        resolved.setMinPrice(request.getMinPrice());
+        resolved.setMaxPrice(request.getMaxPrice());
+        resolved.setMinSalePrice(request.getMinSalePrice());
+        resolved.setMaxSalePrice(request.getMaxSalePrice());
+        resolved.setMinSoldQuantity(request.getMinSoldQuantity());
+        resolved.setMaxSoldQuantity(request.getMaxSoldQuantity());
+        resolved.setMinCostPrice(request.getMinCostPrice());
+        resolved.setMaxCostPrice(request.getMaxCostPrice());
+        resolved.setCreatedBy(request.getCreatedBy());
+        resolved.setCreatedFrom(request.getCreatedFrom());
+        resolved.setCreatedTo(request.getCreatedTo());
+        resolved.setUpdatedFrom(request.getUpdatedFrom());
+        resolved.setUpdatedTo(request.getUpdatedTo());
+        resolved.setPaging(request.getPaging());
+        return resolved;
     }
 }

@@ -29,4 +29,6 @@ public interface iAttributes {
     List<Long> searchAttributesIds(AttributesSearchRequest request);
 
     Response<List<AttributesDto>> getAttributesBySkus(List<String> skus);
+
+    Response<List<AttributesDto>> getAttributesByProductSkus(List<String> productSkus);
 }

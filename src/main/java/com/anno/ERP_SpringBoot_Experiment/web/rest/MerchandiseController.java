@@ -46,6 +46,10 @@ public interface MerchandiseController {
         @ResponseStatus(HttpStatus.OK)
         Response<List<ProductDto>> getProductsBySkus(@RequestParam List<String> skus);
 
+        @GetMapping("/products/by-category-skus")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<ProductDto>> getProductsByCategorySkus(@RequestParam List<String> categorySkus);
+
         /************* Product Images Management *****************/
 
         @PostMapping(value = "/add-Product-Images/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -137,4 +141,8 @@ public interface MerchandiseController {
         @GetMapping("/attributes/by-skus")
         @ResponseStatus(HttpStatus.OK)
         Response<List<AttributesDto>> getAttributesBySkus(@RequestParam List<String> skus);
+
+        @GetMapping("/attributes/by-product-skus")
+        @ResponseStatus(HttpStatus.OK)
+        Response<List<AttributesDto>> getAttributesByProductSkus(@RequestParam List<String> productSkus);
 }

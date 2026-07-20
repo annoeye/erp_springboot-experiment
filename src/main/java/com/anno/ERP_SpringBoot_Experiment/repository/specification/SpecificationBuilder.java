@@ -25,6 +25,7 @@ public class SpecificationBuilder<T> {
     }
 
     public SpecificationBuilder<T> with(String key, String operation, Object value) {
+        params.add(new SearchCriteria(key, operation, value));
         return this;
     }
 

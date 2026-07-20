@@ -1,5 +1,6 @@
 package com.anno.ERP_SpringBoot_Experiment.service.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -8,11 +9,15 @@ import java.util.List;
 public class GetProductRequest {
     private String keyword;
     private String categoryId;
+    @JsonAlias({ "category_sku", "categorySku" })
+    private String categorySku;
     private String createdBy;
     private List<String> productIds;
     private List<String> skus;
     private List<String> statuses;
     private List<String> categoryIds;
+    @JsonAlias({ "category_skus", "categorySkus" })
+    private List<String> categorySkus;
     private Integer minSoldQuantity;
     private Integer maxSoldQuantity;
     private Double minRevenue;

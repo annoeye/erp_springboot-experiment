@@ -56,7 +56,7 @@ public interface AuthController {
 
         @GetMapping("/me")
         @ResponseStatus(HttpStatus.OK)
-        @PreAuthorize("!hasRole('USER')")
+        @PreAuthorize("isAuthenticated()")
         Response<MyProfileResponse> getMyProfile();
 
         @PutMapping("/me")
@@ -71,4 +71,3 @@ public interface AuthController {
         @ResponseStatus(HttpStatus.OK)
         Response<String> changeUsername(@Valid @RequestBody final ChangeUsernameRequest body);
 }
-

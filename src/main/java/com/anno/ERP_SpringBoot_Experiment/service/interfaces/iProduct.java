@@ -24,4 +24,5 @@ public interface iProduct {
 
     Response<List<ProductDto>> getProductsByIds(List<Long> ids);
     Response<List<ProductDto>> getProductsBySkus(List<String> skus);
+    Response<List<ProductDto>> getProductsByCategorySkus(List<String> categorySkus);
 }

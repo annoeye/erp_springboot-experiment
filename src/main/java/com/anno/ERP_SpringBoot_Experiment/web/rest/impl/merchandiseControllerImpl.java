@@ -90,6 +90,12 @@ public class merchandiseControllerImpl implements MerchandiseController {
           return productService.getProductsBySkus(skus);
       }
 
+      @Override
+      @Operation(summary = "Lấy danh sách sản phẩm theo SKU danh mục", description = "Resolve SKU danh mục sang ID danh mục trước khi lấy sản phẩm")
+      public Response<List<ProductDto>> getProductsByCategorySkus(@RequestParam List<String> categorySkus) {
+          return productService.getProductsByCategorySkus(categorySkus);
+      }
+
     /************* Product Images Management *****************/
 
     @Override
@@ -233,6 +239,12 @@ public class merchandiseControllerImpl implements MerchandiseController {
     @Operation(summary = "Lấy danh sách thuộc tính theo SKUs", description = "Lấy chi tiết danh sách thuộc tính dựa trên danh sách mã SKUs")
     public Response<List<AttributesDto>> getAttributesBySkus(@RequestParam List<String> skus) {
         return attributesService.getAttributesBySkus(skus);
+    }
+
+    @Override
+    @Operation(summary = "Lấy danh sách thuộc tính theo SKU sản phẩm", description = "Resolve SKU sản phẩm sang ID sản phẩm trước khi lấy thuộc tính")
+    public Response<List<AttributesDto>> getAttributesByProductSkus(@RequestParam List<String> productSkus) {
+        return attributesService.getAttributesByProductSkus(productSkus);
     }
 
 

@@ -81,6 +81,14 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("""
             SELECT p.id FROM Product p
+            WHERE p.category.id IN :categoryIds
+            AND (p.isDeleted IS NULL OR p.isDeleted = false)
+            AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)
+            """)
+    List<Long> findActiveIdsByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
+
+    @Query("""
+            SELECT p.id FROM Product p
             WHERE p.name = :name
             AND (p.isDeleted IS NULL OR p.isDeleted = false)
             AND (p.deletedAt IS NULL OR p.deletedAt > CURRENT_TIMESTAMP)

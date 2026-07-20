@@ -125,6 +125,14 @@ public interface AttributesRepository extends JpaRepository<Attributes, Long>, J
 
         @Query("""
                         SELECT a.id FROM Attributes a
+                        WHERE a.product.id IN :productIds
+                        AND (a.isDeleted IS NULL OR a.isDeleted = false)
+                        AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
+                        """)
+        List<Long> findActiveIdsByProductIds(@Param("productIds") List<Long> productIds);
+
+        @Query("""
+                        SELECT a.id FROM Attributes a
                         WHERE a.sku.sku = :sku
                         AND (a.isDeleted IS NULL OR a.isDeleted = false)
                         AND (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
