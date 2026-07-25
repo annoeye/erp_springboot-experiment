@@ -31,7 +31,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Attributes extends BaseEntity      <Long> {
+public class Attributes extends BaseEntity<Long> {
         /**
          * Thông tin SKU (Mã sản phẩm)
          * 

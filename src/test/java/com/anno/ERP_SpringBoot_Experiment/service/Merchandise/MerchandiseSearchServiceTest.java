@@ -3,6 +3,7 @@ package com.anno.ERP_SpringBoot_Experiment.service.Merchandise;
 import com.anno.ERP_SpringBoot_Experiment.model.enums.StockStatus;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SearchCriteria;
 import com.anno.ERP_SpringBoot_Experiment.repository.specification.SpecificationBuilder;
+import com.anno.ERP_SpringBoot_Experiment.service.dto.request.AttributesSearchRequest;
 import com.anno.ERP_SpringBoot_Experiment.service.dto.request.PagingRequest;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.BusinessException;
 import com.anno.ERP_SpringBoot_Experiment.web.rest.error.ErrorCode;
@@ -89,5 +90,23 @@ class MerchandiseSearchServiceTest {
         assertThat(params).hasSize(1);
         assertThat(params.getFirst().getKey()).isEqualTo("name");
         assertThat(params.getFirst().getValue()).isEqualTo("phone");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void buildAttributesCriteria_EmptyRequest_HasNoDynamicCriteria() {
+        List<SearchCriteria> criteria = ReflectionTestUtils.invokeMethod(
+                searchService,
+                "buildAttributesCriteria",
+                new AttributesSearchRequest());
+
+        assertThat(criteria).isEmpty();
+    }
+
+    @Test
+    void attributesSpecification_EmptyRequest_ReturnsActiveOnlySpecification() {
+        var specification = searchService.attributesSpecification(new AttributesSearchRequest());
+
+        assertThat(specification).isNotNull();
     }
 }

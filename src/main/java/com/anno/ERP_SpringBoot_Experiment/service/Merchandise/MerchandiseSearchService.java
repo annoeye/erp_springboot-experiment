@@ -107,7 +107,11 @@ public class MerchandiseSearchService {
 
     public Specification<Attributes> attributesSpecification(AttributesSearchRequest request) {
         List<SearchCriteria> criteria = buildAttributesCriteria(request);
-        return this.<Attributes>activeOnly().and(new SpecificationBuilder<Attributes>(criteria).build());
+        Specification<Attributes> activeSpecification = activeOnly();
+        if (criteria.isEmpty()) {
+            return activeSpecification;
+        }
+        return activeSpecification.and(new SpecificationBuilder<Attributes>(criteria).build());
     }
 
     public List<Long> searchAttributeIds(AttributesSearchRequest request) {

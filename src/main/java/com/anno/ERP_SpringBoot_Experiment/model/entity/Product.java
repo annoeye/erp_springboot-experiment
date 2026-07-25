@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.stereotype.Indexed;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -19,7 +20,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "Product", indexes = {
-                @Index(name = "idx_product_category", columnList = "category_uuid")
+                @Index(name = "idx_product_category", columnList = "category_uuid"),
+                @Index(name = "idx_product_status", columnList = "status"),
+                @Index(name = "idx_product_sku", columnList = "SKU")
 })
 @Getter
 @Setter
